@@ -1,5 +1,5 @@
-import type { FulfillmentMode, MenuItem, RestaurantProfile } from '../../data/demoMenu'
-import { formatCurrency } from '../../lib/format'
+import type { FulfillmentMode, MenuItem, RestaurantProfile } from '../../data/brasasSazonMenu'
+import { formatCurrency, formatMenuPrice } from '../../lib/format'
 
 export type CartLine = {
   item: MenuItem
@@ -25,10 +25,14 @@ export function buildWhatsAppUrl(
   lines: CartLine[],
   details: CustomerDetails,
 ) {
-  const total = lines.reduce((sum, line) => sum + line.item.price * line.quantity, 0)
+  const total = lines.reduce((sum, line) => sum + (line.item.price ?? 0) * line.quantity, 0)
+  const hasUnknownPrices = lines.some((line) => line.item.price == null)
   const itemLines = lines
     .map((line) => {
-      const lineTotal = formatCurrency(line.item.price * line.quantity)
+      const lineTotal =
+        line.item.price == null
+          ? (line.item.priceNote ?? 'precio por confirmar')
+          : formatCurrency(line.item.price * line.quantity)
       return `- ${line.quantity} x ${line.item.name}: ${lineTotal}`
     })
     .join('\n')
@@ -45,7 +49,9 @@ export function buildWhatsAppUrl(
     '',
     itemLines,
     '',
-    `Total aproximado: ${formatCurrency(total)}`,
+    hasUnknownPrices
+      ? `Total: ${total > 0 ? `${formatCurrency(total)} + precios por confirmar` : 'por confirmar'}`
+      : `Total aproximado: ${formatMenuPrice(total)}`,
     `Entrega: ${fulfillmentLabels[details.fulfillmentMode]}`,
     fulfillmentDetail,
     details.name ? `Nombre: ${details.name}` : 'Nombre: por confirmar',

@@ -25,21 +25,22 @@ Tu carta cobra vida.
 
 ## Target Stack
 
-Phase 1, demo and early customers:
+Phase 1, MVP and early customers:
 
 - Web: Vite + React + TypeScript.
 - Styling: Tailwind CSS.
 - Ordering handoff: WhatsApp click-to-chat links.
 - Hosting: Netlify static deploy.
-- Data source: local TypeScript/JSON menu files.
+- Data source: Supabase-backed menu with local TypeScript seed fallback.
 - QR: generated QR pointing to the deployed menu URL.
+- Admin: owner login, category/product editing, availability, and image upload.
 
-Phase 2, when customers need admin or multi-tenant data:
+Phase 2, when customers need multi-tenant data and stronger operations:
 
 - Backend: Supabase first, then a custom API only when business rules require it.
 - Database: PostgreSQL through Supabase.
 - Storage: Supabase Storage or another low-cost image host.
-- Auth: seller/admin auth only when menu editing is exposed.
+- Auth: seller/admin auth with owner/restaurant restrictions.
 - Payments: keep out of phase 1; add only after WhatsApp ordering is stable.
 
 ## Agent Operating Mode
@@ -71,9 +72,37 @@ Priority order:
 7. Seller/admin tools.
 8. Visual polish.
 
+## Current MVP State
+
+```text
+QR -> Public web menu -> Cart -> WhatsApp order -> Restaurant confirms
+```
+
+Validated:
+
+- Netlify production URL is active.
+- QR opens the public menu.
+- WhatsApp order handoff works.
+- Supabase project is linked.
+- Public menu reads Supabase data with local seed fallback.
+- `/admin` login works.
+- Admin can edit menu data and upload images to `menu-assets`.
+
+Current production URL:
+
+```text
+https://brasas-sazon-menu.netlify.app
+```
+
+Current admin URL:
+
+```text
+https://brasas-sazon-menu.netlify.app/admin
+```
+
 ## Hard Rules
 
-- Do not build a heavy ecommerce backend for the first demo.
+- Do not build a heavy ecommerce backend for the first MVP.
 - Do not add payment processing until the WhatsApp ordering flow is validated with real sellers.
 - Do not make the first screen a marketing landing page; the menu must be immediately usable.
 - Keep the app mobile-first because the primary entry point is a QR scan.
@@ -86,21 +115,29 @@ Priority order:
 
 ```text
 src/
-  app/              App shell and routing
+  app/              App shell and route selection
   components/       Reusable UI
   data/             Local restaurant/menu data
   features/
+    admin/          Owner admin UI, hooks, and Supabase repositories
     menu/           Menu browsing
     order/          Cart and WhatsApp message composition
   lib/              Shared helpers
+  services/         Shared Supabase config and public menu repository
 docs/
+  architecture.md
+  scalability-map.md
   agent-operating-model.md
+  work-cycles.md
   technical-specialists.md
   quality-gates.md
   product-identity.md
   progress-dashboard.md
 public/
-  assets/           Logos, product photos, QR outputs
+  client-assets/    Restaurant source/processed assets and QR outputs
+supabase/
+  migrations/       Database schema history
+  seed.sql          Reproducible demo seed
 ```
 
 ## Common Workflow

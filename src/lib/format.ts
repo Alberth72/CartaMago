@@ -5,3 +5,7 @@ export function formatCurrency(value: number) {
     maximumFractionDigits: 0,
   }).format(value)
 }
+
+export function formatMenuPrice(value: number | null, fallback = 'Por confirmar') {
+  return value == null ? fallback : formatCurrency(value)
+}

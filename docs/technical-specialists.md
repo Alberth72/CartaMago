@@ -3,10 +3,11 @@
 ## Shared Baseline
 
 - TypeScript is the default language.
-- Phase 1 is a static frontend app.
-- Menu data starts in local typed files.
+- Phase 1 is a lightweight frontend app backed by Supabase for admin/menu data.
+- Menu data has a local typed seed fallback and a live Supabase source.
 - WhatsApp is the first ordering integration.
-- Netlify is the first hosting target.
+- Netlify is the production hosting target.
+- Supabase owns auth, PostgreSQL data, and menu image storage.
 - Tailwind CSS is the styling system.
 - Keep the interface mobile-first and immediately usable after QR scan.
 - Update docs when architecture, behavior, deployment, or team workflow changes.
@@ -65,7 +66,7 @@ Must verify:
 
 ## Data Modeling Specialist
 
-Owns local menu schemas.
+Owns menu schemas, seed data, and Supabase table shape.
 
 Must verify:
 
@@ -73,6 +74,31 @@ Must verify:
 - Prices are numbers, not display strings.
 - Categories, options, and availability are represented consistently.
 - Business-specific data stays isolated.
+- Local seed and Supabase data stay compatible.
+
+## Supabase Specialist
+
+Owns database, auth, storage, policies, and environment variables.
+
+Must verify:
+
+- Public menu reads only the intended public data.
+- Admin writes require an authenticated user.
+- Storage bucket `menu-assets` accepts owner uploads.
+- Netlify uses a public publishable/anon key, not a masked secret, for Vite.
+- Service role keys are never committed or exposed in client code.
+
+## Admin Experience Specialist
+
+Owns the restaurant-owner workflow.
+
+Must verify:
+
+- Owner can log in from `/admin`.
+- Owner can create/edit products and categories.
+- Owner can upload and preview product images.
+- Save failures are visible and actionable.
+- The public QR menu updates after admin changes.
 
 ## WhatsApp Integration Specialist
 
@@ -110,7 +136,7 @@ Must verify:
 
 ## Future Security Specialist
 
-Activated when admin editing, auth, payments, or customer/order storage exists.
+Activated for admin editing, auth, payments, customer/order storage, or multi-restaurant data.
 
 Must verify:
 
@@ -118,3 +144,14 @@ Must verify:
 - Seller data is not exposed across businesses.
 - Admin routes are protected.
 - Stored customer data has a clear purpose and retention policy.
+
+## Sales Enablement Specialist
+
+Owns client-facing narrative, proof, and adoption.
+
+Must verify:
+
+- The client understands the QR -> menu -> WhatsApp flow.
+- The value is explained in terms of faster orders and fewer mistakes.
+- The MVP is not presented as finished SaaS.
+- Known gaps such as real prices are named before selling.

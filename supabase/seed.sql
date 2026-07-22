@@ -1,0 +1,104 @@
+insert into public.restaurants (
+  id,
+  name,
+  short_name,
+  whatsapp_number,
+  location,
+  headline,
+  description,
+  fulfillment_modes,
+  hero_image_url,
+  social_handle
+) values (
+  'brasas-sazon',
+  'Brasas & Sazón',
+  'Brasas & Sazón',
+  '573104217941',
+  'Asadero y Restaurante',
+  'Tenemos el mejor sabor',
+  'Menu digital para armar pedidos de pollo, asados, bandejas, sopas, bebidas y adiciones por WhatsApp.',
+  array['pickup', 'delivery', 'table'],
+  '/client-assets/brasas-sazon/processed/hero-brasas-sazon.jpg',
+  '@brasasysazon1'
+) on conflict (id) do update set
+  name = excluded.name,
+  short_name = excluded.short_name,
+  whatsapp_number = excluded.whatsapp_number,
+  location = excluded.location,
+  headline = excluded.headline,
+  description = excluded.description,
+  fulfillment_modes = excluded.fulfillment_modes,
+  hero_image_url = excluded.hero_image_url,
+  social_handle = excluded.social_handle;
+
+insert into public.categories (id, restaurant_id, name, description, image_url, sort_order) values
+  ('pollos', 'brasas-sazon', 'Pollo', 'Pollo asado al carbon o apanado.', '/client-assets/brasas-sazon/processed/pollo.jpg', 10),
+  ('asados', 'brasas-sazon', 'Asados', 'Carnes de 300 gr con papas, arepa, queso y ensalada dulce.', '/client-assets/brasas-sazon/processed/asados.jpg', 20),
+  ('bandejas', 'brasas-sazon', 'Bandejas', 'Bandejas con sopa, arroz, frijol, maduro, huevo, ensalada y bebida.', '/client-assets/brasas-sazon/processed/bandejas.jpg', 30),
+  ('tipicos', 'brasas-sazon', 'Tipicos', 'Mondongo, sancocho, pescados y picada.', '/client-assets/brasas-sazon/processed/tipicos.jpg', 40),
+  ('sopas', 'brasas-sazon', 'Sopas', 'Sopas y consomes con arepa.', '/client-assets/brasas-sazon/processed/sopas.jpg', 50),
+  ('infantil', 'brasas-sazon', 'Infantil', 'Opciones pequenas y jugos.', '/client-assets/brasas-sazon/processed/infantil-jugos.jpg', 60),
+  ('bebidas', 'brasas-sazon', 'Bebidas', 'Limonadas, jugos y gaseosas.', '/client-assets/brasas-sazon/processed/bebidas-adiciones.jpg', 70),
+  ('adiciones', 'brasas-sazon', 'Adiciones', 'Acompanamientos y extras.', '/client-assets/brasas-sazon/processed/bebidas-adiciones.jpg', 80)
+on conflict (id) do update set
+  restaurant_id = excluded.restaurant_id,
+  name = excluded.name,
+  description = excluded.description,
+  image_url = excluded.image_url,
+  sort_order = excluded.sort_order;
+
+insert into public.products (id, restaurant_id, category_id, name, description, price_cop, badge, available, sort_order) values
+  ('pollo-entero', 'brasas-sazon', 'pollos', '1 Pollo asado al carbon', 'Incluye 4 arepas, 4 papas y maduro.', 26000, 'Especialidad', true, 10),
+  ('medio-asado', 'brasas-sazon', 'pollos', '1/2 asado', 'Media porcion de pollo asado al carbon.', 26000, null, true, 20),
+  ('cuarto-asado', 'brasas-sazon', 'pollos', '1/4 asado', 'Cuarto de pollo asado al carbon.', 26000, null, true, 30),
+  ('pollo-apanado', 'brasas-sazon', 'pollos', '1 Pollo apanado', 'Incluye 4 arepas, 4 papas y maduro.', 26000, null, true, 40),
+  ('combo-pollo', 'brasas-sazon', 'pollos', 'Pollo en combo', 'Pollo asado al carbon o apanado con 4 arepas, 4 papas, maduro y gaseosa litro.', 26000, 'Combo', true, 50),
+  ('churrasco', 'brasas-sazon', 'asados', 'Churrasco 300 gr', 'Con papa a la francesa, arepa, queso y ensalada dulce.', 26000, null, true, 60),
+  ('lomo-cerdo', 'brasas-sazon', 'asados', 'Lomo de cerdo 300 gr', 'Con papa a la francesa, arepa, queso y ensalada dulce.', 26000, null, true, 70),
+  ('punta-anca', 'brasas-sazon', 'asados', 'Punta de anca 300 gr', 'Con papa a la francesa, arepa, queso y ensalada dulce.', 26000, null, true, 80),
+  ('filete-pollo', 'brasas-sazon', 'asados', 'Filete de pollo 300 gr', 'Con papa a la francesa, arepa, queso y ensalada dulce.', 26000, null, true, 90),
+  ('chuzo-pollo', 'brasas-sazon', 'asados', 'Chuzo de pollo 300 gr', 'Con papa a la francesa, arepa, queso y ensalada dulce.', 26000, null, true, 100),
+  ('bandeja-res', 'brasas-sazon', 'bandejas', 'Bandeja con res', 'Con sopa, arroz, frijol, maduro, huevo, ensalada, jugo o limonada.', 26000, null, true, 110),
+  ('bandeja-pollo', 'brasas-sazon', 'bandejas', 'Bandeja con pollo', 'Con sopa, arroz, frijol, maduro, huevo, ensalada, jugo o limonada.', 26000, null, true, 120),
+  ('bandeja-cerdo', 'brasas-sazon', 'bandejas', 'Bandeja con cerdo', 'Con sopa, arroz, frijol, maduro, huevo, ensalada, jugo o limonada.', 26000, null, true, 130),
+  ('bandeja-paisa', 'brasas-sazon', 'bandejas', 'Bandeja paisa', 'Con frijol, arroz, huevo, arepa, maduro, ensalada, aguacate, chicharron, morcilla y chorizo.', 26000, 'Completa', true, 140),
+  ('mondongo', 'brasas-sazon', 'tipicos', 'Mondongo', 'Con porcion de arroz, arepa, aguacate y ensalada.', 26000, null, true, 150),
+  ('sancocho', 'brasas-sazon', 'tipicos', 'Sancocho', 'Con porcion de arroz, arepa, aguacate y ensalada.', 26000, null, true, 160),
+  ('tilapia', 'brasas-sazon', 'tipicos', 'Tilapia', 'Plato tipico con arroz, frijol, ensalada y acompanamientos.', 26000, null, true, 170),
+  ('picada', 'brasas-sazon', 'tipicos', 'Picada', 'Res, cerdo, pollo, chicharron, chorizo, arepas, papas y ensalada.', 26000, null, true, 180),
+  ('sopa-pollo', 'brasas-sazon', 'sopas', 'Sopa de pollo', 'Sopa o consome con arepa. Grande o pequena.', 26000, null, true, 190),
+  ('sopa-frijol', 'brasas-sazon', 'sopas', 'Sopa de frijol', 'Sopa con arepa. Grande o pequena.', 26000, null, true, 200),
+  ('salchipapas', 'brasas-sazon', 'infantil', 'Salchipapas', 'Menu infantil con papas y salchicha.', 26000, null, true, 210),
+  ('nuggets-pollo', 'brasas-sazon', 'infantil', 'Nuggets de pollo', 'Menu infantil con nuggets y papas.', 26000, null, true, 220),
+  ('jugo-agua', 'brasas-sazon', 'bebidas', 'Jugo en agua', 'Sabores: fresa, mora, mango, maracuya y guanabana.', 26000, null, true, 230),
+  ('jugo-leche', 'brasas-sazon', 'bebidas', 'Jugo en leche', 'Sabores: fresa, mora, mango, maracuya y guanabana.', 26000, null, true, 240),
+  ('limonada-natural', 'brasas-sazon', 'bebidas', 'Limonada natural', 'Limonada de la casa.', 26000, null, true, 250),
+  ('soda-michelada', 'brasas-sazon', 'bebidas', 'Soda michelada', 'Bebida refrescante preparada.', 26000, null, true, 260),
+  ('maduro-entero', 'brasas-sazon', 'adiciones', 'Maduro entero', 'Adicion para acompanar el pedido.', 26000, null, true, 270),
+  ('papas-francesa', 'brasas-sazon', 'adiciones', 'Papas a la francesa', 'Porcion de papas a la francesa.', 26000, null, true, 280),
+  ('arepa-quesito', 'brasas-sazon', 'adiciones', 'Arepa con quesito', 'Adicion para acompanar el pedido.', 26000, null, true, 290),
+  ('para-llevar', 'brasas-sazon', 'adiciones', 'Para llevar', 'Empaque para llevar. En el menu fisico aparece con $500 adicionales.', 26000, null, true, 300),
+  ('ensalada-dulce', 'brasas-sazon', 'adiciones', 'Ensalada dulce', 'Adicion para acompanar el pedido.', 26000, null, true, 310)
+on conflict (id) do update set
+  restaurant_id = excluded.restaurant_id,
+  category_id = excluded.category_id,
+  name = excluded.name,
+  description = excluded.description,
+  price_cop = excluded.price_cop,
+  badge = excluded.badge,
+  available = excluded.available,
+  sort_order = excluded.sort_order;
+
+insert into public.menu_photos (id, restaurant_id, title, image_url, sort_order) values
+  ('cover', 'brasas-sazon', 'Portada', '/client-assets/brasas-sazon/processed/menu-cover.jpg', 10),
+  ('pollo', 'brasas-sazon', 'Pollo', '/client-assets/brasas-sazon/processed/pollo.jpg', 20),
+  ('asados', 'brasas-sazon', 'Asados', '/client-assets/brasas-sazon/processed/asados.jpg', 30),
+  ('bandejas', 'brasas-sazon', 'Bandejas', '/client-assets/brasas-sazon/processed/bandejas.jpg', 40),
+  ('tipicos', 'brasas-sazon', 'Tipicos', '/client-assets/brasas-sazon/processed/tipicos.jpg', 50),
+  ('sopas', 'brasas-sazon', 'Sopas', '/client-assets/brasas-sazon/processed/sopas.jpg', 60),
+  ('bebidas-adiciones', 'brasas-sazon', 'Bebidas y adiciones', '/client-assets/brasas-sazon/processed/bebidas-adiciones.jpg', 70)
+on conflict (id) do update set
+  restaurant_id = excluded.restaurant_id,
+  title = excluded.title,
+  image_url = excluded.image_url,
+  sort_order = excluded.sort_order;

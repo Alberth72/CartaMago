@@ -10,6 +10,18 @@ CartaMago is a QR menu that helps a restaurant turn a customer's choice into a r
 
 The name is intentionally broad. It can serve a roast chicken restaurant today, then a burger shop, bakery, cafe, bar, food truck, or neighborhood store later.
 
+## White-Label Rule
+
+CartaMago is the core product and internal operating name.
+
+Each business deployment should show the restaurant brand first. For Brasas & Sazon, the public menu and admin panel should use:
+
+```text
+Brasas & Sazon
+```
+
+Do not show CartaMago in the customer-facing menu, browser title, QR flow, or restaurant admin header unless we intentionally decide to sell the platform brand.
+
 ## Positioning
 
 ```text
@@ -57,7 +69,7 @@ For the customer:
 Escanea, elige y envía tu pedido en segundos.
 ```
 
-## First Demo Context
+## First MVP Context
 
 Initial vertical:
 
@@ -65,7 +77,7 @@ Initial vertical:
 Asadero de pollos
 ```
 
-Demo should show:
+MVP should show:
 
 - Pollos enteros, medios y cuartos.
 - Combos familiares.

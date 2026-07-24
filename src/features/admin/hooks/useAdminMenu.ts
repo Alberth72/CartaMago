@@ -7,6 +7,8 @@ import {
   uploadAdminProductImage,
   upsertAdminCategory,
   upsertAdminProduct,
+  deleteAdminProduct,
+  deleteAdminCategory,
 } from '../repositories/adminMenuRepository'
 import type { AdminProductForm, AdminRestaurantForm } from '../types'
 
@@ -31,6 +33,11 @@ const emptyRestaurant: AdminRestaurantForm = {
   socialHandle: '',
 }
 
+export type ConfirmAction =
+  | { type: 'delete-product'; productId: string; productName: string }
+  | { type: 'delete-category'; categoryId: string; categoryName: string }
+  | null
+
 export function useAdminMenu() {
   const [categories, setCategories] = useState<MenuCategory[]>([])
   const [products, setProducts] = useState<MenuItem[]>([])
@@ -40,6 +47,7 @@ export function useAdminMenu() {
   const [categoryDescription, setCategoryDescription] = useState('')
   const [status, setStatus] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [confirm, setConfirm] = useState<ConfirmAction>(null)
 
   const selectedCategory = useMemo(
     () => categories.find((category) => category.id === productForm.categoryId),
@@ -151,6 +159,39 @@ export function useAdminMenu() {
     })
   }
 
+  function requestDeleteProduct(productId: string, productName: string) {
+    setConfirm({ type: 'delete-product', productId, productName })
+  }
+
+  function requestDeleteCategory(categoryId: string, categoryName: string) {
+    setConfirm({ type: 'delete-category', categoryId, categoryName })
+  }
+
+  function cancelConfirm() {
+    setConfirm(null)
+  }
+
+  async function executeConfirm() {
+    if (!confirm) return
+
+    setIsSaving(true)
+    try {
+      if (confirm.type === 'delete-product') {
+        await deleteAdminProduct(confirm.productId)
+        setStatus('Producto eliminado.')
+      } else if (confirm.type === 'delete-category') {
+        await deleteAdminCategory(confirm.categoryId)
+        setStatus('Categoria eliminada.')
+      }
+      setConfirm(null)
+      await loadMenu()
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'No se pudo eliminar.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   async function uploadImage(file: File) {
     setStatus('Subiendo imagen...')
 
@@ -206,6 +247,7 @@ export function useAdminMenu() {
     selectedCategory,
     status,
     isSaving,
+    confirm,
     setStatus,
     setCategoryName,
     setCategoryDescription,
@@ -219,6 +261,10 @@ export function useAdminMenu() {
     saveRestaurant,
     editProduct,
     newProduct,
+    requestDeleteProduct,
+    requestDeleteCategory,
+    cancelConfirm,
+    executeConfirm,
     uploadImage,
     saveProduct,
   }

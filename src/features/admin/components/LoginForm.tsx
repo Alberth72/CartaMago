@@ -20,7 +20,7 @@ export function LoginForm({
 }: LoginFormProps) {
   return (
     <form onSubmit={onSubmit} className="mx-auto mt-8 grid max-w-md gap-3 rounded-lg border border-amber-100 bg-white p-5 shadow-md">
-      <BrandMark compact title="Brasas & Sazón" subtitle="Panel del restaurante" />
+      <BrandMark compact title="Restaurante" subtitle="Panel del restaurante" />
       <input
         value={email}
         onChange={(event) => onEmailChange(event.target.value)}

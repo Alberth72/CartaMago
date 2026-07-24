@@ -4,6 +4,7 @@ import { formatCurrency, formatMenuPrice } from '../../lib/format'
 export type CartLine = {
   item: MenuItem
   quantity: number
+  note?: string
 }
 
 export type CustomerDetails = {
@@ -33,7 +34,8 @@ export function buildWhatsAppUrl(
         line.item.price == null
           ? (line.item.priceNote ?? 'precio por confirmar')
           : formatCurrency(line.item.price * line.quantity)
-      return `- ${line.quantity} x ${line.item.name}: ${lineTotal}`
+      const lineNote = line.note ? ` (${line.note})` : ''
+      return `- ${line.quantity} x ${line.item.name}${lineNote}: ${lineTotal}`
     })
     .join('\n')
 

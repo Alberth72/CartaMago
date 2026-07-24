@@ -3,7 +3,7 @@ import { AdminShell } from './AdminShell'
 
 export function AdminSetupNotice() {
   return (
-    <AdminShell title="Brasas & Sazon Admin" subtitle="Conecta Supabase para activar el panel del restaurante">
+    <AdminShell title="Admin" subtitle="Conecta Supabase para activar el panel del restaurante">
       <div className="mx-auto mt-8 max-w-3xl rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
         <div className="flex items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-900">

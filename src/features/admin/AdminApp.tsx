@@ -24,12 +24,12 @@ export function AdminApp() {
   }
 
   if (!auth.sessionReady) {
-    return <AdminShell title="Brasas & Sazon Admin" subtitle="Cargando sesion..." />
+    return <AdminShell title="Admin" subtitle="Cargando sesion..." />
   }
 
   if (!auth.isLoggedIn) {
     return (
-      <AdminShell title="Brasas & Sazon Admin" subtitle="Ingresa para editar el menu publico">
+      <AdminShell title="Admin" subtitle="Ingresa para editar el menu publico">
         <LoginForm
           email={auth.email}
           password={auth.password}
@@ -43,7 +43,7 @@ export function AdminApp() {
   }
 
   return (
-    <AdminShell title="Brasas & Sazon Admin" subtitle="Edita productos, precios, disponibilidad e imagenes">
+    <AdminShell title="Admin" subtitle="Edita productos, precios, disponibilidad e imagenes">
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[320px_1fr_420px]">
         <aside className="grid content-start gap-5">
           <RestaurantPanel

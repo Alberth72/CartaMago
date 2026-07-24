@@ -68,6 +68,11 @@ export async function upsertAdminCategory(name: string, description: string, sor
   if (error) throw new Error(error.message)
 }
 
+export async function deleteAdminCategory(id: string) {
+  const { error } = await getSupabaseClient().from('categories').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 export async function updateAdminRestaurant(form: AdminRestaurantForm, whatsappNumber: string) {
   const { restaurantId } = getSupabaseConfig()
   const { error } = await getSupabaseClient()
@@ -92,6 +97,11 @@ export async function upsertAdminProduct(product: MenuItem, sortOrder: number) {
     .from('products')
     .upsert(toProductRow(product, restaurantId, sortOrder))
 
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteAdminProduct(id: string) {
+  const { error } = await getSupabaseClient().from('products').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
 

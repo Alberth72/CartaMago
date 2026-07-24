@@ -1,6 +1,5 @@
 import { Upload } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { BrandMark } from '../../../components/BrandMark'
 
 type AdminShellProps = {
   title: string
@@ -14,7 +13,8 @@ export function AdminShell({ title, subtitle, children }: AdminShellProps) {
       <header className="border-b border-red-950 bg-stone-950 text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5">
           <div className="min-w-0">
-            <BrandMark compact inverted title={title} subtitle={subtitle} />
+            <p className="text-lg font-black text-white">{title}</p>
+            <p className="text-sm font-bold text-amber-100">{subtitle}</p>
           </div>
           <a href="/" className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm font-bold">
             <Upload size={16} />

@@ -43,25 +43,41 @@ Phase 2, when customers need multi-tenant data and stronger operations:
 - Auth: seller/admin auth with owner/restaurant restrictions.
 - Payments: keep out of phase 1; add only after WhatsApp ordering is stable.
 
-## Agent Operating Mode
+## Agent Operating Mode (Light)
 
-Use this cycle for every task:
+Use 5 rules to keep tokens low and focus high:
 
-```text
-Enfocar -> Ejecutar -> Validar -> Decidir
+### Rule 1: One-line focus (internal only)
+
+Before each task, write in `<thinking>`:
 ```
-
-Before implementation, classify the task:
-
-```text
-Frente:
-Impacto:
-Cambio minimo:
-Validacion:
-Siguiente decision:
+Frente: [name]
+Meta: [what this achieves]
+Cambio: [files to touch]
 ```
+Do not print this to the user.
 
-Priority order:
+### Rule 2: Plan + execute in one cycle
+
+No separate "here's my plan, do you approve?" step. Read, implement, validate, deliver.
+
+### Rule 3: Short delivery format
+
+Close each task with:
+```
+[what changed] + [files changed] + [build: ok/error]
+```
+No tables, no code dumps, no repeated file contents.
+
+### Rule 4: Don't re-read docs
+
+Skip `docs/agent-operating-model.md`, `docs/technical-specialists.md`, `docs/work-cycles.md` unless the task specifically requires them. Query them only when the current problem demands it.
+
+### Rule 5: Batch when safe
+
+Create or edit multiple related files in one tool call when there's no dependency between them (e.g. creating 3 new components at once).
+
+## Priority order
 
 1. Customer can scan, read, and order quickly.
 2. WhatsApp message is clear and actionable.
@@ -143,12 +159,11 @@ supabase/
 ## Common Workflow
 
 1. Inspect relevant files.
-2. Classify the task with the CartaMago operating mode.
-3. Explain the intended change briefly.
-4. Implement a small useful slice.
-5. Validate with the smallest relevant command.
-6. Update docs when architecture, behavior, runtime, deployment, or agent guidance changes.
-7. Close with changed files, validation, residual risk, and next recommended gap.
+2. Classify the task with Rule 1 (internal thinking only).
+3. Implement a small useful slice.
+4. Validate with the smallest relevant command.
+5. Update docs when architecture, behavior, runtime, deployment, or agent guidance changes.
+6. Close with short delivery format (Rule 3).
 
 ## Definition Of Done
 
@@ -158,5 +173,3 @@ Implemented
 + documented when behavior or architecture changed
 + mobile flow checked
 + residual risk named
-+ next decision clear
-```

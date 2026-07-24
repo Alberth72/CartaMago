@@ -6,8 +6,8 @@ type BrandMarkProps = {
 }
 
 export function BrandMark({
-  title = 'Brasas & Sazón',
-  subtitle = 'Asadero y Restaurante',
+  title,
+  subtitle,
   compact = false,
   inverted = false,
 }: BrandMarkProps) {

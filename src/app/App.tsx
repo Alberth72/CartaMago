@@ -1,8 +1,13 @@
-import { AdminApp } from '../features/admin/AdminApp'
-import { PublicMenuApp } from '../features/menu/PublicMenuApp'
+import { HelmetProvider } from 'react-helmet-async'
+import { BrowserRouter } from 'react-router-dom'
+import { AppRouter } from './AppRouter'
 
 export function App() {
-  const isAdminRoute = window.location.pathname.startsWith('/admin')
-
-  return isAdminRoute ? <AdminApp /> : <PublicMenuApp />
+  return (
+    <HelmetProvider>
+      <BrowserRouter>
+        <AppRouter />
+      </BrowserRouter>
+    </HelmetProvider>
+  )
 }

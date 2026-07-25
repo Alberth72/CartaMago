@@ -102,3 +102,19 @@ on conflict (id) do update set
   title = excluded.title,
   image_url = excluded.image_url,
   sort_order = excluded.sort_order;
+
+insert into public.orders (id, restaurant_id, status, customer_name, customer_note, fulfillment_mode, delivery_address, table_number, total_items, total_cop, whatsapp_message, whatsapp_link, created_at) values
+  ('ord_demo_001', 'brasas-sazon', 'pending', 'Carlos Mendez', 'Sin cebolla en las papas', 'delivery', 'Calle 10 #5-20, Barrio Centro', '', 3, 78000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x 1 Pollo asado al carbon: $26.000\n- 2 x Churrasco 300 gr: $52.000\n\nTotal aproximado: $78.000\nEntrega: Domicilio\nDireccion: Calle 10 #5-20, Barrio Centro\nNombre: Carlos Mendez\nNotas: Sin cebolla en las papas\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '2 hours'),
+  ('ord_demo_002', 'brasas-sazon', 'confirmed', 'Maria Gutierrez', '', 'pickup', '', '', 2, 52000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x Bandeja paisa: $26.000\n- 1 x Limonada natural: $26.000\n\nTotal aproximado: $52.000\nEntrega: Recoger en el local\nNombre: Maria Gutierrez\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '1 hour'),
+  ('ord_demo_003', 'brasas-sazon', 'preparing', 'Pedro Ramirez', 'Bien asada la carne', 'table', '', '5', 4, 104000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 2 x Punta de anca 300 gr: $52.000\n- 1 x Sopa de pollo: $26.000\n- 1 x Jugo en agua: $26.000\n\nTotal aproximado: $104.000\nEntrega: Mesa\nMesa: 5\nNombre: Pedro Ramirez\nNotas: Bien asada la carne\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '30 minutes')
+on conflict (id) do nothing;
+
+insert into public.order_items (id, order_id, product_id, product_name, quantity, unit_price_cop, line_note, sort_order) values
+  ('itm_demo_001', 'ord_demo_001', 'pollo-entero', '1 Pollo asado al carbon', 1, 26000, '', 10),
+  ('itm_demo_002', 'ord_demo_001', 'churrasco', 'Churrasco 300 gr', 2, 26000, 'Sin cebolla', 20),
+  ('itm_demo_003', 'ord_demo_002', 'bandeja-paisa', 'Bandeja paisa', 1, 26000, '', 10),
+  ('itm_demo_004', 'ord_demo_002', 'limonada-natural', 'Limonada natural', 1, 26000, '', 20),
+  ('itm_demo_005', 'ord_demo_003', 'punta-anca', 'Punta de anca 300 gr', 2, 26000, 'Bien asada', 10),
+  ('itm_demo_006', 'ord_demo_003', 'sopa-pollo', 'Sopa de pollo', 1, 26000, '', 20),
+  ('itm_demo_007', 'ord_demo_003', 'jugo-agua', 'Jugo en agua', 1, 26000, 'Mora', 30)
+on conflict (id) do nothing;

@@ -16,16 +16,19 @@ Customer scans -> reads fast -> orders by WhatsApp -> seller confirms
 src/
   app/              App shell and route selection
   components/       Reusable UI shared across features
-  data/             Local fallback restaurant/menu seed
+  data/
+    restaurantSeed.ts  Seed registry (multi-restaurant via registerSeed/getSeedById)
   features/
     admin/          Owner editing experience
-      components/   Admin panels and forms
+      components/   Admin panels, forms, orders management
       hooks/        Admin state and workflow commands
       repositories/ Supabase adapters for admin operations
     menu/           Public QR menu experience
     order/          Cart-to-WhatsApp message composition
   lib/              Small shared helpers
-  services/         External data access and adapters
+  services/
+    menuRepository.ts   Public menu + Supabase config (uses VITE_RESTAURANT_ID)
+    orderRepository.ts  Save/fetch/update orders
 ```
 
 This is the right shape for the current project because it separates product domains without adding framework complexity.

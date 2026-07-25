@@ -1,4 +1,4 @@
-import type { FulfillmentMode, MenuItem, RestaurantProfile } from '../../data/brasasSazonMenu'
+import type { FulfillmentMode, MenuItem, RestaurantProfile } from '../../data/restaurantSeed'
 import { formatCurrency, formatMenuPrice } from '../../lib/format'
 
 export type CartLine = {

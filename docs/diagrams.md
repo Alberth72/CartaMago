@@ -140,6 +140,95 @@ flowchart LR
   total --> wa
 ```
 
+## Order Management Flow (New)
+
+```mermaid
+flowchart TD
+  customer["Cliente escanea QR"]
+  menu["Navega el menu"]
+  cart["Arma el pedido + datos de entrega"]
+  whatsapp["Abre WhatsApp con el mensaje"]
+  saveOrder["saveOrder() guarda en Supabase"]
+  ordersTable["Tabla orders + order_items"]
+  ownerNotif["Dueno recibe notificacion en su celular"]
+  adminLogin["Admin ingresa a /admin"]
+  ordersTab["Pestaña Pedidos (default)"]
+  orderList["Lista de pedidos recibidos"]
+  orderDetail["Modal con detalle completo"]
+  statusFlow["Flujo de estado del pedido"]
+  pending["Nuevo"]
+  confirmed["Confirmado"]
+  preparing["Preparando"]
+  ready["Listo"]
+  delivered["Entregado"]
+  cancelled["Cancelado"]
+  waLink["Abrir conversacion WhatsApp"]
+  kitchen["Cocina ve el pedido en pantalla"]
+
+  customer --> menu
+  menu --> cart
+  cart --> whatsapp
+  cart --> saveOrder
+  saveOrder --> ordersTable
+  whatsapp --> ownerNotif
+  adminLogin --> ordersTab
+  ordersTab --> orderList
+  orderList --> orderDetail
+  orderDetail --> statusFlow
+  orderDetail --> waLink
+  statusFlow --> pending
+  pending --> confirmed
+  confirmed --> preparing
+  preparing --> ready
+  ready --> delivered
+  pending --> cancelled
+  confirmed --> cancelled
+  preparing --> cancelled
+  orderList --> kitchen
+```
+
+## How to Access the Orders Module
+
+```mermaid
+flowchart LR
+  url["https://brasas-sazon-menu.netlify.app/admin"]
+  login["Ingresar con email y contraseña"]
+  dashboard["Panel Admin"]
+  tabPedidos["Pestaña: Pedidos (seleccionada por defecto)"]
+  tabMenu["Pestaña: Menu (editar productos)"]
+  orderList["Lista de pedidos"]
+  clickOrder["Clic en un pedido"]
+  modal["Modal con detalle"]
+  actions["Botones de accion"]
+  wa["Abrir WhatsApp del cliente"]
+
+  url --> login
+  login --> dashboard
+  dashboard --> tabPedidos
+  dashboard --> tabMenu
+  tabPedidos --> orderList
+  orderList --> clickOrder
+  clickOrder --> modal
+  modal --> actions
+  modal --> wa
+```
+
+## Order Status Flow
+
+```mermaid
+stateDiagram-v2
+  [*] --> Nuevo: Cliente envia pedido
+  Nuevo --> Confirmado: Dueno confirma
+  Nuevo --> Cancelado: Dueno cancela
+  Confirmado --> Preparando: Cocina inicia
+  Confirmado --> Cancelado: Dueno cancela
+  Preparando --> Listo: Pedido terminado
+  Preparando --> Cancelado: Dueno cancela
+  Listo --> Entregado: Cliente recibe
+  Entregado --> [*]
+  Cancelado --> [*]
+```
+
 ## Phase Evolution
 
 ```mermaid

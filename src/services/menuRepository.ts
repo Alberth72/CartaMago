@@ -1,14 +1,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
-  categories as seedCategories,
-  menuItems as seedMenuItems,
-  menuPhotos as seedMenuPhotos,
-  restaurant as seedRestaurant,
+  getSeedById,
   type MenuCategory,
   type MenuItem,
   type MenuPhoto,
   type RestaurantProfile,
-} from '../data/brasasSazonMenu'
+} from '../data/restaurantSeed'
 
 export type MenuData = {
   restaurant: RestaurantProfile
@@ -82,11 +79,16 @@ export function getSupabaseClient() {
 }
 
 export function getSeedMenuData(): MenuData {
+  const { restaurantId } = getSupabaseConfig()
+  const seed = getSeedById(restaurantId)
+  if (!seed) {
+    throw new Error(`No seed data for restaurant: ${restaurantId}`)
+  }
   return {
-    restaurant: seedRestaurant,
-    categories: seedCategories,
-    menuItems: seedMenuItems,
-    menuPhotos: seedMenuPhotos,
+    restaurant: seed.restaurant,
+    categories: seed.categories,
+    menuItems: seed.menuItems,
+    menuPhotos: seed.menuPhotos,
     source: 'seed',
   }
 }
@@ -124,7 +126,7 @@ export async function fetchPublicMenu(): Promise<MenuData> {
         headline: restaurantResult.data.headline,
         description: restaurantResult.data.description,
         fulfillmentModes: restaurantResult.data.fulfillment_modes ?? ['pickup', 'delivery', 'table'],
-        heroImage: restaurantResult.data.hero_image_url ?? seedRestaurant.heroImage,
+        heroImage: restaurantResult.data.hero_image_url ?? getSeedById(restaurantId)?.restaurant.heroImage ?? '',
         socialHandle: restaurantResult.data.social_handle ?? '',
       },
       categories: ((categoriesResult.data ?? []) as CategoryRow[]).map((category) => ({

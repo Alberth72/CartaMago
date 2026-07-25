@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import type { MenuCategory } from '../../../data/brasasSazonMenu'
+import type { MenuCategory } from '../../../data/restaurantSeed'
 
 type CategoryPanelProps = {
   categories: MenuCategory[]

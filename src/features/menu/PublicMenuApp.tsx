@@ -1,10 +1,11 @@
 import { Helmet } from 'react-helmet-async'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BrandMark } from '../../components/BrandMark'
-import { type MenuItem } from '../../data/brasasSazonMenu'
+import { type MenuItem } from '../../data/restaurantSeed'
 import { buildWhatsAppUrl, type CustomerDetails } from '../order/orderMessage'
 import { useLocalStorage } from '../../lib/useLocalStorage'
 import { fetchPublicMenu, getSeedMenuData, type MenuData } from '../../services/menuRepository'
+import { saveOrder } from '../../services/orderRepository'
 import { CartSummary } from './components/CartSummary'
 import { CategoryNav } from './components/CategoryNav'
 import { MenuHero } from './components/MenuHero'
@@ -54,6 +55,31 @@ export function PublicMenuApp() {
   const itemCount = cartLines.reduce((sum, line) => sum + line.quantity, 0)
   const whatsappUrl = buildWhatsAppUrl(restaurant, cartLines, details)
   const activeCategoryData = categories.find((category) => category.id === activeCategory)
+
+  const handleWhatsAppClick = useCallback(() => {
+    const message = buildWhatsAppUrl(restaurant, cartLines, details)
+    const decodedMessage = decodeURIComponent(message.split('?text=')[1] ?? '')
+
+    saveOrder({
+      restaurantId: restaurant.name,
+      customerName: details.name,
+      customerNote: details.note,
+      fulfillmentMode: details.fulfillmentMode,
+      deliveryAddress: details.address,
+      tableNumber: details.table,
+      totalItems: itemCount,
+      totalCop: total,
+      whatsappMessage: decodedMessage,
+      whatsappLink: message,
+      items: cartLines.map((line) => ({
+        productId: line.item.id,
+        productName: line.item.name,
+        quantity: line.quantity,
+        unitPriceCop: line.item.price,
+        lineNote: line.note,
+      })),
+    })
+  }, [restaurant, cartLines, details, itemCount, total])
 
   function addItem(itemId: string) {
     setCart((current) => ({
@@ -169,6 +195,7 @@ export function PublicMenuApp() {
           onRemoveItem={removeItem}
           onClearItem={clearItem}
           onUpdateItemNote={updateItemNote}
+          onWhatsAppClick={handleWhatsAppClick}
         />
       </section>
 

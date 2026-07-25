@@ -1,6 +1,6 @@
 import { Minus, Plus, Send, ShoppingBag, Trash2 } from 'lucide-react'
 import { type RefObject } from 'react'
-import type { FulfillmentMode, MenuItem, RestaurantProfile } from '../../../data/brasasSazonMenu'
+import type { FulfillmentMode, MenuItem, RestaurantProfile } from '../../../data/restaurantSeed'
 import { formatCurrency } from '../../../lib/format'
 import type { CustomerDetails } from '../../order/orderMessage'
 
@@ -24,6 +24,7 @@ type OrderPanelProps = {
   onRemoveItem: (itemId: string) => void
   onClearItem: (itemId: string) => void
   onUpdateItemNote: (itemId: string, note: string) => void
+  onWhatsAppClick?: () => void
 }
 
 export function OrderPanel({
@@ -40,6 +41,7 @@ export function OrderPanel({
   onRemoveItem,
   onClearItem,
   onUpdateItemNote,
+  onWhatsAppClick,
 }: OrderPanelProps) {
   return (
     <aside ref={orderPanelRef} id="pedido" tabIndex={-1} className="scroll-mt-4 outline-none lg:sticky lg:top-4 lg:self-start">
@@ -171,6 +173,7 @@ export function OrderPanel({
             href={whatsappUrl}
             target="_blank"
             rel="noreferrer"
+            onClick={onWhatsAppClick}
             className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 text-sm font-black text-white shadow-sm hover:bg-emerald-700"
           >
             <Send size={18} aria-hidden="true" />

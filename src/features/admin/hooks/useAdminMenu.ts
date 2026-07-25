@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type FormEvent } from 'react'
-import type { MenuCategory, MenuItem } from '../../../data/brasasSazonMenu'
+import type { MenuCategory, MenuItem } from '../../../data/restaurantSeed'
 import { slugify } from '../../../services/menuRepository'
 import {
   fetchAdminMenu,

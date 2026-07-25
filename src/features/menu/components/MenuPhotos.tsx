@@ -1,4 +1,4 @@
-import type { MenuPhoto } from '../../../data/brasasSazonMenu'
+import type { MenuPhoto } from '../../../data/restaurantSeed'
 
 type MenuPhotosProps = {
   photos: MenuPhoto[]

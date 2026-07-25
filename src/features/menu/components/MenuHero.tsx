@@ -1,5 +1,5 @@
 import { Flame } from 'lucide-react'
-import type { RestaurantProfile } from '../../../data/brasasSazonMenu'
+import type { RestaurantProfile } from '../../../data/restaurantSeed'
 
 type MenuHeroProps = {
   restaurant: RestaurantProfile

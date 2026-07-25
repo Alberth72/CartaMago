@@ -1,4 +1,4 @@
-import type { MenuCategory, MenuItem } from '../../../data/brasasSazonMenu'
+import type { MenuCategory, MenuItem } from '../../../data/restaurantSeed'
 import { ProductCard } from './ProductCard'
 
 type ProductGridProps = {

@@ -1,4 +1,4 @@
-export type FulfillmentMode = 'pickup' | 'delivery' | 'table'
+export type FulfillmentMode = 'pickup' | 'local_delivery' | 'didi_food' | 'table'
 
 export type MenuCategory = {
   id: string
@@ -55,7 +55,7 @@ export const defaultSeed: RestaurantSeed = {
     headline: 'Tenemos el mejor sabor',
     description:
       'Menu digital para armar pedidos de pollo, asados, bandejas, sopas, bebidas y adiciones por WhatsApp.',
-    fulfillmentModes: ['pickup', 'delivery', 'table'],
+    fulfillmentModes: ['pickup', 'local_delivery', 'didi_food', 'table'],
     heroImage: '/client-assets/brasas-sazon/processed/hero-brasas-sazon.jpg',
     socialHandle: '@brasasysazon1',
   },

@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
   getSeedById,
+  type FulfillmentMode,
   type MenuCategory,
   type MenuItem,
   type MenuPhoto,
@@ -8,6 +9,7 @@ import {
 } from '../data/restaurantSeed'
 
 export type MenuData = {
+  restaurantId: string
   restaurant: RestaurantProfile
   categories: MenuCategory[]
   menuItems: MenuItem[]
@@ -50,6 +52,22 @@ export type RestaurantRow = {
   social_handle: string | null
 }
 
+const defaultFulfillmentModes: FulfillmentMode[] = ['pickup', 'local_delivery', 'didi_food', 'table']
+
+function normalizeFulfillmentMode(mode: string): FulfillmentMode | null {
+  if (mode === 'delivery') return 'local_delivery'
+  if (mode === 'pickup' || mode === 'local_delivery' || mode === 'didi_food' || mode === 'table') return mode
+  return null
+}
+
+function normalizeFulfillmentModes(modes: string[] | null | undefined): FulfillmentMode[] {
+  const normalized = (modes ?? [])
+    .map(normalizeFulfillmentMode)
+    .filter((mode): mode is FulfillmentMode => Boolean(mode))
+
+  return normalized.length > 0 ? normalized : defaultFulfillmentModes
+}
+
 const env = import.meta.env as Record<string, string | undefined>
 
 let supabaseClient: SupabaseClient | null = null
@@ -85,6 +103,7 @@ export function getSeedMenuData(): MenuData {
     throw new Error(`No seed data for restaurant: ${restaurantId}`)
   }
   return {
+    restaurantId,
     restaurant: seed.restaurant,
     categories: seed.categories,
     menuItems: seed.menuItems,
@@ -118,6 +137,7 @@ export async function fetchPublicMenu(): Promise<MenuData> {
     }
 
     return {
+      restaurantId,
       restaurant: {
         name: restaurantResult.data.name,
         shortName: restaurantResult.data.short_name ?? restaurantResult.data.name,
@@ -125,7 +145,7 @@ export async function fetchPublicMenu(): Promise<MenuData> {
         location: restaurantResult.data.location ?? 'Asadero y Restaurante',
         headline: restaurantResult.data.headline,
         description: restaurantResult.data.description,
-        fulfillmentModes: restaurantResult.data.fulfillment_modes ?? ['pickup', 'delivery', 'table'],
+        fulfillmentModes: normalizeFulfillmentModes(restaurantResult.data.fulfillment_modes),
         heroImage: restaurantResult.data.hero_image_url ?? getSeedById(restaurantId)?.restaurant.heroImage ?? '',
         socialHandle: restaurantResult.data.social_handle ?? '',
       },

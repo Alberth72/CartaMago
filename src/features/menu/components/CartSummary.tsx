@@ -12,7 +12,7 @@ export function CartSummary({ cartLinesCount, total, hasUnknownPrices, onReviewO
   if (cartLinesCount === 0) return null
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-amber-100 bg-white/95 p-3 shadow-lg backdrop-blur lg:hidden">
+    <div data-testid="cart-summary" className="fixed inset-x-0 bottom-0 z-20 border-t border-amber-100 bg-white/95 p-3 shadow-lg backdrop-blur lg:hidden">
       <button
         type="button"
         onClick={onReviewOrder}
@@ -25,7 +25,7 @@ export function CartSummary({ cartLinesCount, total, hasUnknownPrices, onReviewO
         <span>{hasUnknownPrices && total === 0 ? 'Por confirmar' : formatCurrency(total)}</span>
       </button>
       <p className="mx-auto mt-1 max-w-xl text-center text-[11px] font-bold text-stone-600">
-        Elige recoger, domicilio o mesa antes de enviar por WhatsApp.
+        Elige recoger, domicilio local, DiDiFood o mesa antes de enviar.
       </p>
     </div>
   )

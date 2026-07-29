@@ -17,7 +17,7 @@ insert into public.restaurants (
   'Asadero y Restaurante',
   'Tenemos el mejor sabor',
   'Menu digital para armar pedidos de pollo, asados, bandejas, sopas, bebidas y adiciones por WhatsApp.',
-  array['pickup', 'delivery', 'table'],
+  array['pickup', 'local_delivery', 'didi_food', 'table'],
   '/client-assets/brasas-sazon/processed/hero-brasas-sazon.jpg',
   '@brasasysazon1'
 ) on conflict (id) do update set

@@ -17,7 +17,8 @@ export type CustomerDetails = {
 
 const fulfillmentLabels: Record<FulfillmentMode, string> = {
   pickup: 'Recoger en el local',
-  delivery: 'Domicilio',
+  local_delivery: 'Domicilio con mensajeria del local',
+  didi_food: 'Domicilio por DiDiFood',
   table: 'Mesa',
 }
 
@@ -40,8 +41,10 @@ export function buildWhatsAppUrl(
     .join('\n')
 
   const fulfillmentDetail =
-    details.fulfillmentMode === 'delivery'
-      ? `Direccion: ${details.address || 'por confirmar'}`
+    details.fulfillmentMode === 'local_delivery'
+      ? `Direccion domicilio local: ${details.address || 'por confirmar'}`
+      : details.fulfillmentMode === 'didi_food'
+        ? `Direccion DiDiFood: ${details.address || 'por confirmar'}`
       : details.fulfillmentMode === 'table'
         ? `Mesa: ${details.table || 'por confirmar'}`
         : 'Cliente recoge en el local'

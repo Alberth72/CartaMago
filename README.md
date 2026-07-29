@@ -36,6 +36,14 @@ Asadero de pollos
 - [Agent operating model](./docs/agent-operating-model.md)
 - [Work cycles](./docs/work-cycles.md)
 - [Quality gates](./docs/quality-gates.md)
+- [Environment runbook](./docs/environment-runbook.md)
+- [Admin orders operations](./docs/admin-orders-operations.md)
+- [E2E testing plan](./docs/e2e-testing-plan.md)
+- [Load testing with k6](./docs/load-testing-k6.md)
+- [Security front](./docs/security-front.md)
+- [Security audit](./docs/security-audit.md)
+- [Security RLS validation](./docs/security-rls-validation.md)
+- [DiDiFood integration plan](./docs/didi-food-integration-plan.md)
 
 ## Local Commands
 
@@ -46,6 +54,8 @@ npm.cmd install
 npm.cmd run dev
 npm.cmd run lint
 npm.cmd run build
+npm.cmd run test:e2e
+npm.cmd run test:e2e:admin
 ```
 
 ## Source Structure

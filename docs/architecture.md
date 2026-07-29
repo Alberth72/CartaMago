@@ -42,6 +42,7 @@ Important files:
 src/app/App.tsx
 src/main.tsx
 src/features/menu/PublicMenuApp.tsx
+src/features/menu/hooks/usePublicMenuOrder.ts
 src/index.css
 ```
 
@@ -120,6 +121,12 @@ Main file:
 src/features/menu/PublicMenuApp.tsx
 ```
 
+State and commands:
+
+```text
+src/features/menu/hooks/usePublicMenuOrder.ts
+```
+
 Flow:
 
 1. Customer scans the QR and opens the public menu.
@@ -129,12 +136,29 @@ Flow:
 5. Cart total is calculated in the browser.
 6. Customer selects pickup, delivery, or table.
 7. App builds a structured WhatsApp URL.
-8. Customer sends the message; the restaurant confirms inside WhatsApp.
+8. App sends order intent to `create-order`.
+9. Customer sends the message; the restaurant confirms inside WhatsApp.
 
 WhatsApp message composition lives in:
 
 ```text
 src/features/order/orderMessage.ts
+```
+
+Public order persistence lives in:
+
+```text
+src/features/order/repositories/publicOrderRepository.ts
+supabase/functions/create-order/index.ts
+```
+
+Security boundary:
+
+```text
+Client builds intent
+Edge Function validates product availability, price, totals, rate limit, and anti-bot signals
+Supabase persists order with service role
+RLS prevents public direct writes/reads of orders
 ```
 
 The message includes:
@@ -190,6 +214,7 @@ Current split:
 - `hooks/useAdminMenu.ts` owns editable menu state and UI commands.
 - `repositories/adminAuthRepository.ts` wraps Supabase Auth calls.
 - `repositories/adminMenuRepository.ts` wraps menu queries, saves, and image uploads.
+- `repositories/adminOrderRepository.ts` wraps order inbox reads, status updates, and Realtime subscriptions.
 
 This keeps Supabase calls out of JSX and makes the next testing step clearer.
 
@@ -233,14 +258,16 @@ Current MVP includes:
 - Supabase-backed editable menu.
 - Local seed fallback.
 - Admin login and product/image editing.
+- Order inbox with Realtime subscription and polling fallback.
+- Order status event log for auditable transitions.
+- Edge Function for idempotent order creation, cart validation, and rate limiting.
 
 Current MVP intentionally excludes:
 
 - Payment processing.
 - Custom ecommerce backend.
-- In-app order dashboard.
 - Multi-tenant owner dashboard.
-- Restaurant-side order state machine.
+- Fully automated DiDiFood/payment webhooks.
 
 These should only be added after the WhatsApp ordering flow is validated with real sellers.
 
@@ -252,6 +279,9 @@ When changing architecture, keep these checks in mind:
 - The WhatsApp message must remain clear enough for staff to act on immediately.
 - Business-specific data should stay isolated behind restaurant records, env config, or seed files.
 - Supabase failures should not break the QR menu.
+- UI components should not call Supabase directly.
+- Public ordering and admin ordering should use separate repositories.
+- Edge Functions own trusted business rules; client totals are treated as hints.
 - New infrastructure needs a clear reason tied to real seller needs.
 
 Related docs:

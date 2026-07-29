@@ -19,7 +19,10 @@ function getCategoryImage(item: MenuItem, categories: MenuCategory[]) {
 
 export function ProductCard({ item, quantity, categories, note, onAdd, onRemove, onUpdateNote }: ProductCardProps) {
   return (
-    <article className="overflow-hidden rounded-lg border border-amber-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article
+      data-testid={`product-card-${item.id}`}
+      className="overflow-hidden rounded-lg border border-amber-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+    >
       <div className="relative aspect-[16/9] bg-stone-200">
         {getCategoryImage(item, categories) ? (
           <img src={getCategoryImage(item, categories)} alt={item.name} className="h-full w-full object-cover" />
@@ -53,15 +56,17 @@ export function ProductCard({ item, quantity, categories, note, onAdd, onRemove,
               <button
                 type="button"
                 onClick={() => onRemove(item.id)}
+                data-testid={`product-remove-${item.id}`}
                 className="grid h-11 place-items-center text-emerald-800"
                 aria-label={`Restar ${item.name}`}
               >
                 <Minus size={18} aria-hidden="true" />
               </button>
-              <span className="grid h-11 place-items-center text-sm font-black text-emerald-900">{quantity}</span>
+              <span data-testid={`product-quantity-${item.id}`} className="grid h-11 place-items-center text-sm font-black text-emerald-900">{quantity}</span>
               <button
                 type="button"
                 onClick={() => onAdd(item.id)}
+                data-testid={`product-add-${item.id}`}
                 className="grid h-11 place-items-center text-emerald-800"
                 aria-label={`Sumar ${item.name}`}
               >
@@ -73,6 +78,7 @@ export function ProductCard({ item, quantity, categories, note, onAdd, onRemove,
               type="button"
               onClick={() => onAdd(item.id)}
               disabled={!item.available}
+              data-testid={`product-add-${item.id}`}
               className="inline-flex h-11 items-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700 disabled:bg-stone-300"
             >
               <Plus size={18} aria-hidden="true" />
@@ -84,6 +90,7 @@ export function ProductCard({ item, quantity, categories, note, onAdd, onRemove,
           <input
             value={note}
             onChange={(e) => onUpdateNote(item.id, e.target.value)}
+            data-testid={`product-note-${item.id}`}
             placeholder="Nota: punto, salsa, sin cebolla..."
             className="h-9 w-full rounded-md border border-stone-200 px-3 text-xs outline-none focus:border-emerald-600"
           />

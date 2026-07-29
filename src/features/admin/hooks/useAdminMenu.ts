@@ -105,8 +105,8 @@ export function useAdminMenu() {
       await upsertAdminCategory(categoryName, categoryDescription, categories.length + 1)
       setCategoryName('')
       setCategoryDescription('')
-      setStatus('Categoria guardada.')
       await loadMenu()
+      setStatus('Categoria guardada.')
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'No se pudo guardar la categoria.')
     }
@@ -178,13 +178,14 @@ export function useAdminMenu() {
     try {
       if (confirm.type === 'delete-product') {
         await deleteAdminProduct(confirm.productId)
+        await loadMenu()
         setStatus('Producto eliminado.')
       } else if (confirm.type === 'delete-category') {
         await deleteAdminCategory(confirm.categoryId)
+        await loadMenu()
         setStatus('Categoria eliminada.')
       }
       setConfirm(null)
-      await loadMenu()
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'No se pudo eliminar.')
     } finally {
@@ -227,9 +228,9 @@ export function useAdminMenu() {
 
     try {
       await upsertAdminProduct(product, sortOrder)
-      setStatus('Producto guardado.')
       setProductForm({ ...emptyProduct, categoryId: productForm.categoryId })
       await loadMenu()
+      setStatus('Producto guardado.')
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'No se pudo guardar el producto.')
     } finally {

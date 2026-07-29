@@ -1,131 +1,32 @@
 import { Helmet } from 'react-helmet-async'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrandMark } from '../../components/BrandMark'
-import { type MenuItem } from '../../data/restaurantSeed'
-import { buildWhatsAppUrl, type CustomerDetails } from '../order/orderMessage'
 import { useLocalStorage } from '../../lib/useLocalStorage'
 import { fetchPublicMenu, getSeedMenuData, type MenuData } from '../../services/menuRepository'
-import { saveOrder } from '../../services/orderRepository'
 import { CartSummary } from './components/CartSummary'
 import { CategoryNav } from './components/CategoryNav'
 import { MenuHero } from './components/MenuHero'
 import { MenuPhotos } from './components/MenuPhotos'
 import { OrderPanel } from './components/OrderPanel'
 import { ProductGrid } from './components/ProductGrid'
-
-type CartState = Record<string, number>
-type CartNotes = Record<string, string>
+import { usePublicMenuOrder } from './hooks/usePublicMenuOrder'
 
 export function PublicMenuApp() {
   const [menuData, setMenuData] = useLocalStorage<MenuData>('menu-data', getSeedMenuData())
   const [activeCategory, setActiveCategory] = useState(menuData.categories[0]?.id ?? '')
-  const [cart, setCart] = useLocalStorage<CartState>('cart', {})
-  const [itemNotes, setItemNotes] = useLocalStorage<CartNotes>('item-notes', {})
-  const orderPanelRef = useRef<HTMLElement | null>(null)
-  const [details, setDetails] = useLocalStorage<CustomerDetails>('order-details', {
-    name: '',
-    note: '',
-    address: '',
-    table: '',
-    fulfillmentMode: 'pickup',
-  })
 
   useEffect(() => {
     fetchPublicMenu().then((nextMenuData) => {
       setMenuData(nextMenuData)
       setActiveCategory((current) => current || nextMenuData.categories[0]?.id || '')
     })
-  }, [])
+  }, [setMenuData])
 
   const { categories, menuItems, menuPhotos, restaurant } = menuData
+  const restaurantId = menuData.restaurantId ?? 'brasas-sazon'
   const visibleItems = menuItems.filter((item) => item.categoryId === activeCategory)
-  const cartLines = useMemo(
-    () =>
-      Object.entries(cart)
-        .map(([itemId, quantity]) => ({
-          item: menuItems.find((item) => item.id === itemId),
-          quantity,
-          note: itemNotes[itemId] ?? '',
-        }))
-        .filter((line): line is { item: MenuItem; quantity: number; note: string } => Boolean(line.item) && line.quantity > 0),
-    [cart, menuItems, itemNotes],
-  )
-  const total = cartLines.reduce((sum, line) => sum + (line.item.price ?? 0) * line.quantity, 0)
-  const hasUnknownPrices = cartLines.some((line) => line.item.price == null)
-  const itemCount = cartLines.reduce((sum, line) => sum + line.quantity, 0)
-  const whatsappUrl = buildWhatsAppUrl(restaurant, cartLines, details)
   const activeCategoryData = categories.find((category) => category.id === activeCategory)
-
-  const handleWhatsAppClick = useCallback(() => {
-    const message = buildWhatsAppUrl(restaurant, cartLines, details)
-    const decodedMessage = decodeURIComponent(message.split('?text=')[1] ?? '')
-
-    saveOrder({
-      restaurantId: restaurant.name,
-      customerName: details.name,
-      customerNote: details.note,
-      fulfillmentMode: details.fulfillmentMode,
-      deliveryAddress: details.address,
-      tableNumber: details.table,
-      totalItems: itemCount,
-      totalCop: total,
-      whatsappMessage: decodedMessage,
-      whatsappLink: message,
-      items: cartLines.map((line) => ({
-        productId: line.item.id,
-        productName: line.item.name,
-        quantity: line.quantity,
-        unitPriceCop: line.item.price,
-        lineNote: line.note,
-      })),
-    })
-  }, [restaurant, cartLines, details, itemCount, total])
-
-  function addItem(itemId: string) {
-    setCart((current) => ({
-      ...current,
-      [itemId]: (current[itemId] ?? 0) + 1,
-    }))
-  }
-
-  function removeItem(itemId: string) {
-    setCart((current) => {
-      const nextQuantity = (current[itemId] ?? 0) - 1
-      if (nextQuantity <= 0) {
-        const { [itemId]: _removed, ...rest } = current
-        return rest
-      }
-
-      return {
-        ...current,
-        [itemId]: nextQuantity,
-      }
-    })
-  }
-
-  function clearItem(itemId: string) {
-    setCart((current) => {
-      const { [itemId]: _removed, ...rest } = current
-      return rest
-    })
-  }
-
-  function updateItemNote(itemId: string, note: string) {
-    setItemNotes((current) => ({ ...current, [itemId]: note }))
-  }
-
-  function updateDetails(partial: Partial<CustomerDetails>) {
-    setDetails((current) => ({ ...current, ...partial }))
-  }
-
-  function reviewOrder() {
-    orderPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    orderPanelRef.current?.focus({ preventScroll: true })
-  }
-
-  function getItemQuantity(itemId: string) {
-    return cart[itemId] ?? 0
-  }
+  const order = usePublicMenuOrder({ restaurantId, restaurant, menuItems })
 
   const ogImage = restaurant.heroImage.startsWith('http')
     ? restaurant.heroImage
@@ -169,41 +70,41 @@ export function PublicMenuApp() {
             description={`${visibleItems.length} opciones disponibles en esta seccion.`}
             items={visibleItems}
             categories={categories}
-            itemCount={itemCount}
-            getItemQuantity={getItemQuantity}
-            onAddItem={addItem}
-            onRemoveItem={removeItem}
-            onUpdateItemNote={updateItemNote}
-            getItemNote={(id) => itemNotes[id] ?? ''}
-            onReviewOrder={reviewOrder}
+            itemCount={order.itemCount}
+            getItemQuantity={order.getItemQuantity}
+            onAddItem={order.addItem}
+            onRemoveItem={order.removeItem}
+            onUpdateItemNote={order.updateItemNote}
+            getItemNote={order.getItemNote}
+            onReviewOrder={order.reviewOrder}
           />
 
           <MenuPhotos photos={menuPhotos} />
         </div>
 
         <OrderPanel
-          cartLines={cartLines}
-          details={details}
+          cartLines={order.cartLines}
+          details={order.details}
           restaurant={restaurant}
-          total={total}
-          hasUnknownPrices={hasUnknownPrices}
-          itemCount={itemCount}
-          whatsappUrl={whatsappUrl}
-          orderPanelRef={orderPanelRef}
-          onUpdateDetails={updateDetails}
-          onAddItem={addItem}
-          onRemoveItem={removeItem}
-          onClearItem={clearItem}
-          onUpdateItemNote={updateItemNote}
-          onWhatsAppClick={handleWhatsAppClick}
+          total={order.total}
+          hasUnknownPrices={order.hasUnknownPrices}
+          itemCount={order.itemCount}
+          whatsappUrl={order.whatsappUrl}
+          orderPanelRef={order.orderPanelRef}
+          onUpdateDetails={order.updateDetails}
+          onAddItem={order.addItem}
+          onRemoveItem={order.removeItem}
+          onClearItem={order.clearItem}
+          onUpdateItemNote={order.updateItemNote}
+          onWhatsAppClick={order.handleWhatsAppClick}
         />
       </section>
 
       <CartSummary
-        cartLinesCount={cartLines.length}
-        total={total}
-        hasUnknownPrices={hasUnknownPrices}
-        onReviewOrder={reviewOrder}
+        cartLinesCount={order.cartLines.length}
+        total={order.total}
+        hasUnknownPrices={order.hasUnknownPrices}
+        onReviewOrder={order.reviewOrder}
       />
     </main>
   )

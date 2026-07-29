@@ -5,9 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:localdb": "vite --mode localdb",
     "build": "tsc -b && vite build",
+    "build:localdb": "tsc -b && vite build --mode localdb",
     "lint": "oxlint",
     "preview": "vite preview",
+    "preview:local": "vite preview --host 127.0.0.1 --port 4175",
+    "test:e2e": "playwright test",
+    "test:e2e:admin": "playwright test --config playwright.admin.config.ts",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:stress": "node scripts/run-k6.mjs",
+    "test:stress:cloud": "node scripts/run-k6.mjs cloud",
     "supabase:create-admin": "node scripts/create-supabase-admin.mjs"
   },
   "dependencies": {
@@ -17,10 +26,11 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-helmet-async": "^3.0.0",
-    "react-router-dom": "^7.18.1",
+    "react-router": "8.3.0",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

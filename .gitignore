@@ -12,6 +12,8 @@ node_modules
 dist
 dist-ssr
 *.local
+playwright-report/
+test-results/
 src/assets/
 public/client-assets/**/raw/
 

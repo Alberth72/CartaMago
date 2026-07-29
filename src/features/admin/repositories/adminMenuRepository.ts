@@ -1,4 +1,5 @@
 import type { MenuItem } from '../../../data/restaurantSeed'
+import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
 import {
   getSupabaseClient,
   getSupabaseConfig,
@@ -9,8 +10,21 @@ import {
   type RestaurantRow,
 } from '../../../services/menuRepository'
 import type { AdminMenuData, AdminRestaurantForm } from '../types'
+import {
+  deleteMockAdminCategory,
+  deleteMockAdminProduct,
+  fetchMockAdminMenu,
+  updateMockAdminRestaurant,
+  uploadMockAdminProductImage,
+  upsertMockAdminCategory,
+  upsertMockAdminProduct,
+} from './adminMockRepository'
 
 export async function fetchAdminMenu(): Promise<AdminMenuData> {
+  if (isE2EAdminMockEnabled()) {
+    return fetchMockAdminMenu()
+  }
+
   const supabase = getSupabaseClient()
   const { restaurantId } = getSupabaseConfig()
   const [restaurantResult, categoriesResult, productsResult] = await Promise.all([
@@ -55,6 +69,11 @@ export async function fetchAdminMenu(): Promise<AdminMenuData> {
 }
 
 export async function upsertAdminCategory(name: string, description: string, sortOrder: number) {
+  if (isE2EAdminMockEnabled()) {
+    await upsertMockAdminCategory(name, description)
+    return
+  }
+
   const { restaurantId } = getSupabaseConfig()
   const { error } = await getSupabaseClient().from('categories').upsert({
     id: slugify(name),
@@ -69,11 +88,21 @@ export async function upsertAdminCategory(name: string, description: string, sor
 }
 
 export async function deleteAdminCategory(id: string) {
+  if (isE2EAdminMockEnabled()) {
+    await deleteMockAdminCategory(id)
+    return
+  }
+
   const { error } = await getSupabaseClient().from('categories').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
 
 export async function updateAdminRestaurant(form: AdminRestaurantForm, whatsappNumber: string) {
+  if (isE2EAdminMockEnabled()) {
+    await updateMockAdminRestaurant(form, whatsappNumber)
+    return
+  }
+
   const { restaurantId } = getSupabaseConfig()
   const { error } = await getSupabaseClient()
     .from('restaurants')
@@ -92,6 +121,11 @@ export async function updateAdminRestaurant(form: AdminRestaurantForm, whatsappN
 }
 
 export async function upsertAdminProduct(product: MenuItem, sortOrder: number) {
+  if (isE2EAdminMockEnabled()) {
+    await upsertMockAdminProduct(product)
+    return
+  }
+
   const { restaurantId } = getSupabaseConfig()
   const { error } = await getSupabaseClient()
     .from('products')
@@ -101,11 +135,20 @@ export async function upsertAdminProduct(product: MenuItem, sortOrder: number) {
 }
 
 export async function deleteAdminProduct(id: string) {
+  if (isE2EAdminMockEnabled()) {
+    await deleteMockAdminProduct(id)
+    return
+  }
+
   const { error } = await getSupabaseClient().from('products').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
 
 export async function uploadAdminProductImage(file: File, productName: string) {
+  if (isE2EAdminMockEnabled()) {
+    return uploadMockAdminProductImage(file, productName)
+  }
+
   const supabase = getSupabaseClient()
   const { restaurantId, storageBucket } = getSupabaseConfig()
   const extension = file.name.split('.').pop() ?? 'jpg'

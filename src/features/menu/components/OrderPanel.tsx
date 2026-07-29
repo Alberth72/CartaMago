@@ -6,7 +6,8 @@ import type { CustomerDetails } from '../../order/orderMessage'
 
 const fulfillmentLabels: Record<FulfillmentMode, string> = {
   pickup: 'Recoger',
-  delivery: 'Domicilio',
+  local_delivery: 'Domicilio local',
+  didi_food: 'DiDiFood',
   table: 'Mesa',
 }
 
@@ -44,7 +45,7 @@ export function OrderPanel({
   onWhatsAppClick,
 }: OrderPanelProps) {
   return (
-    <aside ref={orderPanelRef} id="pedido" tabIndex={-1} className="scroll-mt-4 outline-none lg:sticky lg:top-4 lg:self-start">
+    <aside ref={orderPanelRef} id="pedido" tabIndex={-1} data-testid="order-panel" className="scroll-mt-4 outline-none lg:sticky lg:top-4 lg:self-start">
       <div className="rounded-lg border border-amber-100 bg-white p-4 shadow-md">
         <div className="flex items-center justify-between">
           <div>
@@ -56,7 +57,7 @@ export function OrderPanel({
           </span>
         </div>
 
-        <div className="mt-4 space-y-3" aria-live="polite" aria-atomic="true">
+        <div data-testid="cart-lines" className="mt-4 space-y-3" aria-live="polite" aria-atomic="true">
           {cartLines.length === 0 ? (
             <p className="rounded-md bg-stone-50 p-4 text-sm leading-6 text-stone-700">
               Agrega productos del menu para armar el mensaje de WhatsApp.
@@ -112,12 +113,13 @@ export function OrderPanel({
           )}
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2">
           {restaurant.fulfillmentModes.map((mode) => (
             <button
               key={mode}
               type="button"
               onClick={() => onUpdateDetails({ fulfillmentMode: mode })}
+              data-testid={`fulfillment-${mode}`}
               className={`rounded-md border px-2 py-2 text-sm font-black ${
                 details.fulfillmentMode === mode
                   ? 'border-red-900 bg-red-50 text-red-900'
@@ -133,14 +135,25 @@ export function OrderPanel({
           <input
             value={details.name}
             onChange={(event) => onUpdateDetails({ name: event.target.value })}
+            data-testid="customer-name"
             placeholder="Tu nombre"
             className="h-11 w-full rounded-md border border-stone-200 px-3 text-sm outline-none focus:border-emerald-600"
           />
-          {details.fulfillmentMode === 'delivery' ? (
+          {details.fulfillmentMode === 'local_delivery' ? (
             <input
               value={details.address}
               onChange={(event) => onUpdateDetails({ address: event.target.value })}
-              placeholder="Direccion para domicilio"
+              data-testid="delivery-address"
+              placeholder="Direccion para domicilio local"
+              className="h-11 w-full rounded-md border border-stone-200 px-3 text-sm outline-none focus:border-emerald-600"
+            />
+          ) : null}
+          {details.fulfillmentMode === 'didi_food' ? (
+            <input
+              value={details.address}
+              onChange={(event) => onUpdateDetails({ address: event.target.value })}
+              data-testid="didi-food-address"
+              placeholder="Direccion para DiDiFood"
               className="h-11 w-full rounded-md border border-stone-200 px-3 text-sm outline-none focus:border-emerald-600"
             />
           ) : null}
@@ -148,6 +161,7 @@ export function OrderPanel({
             <input
               value={details.table}
               onChange={(event) => onUpdateDetails({ table: event.target.value })}
+              data-testid="table-number"
               placeholder="Numero de mesa"
               className="h-11 w-full rounded-md border border-stone-200 px-3 text-sm outline-none focus:border-emerald-600"
             />
@@ -155,6 +169,7 @@ export function OrderPanel({
           <textarea
             value={details.note}
             onChange={(event) => onUpdateDetails({ note: event.target.value })}
+            data-testid="customer-note"
             placeholder="Notas generales para todo el pedido..."
             rows={3}
             className="w-full resize-none rounded-md border border-stone-200 px-3 py-2 text-sm outline-none focus:border-emerald-600"
@@ -165,7 +180,7 @@ export function OrderPanel({
           <span className="text-sm font-bold text-stone-500">
             {hasUnknownPrices ? 'Total conocido' : 'Total aprox.'}
           </span>
-          <span className="text-2xl font-black">{hasUnknownPrices && total === 0 ? 'Por confirmar' : formatCurrency(total)}</span>
+          <span data-testid="cart-total" className="text-2xl font-black">{hasUnknownPrices && total === 0 ? 'Por confirmar' : formatCurrency(total)}</span>
         </div>
 
         {cartLines.length > 0 ? (
@@ -174,6 +189,7 @@ export function OrderPanel({
             target="_blank"
             rel="noreferrer"
             onClick={onWhatsAppClick}
+            data-testid="whatsapp-link"
             className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 text-sm font-black text-white shadow-sm hover:bg-emerald-700"
           >
             <Send size={18} aria-hidden="true" />
@@ -183,6 +199,7 @@ export function OrderPanel({
           <button
             type="button"
             disabled
+            data-testid="whatsapp-disabled"
             className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-stone-200 text-sm font-black text-stone-500 shadow-sm"
           >
             <Send size={18} aria-hidden="true" />

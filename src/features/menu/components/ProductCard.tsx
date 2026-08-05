@@ -1,36 +1,34 @@
 import { Minus, Plus } from 'lucide-react'
-import type { MenuCategory, MenuItem } from '../../../data/restaurantSeed'
+import type { MenuItem } from '../../../data/restaurantSeed'
 import { formatMenuPrice } from '../../../lib/format'
+
+const productPlaceholderImage = '/client-assets/brasas-sazon/processed/product-placeholder-preparing.png'
 
 type ProductCardProps = {
   item: MenuItem
   quantity: number
-  categories: MenuCategory[]
   note: string
   onAdd: (itemId: string) => void
   onRemove: (itemId: string) => void
   onUpdateNote: (itemId: string, note: string) => void
 }
 
-function getCategoryImage(item: MenuItem, categories: MenuCategory[]) {
-  const category = categories.find((candidate) => candidate.id === item.categoryId)
-  return item.imageUrl ?? category?.image
-}
+export function ProductCard({ item, quantity, note, onAdd, onRemove, onUpdateNote }: ProductCardProps) {
+  const productImage = item.imageUrl ?? productPlaceholderImage
+  const imageAlt = item.imageUrl ? item.name : `${item.name}: foto en preparacion`
 
-export function ProductCard({ item, quantity, categories, note, onAdd, onRemove, onUpdateNote }: ProductCardProps) {
   return (
     <article
       data-testid={`product-card-${item.id}`}
       className="overflow-hidden rounded-lg border border-amber-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
     >
       <div className="relative aspect-[16/9] bg-stone-200">
-        {getCategoryImage(item, categories) ? (
-          <img src={getCategoryImage(item, categories)} alt={item.name} className="h-full w-full object-cover" />
-        ) : (
-          <div className="grid h-full place-items-center bg-stone-100 text-sm font-bold text-stone-400">
-            Menu
+        <img src={productImage} alt={imageAlt} className="h-full w-full object-cover" />
+        {!item.imageUrl ? (
+          <div className="absolute left-3 top-3 rounded-md bg-white/90 px-2.5 py-1 text-xs font-black text-stone-800 shadow-sm">
+            Foto en preparacion
           </div>
-        )}
+        ) : null}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-950/80 to-transparent p-3">
           <p className="text-xl font-black text-white">{formatMenuPrice(item.price)}</p>
         </div>

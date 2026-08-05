@@ -56,7 +56,7 @@ export const defaultSeed: RestaurantSeed = {
     description:
       'Menu digital para armar pedidos de pollo, asados, bandejas, sopas, bebidas y adiciones por WhatsApp.',
     fulfillmentModes: ['pickup', 'local_delivery', 'didi_food', 'table'],
-    heroImage: '/client-assets/brasas-sazon/processed/hero-brasas-sazon.jpg',
+    heroImage: '/client-assets/brasas-sazon/processed/product-placeholder-preparing.png',
     socialHandle: '@brasasysazon1',
   },
   categories: [
@@ -64,49 +64,41 @@ export const defaultSeed: RestaurantSeed = {
       id: 'pollos',
       name: 'Pollo',
       description: 'Pollo asado al carbon o apanado.',
-      image: '/client-assets/brasas-sazon/processed/pollo.jpg',
     },
     {
       id: 'asados',
       name: 'Asados',
       description: 'Carnes de 300 gr con papas, arepa, queso y ensalada dulce.',
-      image: '/client-assets/brasas-sazon/processed/asados.jpg',
     },
     {
       id: 'bandejas',
       name: 'Bandejas',
       description: 'Bandejas con sopa, arroz, frijol, maduro, huevo, ensalada y bebida.',
-      image: '/client-assets/brasas-sazon/processed/bandejas.jpg',
     },
     {
       id: 'tipicos',
       name: 'Tipicos',
       description: 'Mondongo, sancocho, pescados y picada.',
-      image: '/client-assets/brasas-sazon/processed/tipicos.jpg',
     },
     {
       id: 'sopas',
       name: 'Sopas',
       description: 'Sopas y consomes con arepa.',
-      image: '/client-assets/brasas-sazon/processed/sopas.jpg',
     },
     {
       id: 'infantil',
       name: 'Infantil',
       description: 'Opciones pequenas y jugos.',
-      image: '/client-assets/brasas-sazon/processed/infantil-jugos.jpg',
     },
     {
       id: 'bebidas',
       name: 'Bebidas',
       description: 'Limonadas, jugos y gaseosas.',
-      image: '/client-assets/brasas-sazon/processed/bebidas-adiciones.jpg',
     },
     {
       id: 'adiciones',
       name: 'Adiciones',
       description: 'Acompanamientos y extras.',
-      image: '/client-assets/brasas-sazon/processed/bebidas-adiciones.jpg',
     },
   ],
   menuItems: [
@@ -142,15 +134,7 @@ export const defaultSeed: RestaurantSeed = {
     { id: 'para-llevar', categoryId: 'adiciones', name: 'Para llevar', description: 'Empaque para llevar. En el menu fisico aparece con $500 adicionales.', price: 26000, available: true },
     { id: 'ensalada-dulce', categoryId: 'adiciones', name: 'Ensalada dulce', description: 'Adicion para acompanar el pedido.', price: 26000, available: true },
   ],
-  menuPhotos: [
-    { id: 'cover', title: 'Portada', image: '/client-assets/brasas-sazon/processed/menu-cover.jpg' },
-    { id: 'pollo', title: 'Pollo', image: '/client-assets/brasas-sazon/processed/pollo.jpg' },
-    { id: 'asados', title: 'Asados', image: '/client-assets/brasas-sazon/processed/asados.jpg' },
-    { id: 'bandejas', title: 'Bandejas', image: '/client-assets/brasas-sazon/processed/bandejas.jpg' },
-    { id: 'tipicos', title: 'Tipicos', image: '/client-assets/brasas-sazon/processed/tipicos.jpg' },
-    { id: 'sopas', title: 'Sopas', image: '/client-assets/brasas-sazon/processed/sopas.jpg' },
-    { id: 'bebidas-adiciones', title: 'Bebidas y adiciones', image: '/client-assets/brasas-sazon/processed/bebidas-adiciones.jpg' },
-  ],
+  menuPhotos: [],
 }
 
 const seedRegistry = new Map<string, RestaurantSeed>([

@@ -71,7 +71,7 @@ No tables, no code dumps, no repeated file contents.
 
 ### Rule 4: Don't re-read docs
 
-Skip `docs/agent-operating-model.md`, `docs/technical-specialists.md`, `docs/work-cycles.md` unless the task specifically requires them. Query them only when the current problem demands it.
+Skip `docs/agent-operating-model.md`, `docs/technical-specialists.md`, `docs/work-cycles.md`, `docs/multi-agent-operating-model.md` unless the task specifically requires them. Query them only when the current problem demands it.
 
 ### Rule 5: Batch when safe
 
@@ -144,6 +144,7 @@ docs/
   architecture.md
   scalability-map.md
   agent-operating-model.md
+  multi-agent-operating-model.md
   work-cycles.md
   technical-specialists.md
   quality-gates.md

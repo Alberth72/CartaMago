@@ -18,7 +18,7 @@ insert into public.restaurants (
   'Tenemos el mejor sabor',
   'Menu digital para armar pedidos de pollo, asados, bandejas, sopas, bebidas y adiciones por WhatsApp.',
   array['pickup', 'local_delivery', 'didi_food', 'table'],
-  '/client-assets/brasas-sazon/processed/hero-brasas-sazon.jpg',
+  '/client-assets/brasas-sazon/processed/product-placeholder-preparing.png',
   '@brasasysazon1'
 ) on conflict (id) do update set
   name = excluded.name,
@@ -32,14 +32,14 @@ insert into public.restaurants (
   social_handle = excluded.social_handle;
 
 insert into public.categories (id, restaurant_id, name, description, image_url, sort_order) values
-  ('pollos', 'brasas-sazon', 'Pollo', 'Pollo asado al carbon o apanado.', '/client-assets/brasas-sazon/processed/pollo.jpg', 10),
-  ('asados', 'brasas-sazon', 'Asados', 'Carnes de 300 gr con papas, arepa, queso y ensalada dulce.', '/client-assets/brasas-sazon/processed/asados.jpg', 20),
-  ('bandejas', 'brasas-sazon', 'Bandejas', 'Bandejas con sopa, arroz, frijol, maduro, huevo, ensalada y bebida.', '/client-assets/brasas-sazon/processed/bandejas.jpg', 30),
-  ('tipicos', 'brasas-sazon', 'Tipicos', 'Mondongo, sancocho, pescados y picada.', '/client-assets/brasas-sazon/processed/tipicos.jpg', 40),
-  ('sopas', 'brasas-sazon', 'Sopas', 'Sopas y consomes con arepa.', '/client-assets/brasas-sazon/processed/sopas.jpg', 50),
-  ('infantil', 'brasas-sazon', 'Infantil', 'Opciones pequenas y jugos.', '/client-assets/brasas-sazon/processed/infantil-jugos.jpg', 60),
-  ('bebidas', 'brasas-sazon', 'Bebidas', 'Limonadas, jugos y gaseosas.', '/client-assets/brasas-sazon/processed/bebidas-adiciones.jpg', 70),
-  ('adiciones', 'brasas-sazon', 'Adiciones', 'Acompanamientos y extras.', '/client-assets/brasas-sazon/processed/bebidas-adiciones.jpg', 80)
+  ('pollos', 'brasas-sazon', 'Pollo', 'Pollo asado al carbon o apanado.', null, 10),
+  ('asados', 'brasas-sazon', 'Asados', 'Carnes de 300 gr con papas, arepa, queso y ensalada dulce.', null, 20),
+  ('bandejas', 'brasas-sazon', 'Bandejas', 'Bandejas con sopa, arroz, frijol, maduro, huevo, ensalada y bebida.', null, 30),
+  ('tipicos', 'brasas-sazon', 'Tipicos', 'Mondongo, sancocho, pescados y picada.', null, 40),
+  ('sopas', 'brasas-sazon', 'Sopas', 'Sopas y consomes con arepa.', null, 50),
+  ('infantil', 'brasas-sazon', 'Infantil', 'Opciones pequenas y jugos.', null, 60),
+  ('bebidas', 'brasas-sazon', 'Bebidas', 'Limonadas, jugos y gaseosas.', null, 70),
+  ('adiciones', 'brasas-sazon', 'Adiciones', 'Acompanamientos y extras.', null, 80)
 on conflict (id) do update set
   restaurant_id = excluded.restaurant_id,
   name = excluded.name,
@@ -89,24 +89,12 @@ on conflict (id) do update set
   available = excluded.available,
   sort_order = excluded.sort_order;
 
-insert into public.menu_photos (id, restaurant_id, title, image_url, sort_order) values
-  ('cover', 'brasas-sazon', 'Portada', '/client-assets/brasas-sazon/processed/menu-cover.jpg', 10),
-  ('pollo', 'brasas-sazon', 'Pollo', '/client-assets/brasas-sazon/processed/pollo.jpg', 20),
-  ('asados', 'brasas-sazon', 'Asados', '/client-assets/brasas-sazon/processed/asados.jpg', 30),
-  ('bandejas', 'brasas-sazon', 'Bandejas', '/client-assets/brasas-sazon/processed/bandejas.jpg', 40),
-  ('tipicos', 'brasas-sazon', 'Tipicos', '/client-assets/brasas-sazon/processed/tipicos.jpg', 50),
-  ('sopas', 'brasas-sazon', 'Sopas', '/client-assets/brasas-sazon/processed/sopas.jpg', 60),
-  ('bebidas-adiciones', 'brasas-sazon', 'Bebidas y adiciones', '/client-assets/brasas-sazon/processed/bebidas-adiciones.jpg', 70)
-on conflict (id) do update set
-  restaurant_id = excluded.restaurant_id,
-  title = excluded.title,
-  image_url = excluded.image_url,
-  sort_order = excluded.sort_order;
+delete from public.menu_photos where restaurant_id = 'brasas-sazon';
 
-insert into public.orders (id, restaurant_id, status, customer_name, customer_note, fulfillment_mode, delivery_address, table_number, total_items, total_cop, whatsapp_message, whatsapp_link, created_at) values
-  ('ord_demo_001', 'brasas-sazon', 'pending', 'Carlos Mendez', 'Sin cebolla en las papas', 'delivery', 'Calle 10 #5-20, Barrio Centro', '', 3, 78000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x 1 Pollo asado al carbon: $26.000\n- 2 x Churrasco 300 gr: $52.000\n\nTotal aproximado: $78.000\nEntrega: Domicilio\nDireccion: Calle 10 #5-20, Barrio Centro\nNombre: Carlos Mendez\nNotas: Sin cebolla en las papas\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '2 hours'),
-  ('ord_demo_002', 'brasas-sazon', 'confirmed', 'Maria Gutierrez', '', 'pickup', '', '', 2, 52000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x Bandeja paisa: $26.000\n- 1 x Limonada natural: $26.000\n\nTotal aproximado: $52.000\nEntrega: Recoger en el local\nNombre: Maria Gutierrez\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '1 hour'),
-  ('ord_demo_003', 'brasas-sazon', 'preparing', 'Pedro Ramirez', 'Bien asada la carne', 'table', '', '5', 4, 104000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 2 x Punta de anca 300 gr: $52.000\n- 1 x Sopa de pollo: $26.000\n- 1 x Jugo en agua: $26.000\n\nTotal aproximado: $104.000\nEntrega: Mesa\nMesa: 5\nNombre: Pedro Ramirez\nNotas: Bien asada la carne\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '30 minutes')
+insert into public.orders (id, restaurant_id, status, payment_status, payment_method, payment_provider, customer_name, customer_note, fulfillment_mode, delivery_address, table_number, total_items, total_cop, whatsapp_message, whatsapp_link, created_at) values
+  ('ord_demo_001', 'brasas-sazon', 'pending', 'pending', 'cash', 'manual', 'Carlos Mendez', 'Sin cebolla en las papas', 'delivery', 'Calle 10 #5-20, Barrio Centro', '', 3, 78000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x 1 Pollo asado al carbon: $26.000\n- 2 x Churrasco 300 gr: $52.000\n\nTotal aproximado: $78.000\nEntrega: Domicilio\nPago: Efectivo\nDireccion: Calle 10 #5-20, Barrio Centro\nNombre: Carlos Mendez\nNotas: Sin cebolla en las papas\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '2 hours'),
+  ('ord_demo_002', 'brasas-sazon', 'confirmed', 'paid', 'bank_transfer', 'manual', 'Maria Gutierrez', '', 'pickup', '', '', 2, 52000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x Bandeja paisa: $26.000\n- 1 x Limonada natural: $26.000\n\nTotal aproximado: $52.000\nEntrega: Recoger en el local\nPago: Transferencia\nNombre: Maria Gutierrez\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '1 hour'),
+  ('ord_demo_003', 'brasas-sazon', 'preparing', 'pending', 'card_at_table', 'manual', 'Pedro Ramirez', 'Bien asada la carne', 'table', '', '5', 4, 104000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 2 x Punta de anca 300 gr: $52.000\n- 1 x Sopa de pollo: $26.000\n- 1 x Jugo en agua: $26.000\n\nTotal aproximado: $104.000\nEntrega: Mesa\nMesa: 5\nPago: Tarjeta en mesa\nNombre: Pedro Ramirez\nNotas: Bien asada la carne\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '30 minutes')
 on conflict (id) do nothing;
 
 insert into public.order_items (id, order_id, product_id, product_name, quantity, unit_price_cop, line_note, sort_order) values

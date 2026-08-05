@@ -41,5 +41,27 @@ test('creates a category and product in the mock admin panel', async ({ page }) 
   await page.getByRole('button', { name: 'Guardar producto' }).click()
 
   await expect(page.getByText('Producto guardado.')).toBeVisible()
-  await expect(page.getByRole('button', { name: /producto e2e/i })).toBeVisible()
+  await expect(page.getByText('Producto E2E').first()).toBeVisible()
+  await expect(page.getByText('Imagen por defecto').first()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Eliminar' }).last().click()
+  await expect(page.getByText(/eliminar producto "producto e2e"/i)).toBeVisible()
+  await page.getByRole('button', { name: 'Eliminar' }).last().click()
+
+  await expect(page.getByText('Producto eliminado.')).toBeVisible()
+  await expect(page.getByText('Producto E2E')).toHaveCount(0)
+})
+
+test('filters products by the selected category in the admin panel', async ({ page }) => {
+  await login(page)
+  await page.getByRole('button', { name: 'Menu' }).click()
+
+  await page.getByRole('button', { name: /bandejas/i }).click()
+  await expect(page.getByText('4 productos en Bandejas')).toBeVisible()
+  await expect(page.getByText('Bandeja con res')).toBeVisible()
+  await expect(page.getByText('Bandeja paisa')).toBeVisible()
+  await expect(page.getByText('1 Pollo asado al carbon')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Nuevo' }).click()
+  await expect(page.getByRole('combobox')).toHaveValue('bandejas')
 })

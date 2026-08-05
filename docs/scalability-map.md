@@ -69,7 +69,7 @@ Supabase rows -> menuRepository -> UI models -> public menu/admin
 Fallback path:
 
 ```text
-brasasSazonMenu.ts -> menuRepository -> UI models
+restaurantSeed.ts -> menuRepository -> UI models
 ```
 
 Next scalable data decisions:
@@ -122,7 +122,7 @@ Safe to keep out of source control:
 
 Must stay in source control:
 
-- `src/data/brasasSazonMenu.ts` as fallback seed.
+- `src/data/restaurantSeed.ts` as fallback seed.
 - `supabase/migrations/` for schema history.
 - `supabase/seed.sql` for reproducible demo data.
 - `public/client-assets/brasas-sazon/processed/` assets used by the public menu.

@@ -26,10 +26,10 @@ The current file-based menu is the MVP fallback seed. The live public menu reads
 
 ## Current MVP Seed
 
-The current menu lives in:
+The current seed fallback lives in:
 
 ```text
-src/data/brasasSazonMenu.ts
+src/data/restaurantSeed.ts
 ```
 
 This file controls:
@@ -44,7 +44,7 @@ This file controls:
 - Prices.
 - Badges.
 - Product availability.
-- Reference menu photos.
+- Default product placeholder image.
 
 This is useful for the MVP because it lets us ship quickly, but it is not the final owner experience.
 
@@ -179,18 +179,19 @@ http://localhost:5173/admin
 The public menu uses this image priority:
 
 ```text
-product image -> category image -> no image
+product image -> default product placeholder
 ```
 
-That is why a product can look visual in the public menu even when it has no own uploaded image yet.
+That is why products stay visually consistent while the restaurant prepares real product photos.
 
 The admin panel shows this distinction intentionally:
 
 - `Imagen propia`: the product has its own `image_url`.
-- `Imagen de categoria`: the product is using its category image as a visual fallback.
-- `Sin imagen`: neither the product nor its category has an image.
+- `Imagen por defecto`: CartaMago uses `product-placeholder-preparing.png`.
 
 When the owner uploads a product image from `/admin`, CartaMago stores it in Supabase Storage bucket `menu-assets` and saves the public URL on the product.
+
+The editor also lets the owner clear a product image with `Usar defecto`.
 
 ## Admin Screens
 
@@ -218,6 +219,7 @@ It should include:
 - Product list.
 - Create product.
 - Edit product.
+- Delete product with confirmation.
 - Price field.
 - Availability toggle.
 - Save button.
@@ -302,7 +304,7 @@ After the number becomes definitive, keep the fallback seed and project docs in 
 
 ## Transition Plan
 
-1. Keep `src/data/brasasSazonMenu.ts` as the MVP seed.
+1. Keep `src/data/restaurantSeed.ts` as the MVP seed.
 2. Create Supabase schema and seed it from this file.
 3. Build `/admin/menu`.
 4. Make public menu read from Supabase.

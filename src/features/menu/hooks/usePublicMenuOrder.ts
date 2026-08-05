@@ -3,10 +3,26 @@ import type { MenuItem, RestaurantProfile } from '../../../data/restaurantSeed'
 import { useLocalStorage } from '../../../lib/useLocalStorage'
 import { saveOrder } from '../../order/repositories/publicOrderRepository'
 import { buildWhatsAppUrl, type CustomerDetails } from '../../order/orderMessage'
+import {
+  getDefaultPaymentMethod,
+  getInitialPaymentStatus,
+  getPaymentProvider,
+  normalizePaymentMethod,
+} from '../../order/payment'
 
 type CartState = Record<string, number>
 type CartNotes = Record<string, string>
 type CartLine = { item: MenuItem; quantity: number; note: string }
+
+const defaultCustomerDetails: CustomerDetails = {
+  name: '',
+  phone: '',
+  note: '',
+  address: '',
+  table: '',
+  fulfillmentMode: 'pickup',
+  paymentMethod: 'cash',
+}
 
 type UsePublicMenuOrderInput = {
   restaurantId: string
@@ -19,17 +35,14 @@ export function usePublicMenuOrder({
   restaurant,
   menuItems,
 }: UsePublicMenuOrderInput) {
-  const [cart, setCart] = useLocalStorage<CartState>('cart', {})
-  const [itemNotes, setItemNotes] = useLocalStorage<CartNotes>('item-notes', {})
-  const [details, setDetails] = useLocalStorage<CustomerDetails>('order-details', {
-    name: '',
-    note: '',
-    address: '',
-    table: '',
-    fulfillmentMode: 'pickup',
-  })
+  const [storedCart, setCart] = useLocalStorage<unknown>('cart', {})
+  const [storedItemNotes, setItemNotes] = useLocalStorage<unknown>('item-notes', {})
+  const [storedDetails, setDetails] = useLocalStorage<unknown>('order-details', defaultCustomerDetails)
   const orderPanelRef = useRef<HTMLElement | null>(null)
   const orderStartedAtRef = useRef(Date.now())
+  const cart = normalizeCart(storedCart)
+  const itemNotes = normalizeCartNotes(storedItemNotes)
+  const details = normalizeCustomerDetails(storedDetails)
 
   const cartLines = useMemo(
     () =>
@@ -62,10 +75,18 @@ export function usePublicMenuOrder({
       restaurantId,
       orderChannel: 'cartamago',
       deliveryProvider,
-      paymentStatus: 'not_required',
+      paymentStatus: getInitialPaymentStatus(details.paymentMethod),
+      paymentMethod: details.paymentMethod,
+      paymentProvider: getPaymentProvider(details.paymentMethod),
       externalProvider: details.fulfillmentMode === 'didi_food' ? 'didi_food' : undefined,
-      externalStatus: details.fulfillmentMode === 'didi_food' ? 'draft' : undefined,
+      externalStatus:
+        details.fulfillmentMode === 'didi_food'
+          ? 'draft'
+          : details.paymentMethod === 'wompi'
+            ? 'payment_link_required'
+            : undefined,
       customerName: details.name,
+      customerPhone: details.phone,
       customerNote: details.note,
       fulfillmentMode: details.fulfillmentMode,
       deliveryAddress: details.address,
@@ -87,40 +108,58 @@ export function usePublicMenuOrder({
   }, [restaurant, restaurantId, cartLines, details, itemCount, total])
 
   function addItem(itemId: string) {
-    setCart((current) => ({
-      ...current,
-      [itemId]: (current[itemId] ?? 0) + 1,
-    }))
+    setCart((current: unknown) => {
+      const currentCart = normalizeCart(current)
+      return {
+        ...currentCart,
+        [itemId]: (currentCart[itemId] ?? 0) + 1,
+      }
+    })
   }
 
   function removeItem(itemId: string) {
-    setCart((current) => {
-      const nextQuantity = (current[itemId] ?? 0) - 1
+    setCart((current: unknown) => {
+      const currentCart = normalizeCart(current)
+      const nextQuantity = (currentCart[itemId] ?? 0) - 1
       if (nextQuantity <= 0) {
-        const { [itemId]: _removed, ...rest } = current
+        const { [itemId]: _removed, ...rest } = currentCart
         return rest
       }
 
       return {
-        ...current,
+        ...currentCart,
         [itemId]: nextQuantity,
       }
     })
   }
 
   function clearItem(itemId: string) {
-    setCart((current) => {
-      const { [itemId]: _removed, ...rest } = current
+    setCart((current: unknown) => {
+      const { [itemId]: _removed, ...rest } = normalizeCart(current)
       return rest
     })
   }
 
   function updateItemNote(itemId: string, note: string) {
-    setItemNotes((current) => ({ ...current, [itemId]: note }))
+    setItemNotes((current: unknown) => ({ ...normalizeCartNotes(current), [itemId]: note }))
   }
 
   function updateDetails(partial: Partial<CustomerDetails>) {
-    setDetails((current) => ({ ...current, ...partial }))
+    setDetails((current: unknown) => {
+      const currentDetails = normalizeCustomerDetails(current)
+      const nextFulfillmentMode = partial.fulfillmentMode ?? currentDetails.fulfillmentMode
+      const nextPaymentMethod =
+        partial.paymentMethod ??
+        (partial.fulfillmentMode
+          ? getDefaultPaymentMethod(nextFulfillmentMode)
+          : currentDetails.paymentMethod)
+
+      return {
+        ...currentDetails,
+        ...partial,
+        paymentMethod: normalizePaymentMethod(nextPaymentMethod, nextFulfillmentMode),
+      }
+    })
   }
 
   function reviewOrder() {
@@ -153,5 +192,53 @@ export function usePublicMenuOrder({
     getItemQuantity,
     getItemNote,
     handleWhatsAppClick,
+  }
+}
+
+function normalizeCart(value: unknown): CartState {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+
+  const cart: CartState = {}
+  for (const [itemId, quantity] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof quantity === 'number' && Number.isFinite(quantity) && quantity > 0) {
+      cart[itemId] = quantity
+    }
+  }
+  return cart
+}
+
+function normalizeCartNotes(value: unknown): CartNotes {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+
+  const notes: CartNotes = {}
+  for (const [itemId, note] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof note === 'string') {
+      notes[itemId] = note
+    }
+  }
+  return notes
+}
+
+function normalizeCustomerDetails(value: unknown): CustomerDetails {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return defaultCustomerDetails
+
+  const candidate = value as Partial<Record<keyof CustomerDetails, unknown>>
+  const fulfillmentMode = candidate.fulfillmentMode
+  const normalizedFulfillmentMode =
+    fulfillmentMode === 'pickup' ||
+    fulfillmentMode === 'local_delivery' ||
+    fulfillmentMode === 'didi_food' ||
+    fulfillmentMode === 'table'
+      ? fulfillmentMode
+      : 'pickup'
+
+  return {
+    name: typeof candidate.name === 'string' ? candidate.name : '',
+    phone: typeof candidate.phone === 'string' ? candidate.phone : '',
+    note: typeof candidate.note === 'string' ? candidate.note : '',
+    address: typeof candidate.address === 'string' ? candidate.address : '',
+    table: typeof candidate.table === 'string' ? candidate.table : '',
+    fulfillmentMode: normalizedFulfillmentMode,
+    paymentMethod: normalizePaymentMethod(candidate.paymentMethod, normalizedFulfillmentMode),
   }
 }

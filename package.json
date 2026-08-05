@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "vite --mode mock",
     "dev:localdb": "vite --mode localdb",
     "build": "tsc -b && vite build",
     "build:localdb": "tsc -b && vite build --mode localdb",

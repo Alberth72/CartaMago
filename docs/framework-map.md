@@ -96,7 +96,7 @@ In CartaMago, TypeScript influences:
 Important files:
 
 ```text
-src/data/brasasSazonMenu.ts
+src/data/restaurantSeed.ts
 src/features/order/orderMessage.ts
 ```
 
@@ -157,7 +157,7 @@ Supabase provides the editable data layer for the MVP.
 In CartaMago, Supabase influences:
 
 - Public menu reads from `restaurants`, `categories`, `products`, and `menu_photos`.
-- Public menu falls back to `src/data/brasasSazonMenu.ts` if Supabase is unavailable.
+- Public menu falls back to `src/data/restaurantSeed.ts` if Supabase is unavailable.
 - `/admin` login uses Supabase Auth.
 - Product image upload uses Supabase Storage bucket `menu-assets`.
 - Admin operations are isolated in feature repositories and hooks.

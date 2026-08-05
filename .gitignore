@@ -30,3 +30,8 @@ public/client-assets/**/raw/
 
 # Local Netlify folder
 .netlify
+
+# Environment files - never commit real or mock credentials
+.env
+.env.*
+!.env.example

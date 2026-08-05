@@ -19,11 +19,14 @@ type CreateOrderPayload = {
   orderChannel?: string
   deliveryProvider?: string
   paymentStatus?: string
+  paymentMethod?: string
+  paymentProvider?: string
   externalProvider?: string
   externalOrderId?: string
   externalStatus?: string
   externalPayload?: Record<string, unknown>
   customerName: string
+  customerPhone: string
   customerNote: string
   fulfillmentMode: string
   deliveryAddress: string
@@ -49,6 +52,22 @@ type ProductRow = {
 type RestaurantRow = {
   id: string
   fulfillment_modes: string[] | null
+}
+
+const paymentMethodsByFulfillment: Record<string, string[]> = {
+  pickup: ['cash', 'card_at_counter', 'bank_transfer', 'wompi'],
+  local_delivery: ['cash', 'bank_transfer', 'wompi'],
+  didi_food: ['didi_food'],
+  table: ['cash', 'card_at_table', 'bank_transfer', 'wompi'],
+}
+
+const paymentProvidersByMethod: Record<string, string> = {
+  cash: 'manual',
+  card_at_counter: 'manual',
+  card_at_table: 'manual',
+  bank_transfer: 'manual',
+  wompi: 'wompi',
+  didi_food: 'didi_food',
 }
 
 const rateLimitWindowSeconds = Number(Deno.env.get('ORDER_RATE_LIMIT_WINDOW_SECONDS') ?? 300)
@@ -83,6 +102,7 @@ function validatePayload(payload: Partial<CreateOrderPayload>) {
   if ((payload.totalItems ?? 0) <= 0) return 'totalItems must be greater than zero'
   if ((payload.totalCop ?? 0) < 0) return 'totalCop cannot be negative'
   if ((payload.customerName ?? '').length > 120) return 'customerName is too long'
+  if ((payload.customerPhone ?? '').length > 40) return 'customerPhone is too long'
   if ((payload.customerNote ?? '').length > 500) return 'customerNote is too long'
   if ((payload.deliveryAddress ?? '').length > 300) return 'deliveryAddress is too long'
   if ((payload.whatsappMessage ?? '').length > 4000) return 'whatsappMessage is too long'
@@ -91,6 +111,16 @@ function validatePayload(payload: Partial<CreateOrderPayload>) {
     return 'submission is too fast'
   }
   if (payload.items.length > 50) return 'too many items'
+
+  const normalizedFulfillmentMode = normalizeFulfillmentMode(payload.fulfillmentMode ?? '')
+  const paymentMethod = payload.paymentMethod ?? 'cash'
+  const allowedPaymentMethods = paymentMethodsByFulfillment[normalizedFulfillmentMode] ?? []
+  if (!allowedPaymentMethods.includes(paymentMethod)) return 'paymentMethod is not enabled for fulfillmentMode'
+
+  const expectedPaymentProvider = paymentProvidersByMethod[paymentMethod]
+  if (payload.paymentProvider && payload.paymentProvider !== expectedPaymentProvider) {
+    return 'paymentProvider does not match paymentMethod'
+  }
 
   for (const item of payload.items) {
     if (!item.productId || !item.productName) return 'each item requires productId and productName'
@@ -339,11 +369,14 @@ Deno.serve(async (request) => {
     order_channel: payload.orderChannel ?? 'cartamago',
     delivery_provider: payload.deliveryProvider ?? 'none',
     payment_status: payload.paymentStatus ?? 'not_required',
+    payment_method: payload.paymentMethod ?? 'cash',
+    payment_provider: payload.paymentProvider ?? paymentProvidersByMethod[payload.paymentMethod ?? 'cash'] ?? 'manual',
     external_provider: payload.externalProvider ?? null,
     external_order_id: payload.externalOrderId ?? null,
     external_status: payload.externalStatus ?? null,
     external_payload: payload.externalPayload ?? {},
     customer_name: payload.customerName,
+    customer_phone: payload.customerPhone,
     customer_note: payload.customerNote,
     fulfillment_mode: payload.fulfillmentMode,
     delivery_address: payload.deliveryAddress,

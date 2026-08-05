@@ -12,6 +12,8 @@ import {
 } from '../repositories/adminMenuRepository'
 import type { AdminProductForm, AdminRestaurantForm } from '../types'
 
+const defaultProductImage = '/client-assets/brasas-sazon/processed/product-placeholder-preparing.png'
+
 const emptyProduct: AdminProductForm = {
   id: '',
   categoryId: '',
@@ -53,9 +55,9 @@ export function useAdminMenu() {
     () => categories.find((category) => category.id === productForm.categoryId),
     [categories, productForm.categoryId],
   )
-  const categoryById = useMemo(
-    () => new Map(categories.map((category) => [category.id, category])),
-    [categories],
+  const selectedCategoryProducts = useMemo(
+    () => products.filter((product) => product.categoryId === productForm.categoryId),
+    [products, productForm.categoryId],
   )
 
   const loadMenu = useCallback(async () => {
@@ -82,11 +84,11 @@ export function useAdminMenu() {
   }
 
   function getProductAdminImage(product: MenuItem) {
-    return product.imageUrl ?? categoryById.get(product.categoryId)?.image
+    return product.imageUrl ?? defaultProductImage
   }
 
   function getProductImageLabel(product: MenuItem) {
-    return product.imageUrl ? 'Imagen propia' : 'Imagen de categoria'
+    return product.imageUrl ? 'Imagen propia' : 'Imagen por defecto'
   }
 
   function updateRestaurantFormState(partial: Partial<AdminRestaurantForm>) {
@@ -155,7 +157,7 @@ export function useAdminMenu() {
   function newProduct() {
     setProductForm({
       ...emptyProduct,
-      categoryId: categories[0]?.id ?? '',
+      categoryId: productForm.categoryId || categories[0]?.id || '',
     })
   }
 
@@ -241,6 +243,7 @@ export function useAdminMenu() {
   return {
     categories,
     products,
+    selectedCategoryProducts,
     restaurantForm,
     productForm,
     categoryName,

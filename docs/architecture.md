@@ -79,7 +79,7 @@ Supabase missing or request fails       -> use local seed
 Local fallback seed:
 
 ```text
-src/data/brasasSazonMenu.ts
+src/data/restaurantSeed.ts
 ```
 
 Supabase tables used by the app:

@@ -40,6 +40,26 @@ Semaforo operativo:
 
 La idea es que cocina pueda priorizar sin abrir cada pedido.
 
+## Notificaciones Al Cliente
+
+El detalle del pedido muestra una notificacion sugerida para el cliente final segun el estado actual del pedido.
+
+En el MVP esta notificacion es asistida:
+
+- El admin cambia el estado operativo del pedido.
+- El panel genera un mensaje claro para el cliente.
+- Si el pedido tiene telefono de cliente, el admin puede abrir WhatsApp con el mensaje listo.
+
+Esto evita prometer tracking automatico antes de tener backend de notificaciones, pero deja el flujo preparado para una futura vista publica de seguimiento o envio automatico por WhatsApp/API.
+
+## Pagos
+
+El pedido guarda el medio de pago y el estado de pago.
+
+El panel admin muestra si el pedido viene con efectivo, tarjeta en caja/mesa, transferencia, Wompi o DiDiFood.
+
+Wompi queda como camino preparado, pero la confirmacion real debe venir por backend/webhook. Ver `docs/payment-integration-plan.md`.
+
 ## Sincronia Actual
 
 El panel hace:

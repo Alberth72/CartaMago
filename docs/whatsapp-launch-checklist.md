@@ -43,7 +43,7 @@ Changing that value updates the QR menu without changing the QR image or URL.
 
 These files do not drive live production while Supabase is healthy, but they should match the official launch state:
 
-- `src/data/brasasSazonMenu.ts`: fallback seed used when Supabase is unavailable.
+- `src/data/restaurantSeed.ts`: fallback seed used when Supabase is unavailable.
 - `supabase/seed.sql`: repeatable database seed for rebuilding the environment.
 - `docs/design-asset-workflow.md`: project notes with the MVP ordering number.
 - `docs/menu-extraction-brasas-sazon.md`: extracted restaurant facts.

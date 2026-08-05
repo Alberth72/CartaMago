@@ -64,39 +64,29 @@ Unclear: keep as "Por confirmar"
 Missing: ask the client
 ```
 
-4. Create processed images:
+4. Create only production-useful processed images:
 
 ```text
 hero-brasas-sazon.jpg
-logo-reference.jpg
-pollo-reference.jpg
-asados-reference.jpg
+product-placeholder-preparing.png
 ```
 
 Current processed outputs:
 
 ```text
-contact-sheet.jpg
 hero-brasas-sazon.jpg
-logo-reference.jpg
-menu-cover.jpg
-pollo.jpg
-asados.jpg
-asados-alt.jpg
-bandejas.jpg
-tipicos.jpg
-sopas.jpg
-infantil-jugos.jpg
-bebidas-adiciones.jpg
-combos-especiales.jpg
-cover-delivery-branches.jpg
+brand-mark-minimal.svg
+product-placeholder-preparing.png
+qr-brasas-sazon-menu.png
+qr-netlify-production.png
 ```
 
 5. Use images with purpose:
 
 - Hero image: emotional first impression.
-- Product photos: help customers choose.
-- Menu scans: reference only, not the final ordering UI.
+- Product photos: help customers choose only when quality is good enough.
+- Default product placeholder: use while product photos are not ready.
+- Menu scans: extraction reference only, not the final ordering UI.
 - Logo: brand recognition.
 
 ## Design Direction

@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { isE2EAdminMockEnabled } from '../lib/runtimeFlags'
 import {
   getSeedById,
   type FulfillmentMode,
@@ -113,7 +114,7 @@ export function getSeedMenuData(): MenuData {
 }
 
 export async function fetchPublicMenu(): Promise<MenuData> {
-  if (!isSupabaseConfigured()) {
+  if (isE2EAdminMockEnabled() || !isSupabaseConfigured()) {
     return getSeedMenuData()
   }
 

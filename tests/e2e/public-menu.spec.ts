@@ -44,19 +44,48 @@ test('shows fulfillment-specific fields before WhatsApp handoff', async ({ page 
   await expect(page.getByTestId('delivery-address')).toBeVisible()
   await expect(page.getByTestId('table-number')).toHaveCount(0)
   await expect(page.getByTestId('didi-food-address')).toHaveCount(0)
+  await expect(page.getByTestId('payment-method-bank_transfer')).toBeVisible()
+  await expect(page.getByTestId('payment-method-card_at_counter')).toHaveCount(0)
 
   await page.getByTestId('fulfillment-didi_food').click()
-  await expect(page.getByTestId('didi-food-address')).toBeVisible()
+  await expect(page.getByTestId('didi-food-pending')).toBeVisible()
   await expect(page.getByTestId('delivery-address')).toHaveCount(0)
+  await expect(page.getByTestId('customer-phone')).toHaveCount(0)
   await expect(page.getByTestId('table-number')).toHaveCount(0)
+  await expect(page.getByTestId('payment-method-didi_food')).toBeVisible()
 
   await page.getByTestId('fulfillment-table').click()
   await expect(page.getByTestId('table-number')).toBeVisible()
   await expect(page.getByTestId('delivery-address')).toHaveCount(0)
   await expect(page.getByTestId('didi-food-address')).toHaveCount(0)
+  await expect(page.getByTestId('payment-method-card_at_table')).toBeVisible()
 
   await page.getByTestId('fulfillment-pickup').click()
   await expect(page.getByTestId('delivery-address')).toHaveCount(0)
-  await expect(page.getByTestId('didi-food-address')).toHaveCount(0)
+  await expect(page.getByTestId('didi-food-pending')).toHaveCount(0)
   await expect(page.getByTestId('table-number')).toHaveCount(0)
+  await expect(page.getByTestId('payment-method-card_at_counter')).toBeVisible()
+})
+
+test('requires fulfillment details before enabling WhatsApp handoff', async ({ page }) => {
+  await page.getByTestId('product-add-pollo-entero').click()
+
+  await expect(page.getByTestId('whatsapp-disabled')).toBeDisabled()
+  await expect(page.getByTestId('order-requirements')).toContainText('nombre de quien recoge')
+  await expect(page.getByTestId('order-requirements')).toContainText('telefono para confirmar')
+
+  await page.getByTestId('customer-name').fill('Cliente E2E')
+  await page.getByTestId('customer-phone').fill('3101234567')
+  await expect(page.getByTestId('whatsapp-link')).toBeVisible()
+
+  await page.getByTestId('fulfillment-local_delivery').click()
+  await expect(page.getByTestId('whatsapp-disabled')).toBeDisabled()
+  await expect(page.getByTestId('order-requirements')).toContainText('direccion del domicilio')
+
+  await page.getByTestId('delivery-address').fill('Calle 123')
+  await expect(page.getByTestId('whatsapp-link')).toBeVisible()
+
+  await page.getByTestId('fulfillment-didi_food').click()
+  await expect(page.getByTestId('whatsapp-disabled')).toBeDisabled()
+  await expect(page.getByTestId('order-requirements')).toContainText('pendiente de integracion oficial')
 })

@@ -18,8 +18,7 @@ Levantar CartaMago como ambiente local productivo: menu publico, panel administr
 Inicio:
 
 ```powershell
-$env:VITE_E2E_ADMIN_MOCK="true"
-npm.cmd run dev
+npm.cmd run dev:mock
 ```
 
 Rutas:
@@ -195,8 +194,7 @@ Usa esta ruta si solo quieres ver el panel sin Supabase real:
 
 ```powershell
 npm.cmd install
-$env:VITE_E2E_ADMIN_MOCK="true"
-npm.cmd run dev
+npm.cmd run dev:mock
 ```
 
 Abrir:
@@ -213,6 +211,20 @@ cartamago-e2e
 ```
 
 Esta ruta usa datos en memoria. Sirve para revisar UI, pero no valida RLS, storage ni persistencia.
+
+Para presentacion con cliente sin despliegue, usa tambien:
+
+```text
+docs/local-client-demo-playbook.md
+```
+
+Nota:
+
+```text
+Las credenciales mock solo funcionan en `npm.cmd run dev:mock`.
+Si usas `npm.cmd run dev`, el admin autentica contra el Supabase configurado en `.env.local`.
+Si usas `npm.cmd run dev:localdb`, debes crear primero el usuario local y membresia del restaurante.
+```
 
 ## Ruta Productiva Local
 
@@ -238,7 +250,7 @@ npx.cmd supabase db reset
 
 Esto aplica:
 
-- Restaurantes, categorias, productos y fotos.
+- Restaurantes, categorias, productos e imagen por defecto.
 - Pedidos base del seed.
 - Tablas de integraciones.
 - Politicas RLS por membresia.
@@ -257,7 +269,7 @@ production order simulation loaded
 
 La simulacion agrega pedidos con estados y canales distintos:
 
-- Pendiente por DiDiFood.
+- Pendiente con borrador externo de DiDiFood.
 - Confirmado para domicilio local.
 - En preparacion para recoger.
 - Listo para mesa.

@@ -1,11 +1,10 @@
-import type { MenuCategory, MenuItem } from '../../../data/restaurantSeed'
+import type { MenuItem } from '../../../data/restaurantSeed'
 import { ProductCard } from './ProductCard'
 
 type ProductGridProps = {
   title: string
   description: string
   items: MenuItem[]
-  categories: MenuCategory[]
   itemCount: number
   getItemQuantity: (itemId: string) => number
   getItemNote: (itemId: string) => string
@@ -19,7 +18,6 @@ export function ProductGrid({
   title,
   description,
   items,
-  categories,
   itemCount,
   getItemQuantity,
   getItemNote,
@@ -53,7 +51,6 @@ export function ProductGrid({
             item={item}
             quantity={getItemQuantity(item.id)}
             note={getItemNote(item.id)}
-            categories={categories}
             onAdd={onAddItem}
             onRemove={onRemoveItem}
             onUpdateNote={onUpdateItemNote}

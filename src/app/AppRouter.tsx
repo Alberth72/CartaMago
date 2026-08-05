@@ -5,6 +5,15 @@ import { PublicMenuApp } from '../features/menu/PublicMenuApp'
 const AdminApp = lazy(() =>
   import('../features/admin/AdminApp').then((module) => ({ default: module.AdminApp })),
 )
+const OrderTrackingPage = lazy(() =>
+  import('../features/tracking/OrderTrackingPage').then((module) => ({ default: module.OrderTrackingPage })),
+)
+const KitchenDisplayPage = lazy(() =>
+  import('../features/tracking/KitchenDisplayPage').then((module) => ({ default: module.KitchenDisplayPage })),
+)
+const LiveRoomDisplayPage = lazy(() =>
+  import('../features/tracking/LiveRoomDisplayPage').then((module) => ({ default: module.LiveRoomDisplayPage })),
+)
 
 function AdminFallback() {
   return (
@@ -29,6 +38,30 @@ export function AppRouter() {
         element={
           <Suspense fallback={<AdminFallback />}>
             <AdminApp />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/tracking/:orderId"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <OrderTrackingPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/kitchen"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <KitchenDisplayPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/salon"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <LiveRoomDisplayPage />
           </Suspense>
         }
       />

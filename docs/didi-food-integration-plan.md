@@ -9,7 +9,7 @@ CartaMago debe capturar el pedido desde el menu propio y centralizarlo en el pan
 - Domicilio con mensajeria del local.
 - Domicilio por DiDiFood.
 
-WhatsApp sigue siendo el handoff operativo actual. DiDiFood entra como proveedor de cumplimiento externo, no como reemplazo del menu CartaMago.
+WhatsApp sigue siendo el handoff operativo actual para recoger, mesa y domicilio local. DiDiFood entra como proveedor de cumplimiento externo, no como reemplazo del menu CartaMago ni como pedido por WhatsApp.
 
 ## Fuentes Confirmadas
 
@@ -30,7 +30,7 @@ Hasta tener usuario developer, no se deben inventar endpoints, firmas ni payload
 
 ## Decision De Producto
 
-El selector del menu debe ofrecer:
+El selector del menu puede mostrar:
 
 ```text
 Recoger
@@ -39,7 +39,9 @@ DiDiFood
 Mesa
 ```
 
-Todos los pedidos se guardan en `orders` y aparecen en el panel interno.
+Recoger, domicilio local y mesa se cierran por WhatsApp mientras no haya notificaciones internas robustas. DiDiFood no debe finalizar desde el boton de WhatsApp.
+
+Todos los pedidos operativos se guardan en `orders` y aparecen en el panel interno.
 
 DiDiFood se modela inicialmente como:
 
@@ -56,9 +58,11 @@ external_status = draft
 - Nuevo modo `local_delivery` para separar domicilio del local de DiDiFood.
 - Compatibilidad de lectura para pedidos legacy `delivery`.
 - Mensaje WhatsApp distingue `Domicilio con mensajeria del local` y `Domicilio por DiDiFood`.
+- El cierre publico por DiDiFood queda bloqueado hasta tener integracion oficial.
 - `orders` queda preparado con campos de canal, proveedor externo, estado externo y payload externo.
 - Nuevas tablas para `restaurant_integrations` e `integration_events`.
 - Contrato local `DidiFoodDraftOrder` para preparar el adapter futuro sin acoplar UI a la API real.
+- Vista admin `Integraciones -> DiDi Food` para registrar preparacion no secreta: tienda externa, estado sandbox y notas internas.
 
 ## Base De Datos
 
@@ -113,20 +117,18 @@ Funciones esperadas, sujetas a documentacion oficial:
 - Mantener WhatsApp como fallback operativo.
 - Separar estado de pedido de estado de pago.
 
-## Siguiente Slice
+## Siguiente Slice Disponible
 
-Crear una vista/admin control para integraciones:
-
-```text
-Admin -> Integraciones -> DiDiFood
-```
-
-Estado inicial:
+Sin usuario developer todavia, el siguiente avance util es fortalecer el contrato interno:
 
 ```text
-No conectado
-Tienda externa pendiente
-Sandbox pendiente
+Integration events -> Order sync monitor -> Manual reconciliation
 ```
 
-Luego, con credenciales developer, reemplazar el mock por el adapter oficial.
+Trabajo concreto:
+
+- Mostrar eventos de integracion por pedido.
+- Crear adapter mock `DidiFoodAdapter` con respuestas locales.
+- Preparar Edge Function `didi-food-webhook` sin activar proveedor real.
+- Definir mapeo menu/productos/disponibilidad hacia payload interno neutro.
+- Con credenciales developer, reemplazar el mock por el adapter oficial.

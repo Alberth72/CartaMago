@@ -7,11 +7,14 @@ export type OrderRow = {
   order_channel?: string
   delivery_provider?: string
   payment_status?: string
+  payment_method?: string
+  payment_provider?: string
   external_provider?: string | null
   external_order_id?: string | null
   external_status?: string | null
   external_payload?: Record<string, unknown>
   customer_name: string
+  customer_phone?: string
   customer_note: string
   fulfillment_mode: string
   delivery_address: string
@@ -42,11 +45,14 @@ export type SaveOrderInput = {
   orderChannel?: string
   deliveryProvider?: string
   paymentStatus?: string
+  paymentMethod?: string
+  paymentProvider?: string
   externalProvider?: string
   externalOrderId?: string
   externalStatus?: string
   externalPayload?: Record<string, unknown>
   customerName: string
+  customerPhone: string
   customerNote: string
   fulfillmentMode: string
   deliveryAddress: string

@@ -1,5 +1,6 @@
 import type { FulfillmentMode, MenuItem, RestaurantProfile } from '../../data/restaurantSeed'
 import { formatCurrency, formatMenuPrice } from '../../lib/format'
+import { paymentMethodLabels, type PaymentMethod } from './payment'
 
 export type CartLine = {
   item: MenuItem
@@ -9,10 +10,12 @@ export type CartLine = {
 
 export type CustomerDetails = {
   name: string
+  phone: string
   note: string
   address: string
   table: string
   fulfillmentMode: FulfillmentMode
+  paymentMethod: PaymentMethod
 }
 
 const fulfillmentLabels: Record<FulfillmentMode, string> = {
@@ -59,7 +62,9 @@ export function buildWhatsAppUrl(
       : `Total aproximado: ${formatMenuPrice(total)}`,
     `Entrega: ${fulfillmentLabels[details.fulfillmentMode]}`,
     fulfillmentDetail,
+    `Pago: ${paymentMethodLabels[details.paymentMethod]}`,
     details.name ? `Nombre: ${details.name}` : 'Nombre: por confirmar',
+    details.phone ? `Telefono: ${details.phone}` : 'Telefono: por confirmar',
     details.note ? `Notas: ${details.note}` : '',
     '',
     'Quedo atento a confirmacion de disponibilidad y tiempo de entrega.',

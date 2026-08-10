@@ -2,6 +2,7 @@ import type { MenuCategory, MenuItem } from '../../../data/restaurantSeed'
 import { defaultSeed } from '../../../data/restaurantSeed'
 import { slugify } from '../../../services/menuRepository'
 import type { OrderStatus, OrderWithItems } from '../../order/types'
+import type { InventoryData, MermaReason } from '../inventoryTypes'
 import type { AdminMenuData, AdminRestaurantForm } from '../types'
 
 const adminEmail = 'owner@cartamago.test'
@@ -373,4 +374,68 @@ export async function updateMockOrderStatus(orderId: string, status: OrderStatus
     order.id === orderId ? { ...order, status, updated_at: new Date().toISOString() } : order,
   )
   return true
+}
+
+// --- Inventory mock ---
+
+let inventoryData: InventoryData = {
+  items: [
+    { id: 'pollo-entero', name: 'Pollo entero', unit: 'unidad', category: 'Carnes' },
+    { id: 'papa-criolla', name: 'Papa criolla', unit: 'kg', category: 'Verduras' },
+    { id: 'arroz', name: 'Arroz', unit: 'kg', category: 'Granos' },
+    { id: 'limon', name: 'Limon', unit: 'kg', category: 'Frutas' },
+    { id: 'carbon', name: 'Carbon', unit: 'bolsa', category: 'Insumos' },
+  ],
+  stock: [
+    { id: 'stk_pollo', itemId: 'pollo-entero', quantity: 25 },
+    { id: 'stk_papa', itemId: 'papa-criolla', quantity: 40 },
+    { id: 'stk_arroz', itemId: 'arroz', quantity: 60 },
+    { id: 'stk_limon', itemId: 'limon', quantity: 15 },
+    { id: 'stk_carbon', itemId: 'carbon', quantity: 10 },
+  ],
+  movements: [
+    {
+      id: 'mov_demo_001',
+      itemId: 'pollo-entero',
+      quantity: -2,
+      movementType: 'merma',
+      reason: 'despiece',
+      createdAt: new Date(now - 2 * 60 * 60_000).toISOString(),
+    },
+    {
+      id: 'mov_demo_002',
+      itemId: 'papa-criolla',
+      quantity: -3,
+      movementType: 'merma',
+      reason: 'dano',
+      createdAt: new Date(now - 5 * 60 * 60_000).toISOString(),
+    },
+  ],
+}
+
+export async function fetchMockInventory(): Promise<InventoryData> {
+  return {
+    items: inventoryData.items.map((item) => ({ ...item })),
+    stock: inventoryData.stock.map((stock) => ({ ...stock })),
+    movements: inventoryData.movements.map((movement) => ({ ...movement })),
+  }
+}
+
+export async function registerMockMerma(itemId: string, quantity: number, reason: MermaReason) {
+  const stock = inventoryData.stock.find((entry) => entry.itemId === itemId)
+  if (!stock) throw new Error('Insumo no encontrado.')
+  if (stock.quantity < quantity) throw new Error('Stock insuficiente para registrar la merma.')
+
+  stock.quantity -= quantity
+  inventoryData.movements = [
+    {
+      id: `mov_${Date.now()}`,
+      itemId,
+      quantity: -quantity,
+      movementType: 'merma',
+      reason,
+      createdAt: new Date().toISOString(),
+    },
+    ...inventoryData.movements,
+  ]
 }

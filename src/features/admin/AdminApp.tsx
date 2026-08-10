@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Boxes, PlugZap, ReceiptText, type LucideIcon } from 'lucide-react'
+import { Boxes, Package, PlugZap, ReceiptText, type LucideIcon } from 'lucide-react'
 import { isSupabaseConfigured } from '../../services/menuRepository'
 import { AdminSetupNotice } from './components/AdminSetupNotice'
 import { AdminShell } from './components/AdminShell'
 import { CategoryPanel } from './components/CategoryPanel'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { IntegrationsPanel } from './components/IntegrationsPanel'
+import { InventoryPanel } from './components/InventoryPanel'
 import { LoginForm } from './components/LoginForm'
 import { OrdersPanel } from './components/OrdersPanel'
 import { ProductEditor } from './components/ProductEditor'
@@ -14,7 +15,7 @@ import { RestaurantPanel } from './components/RestaurantPanel'
 import { useAdminAuth } from './hooks/useAdminAuth'
 import { useAdminMenu } from './hooks/useAdminMenu'
 
-type AdminTab = 'orders' | 'menu' | 'integrations'
+type AdminTab = 'orders' | 'menu' | 'inventory' | 'integrations'
 
 const adminTabs: Array<{
   id: AdminTab
@@ -36,6 +37,13 @@ const adminTabs: Array<{
     description: 'Productos, categorias y precios',
     badge: 'Carta',
     icon: Boxes,
+  },
+  {
+    id: 'inventory',
+    label: 'Inventario',
+    description: 'Stock, insumos y mermas',
+    badge: 'Merma',
+    icon: Package,
   },
   {
     id: 'integrations',
@@ -87,13 +95,15 @@ export function AdminApp() {
       subtitle={
         activeTab === 'orders'
           ? 'Gestion de pedidos recibidos'
-          : activeTab === 'integrations'
-            ? 'Canales externos y proveedores'
-            : 'Edita productos, precios, disponibilidad e imagenes'
+          : activeTab === 'inventory'
+            ? 'Stock de insumos y registro de mermas'
+            : activeTab === 'integrations'
+              ? 'Canales externos y proveedores'
+              : 'Edita productos, precios, disponibilidad e imagenes'
       }
     >
       <div className="mx-auto max-w-7xl px-4 py-4">
-        <nav className="mb-4 grid gap-2 rounded-xl border border-amber-200 bg-white/80 p-2 shadow-lg shadow-amber-900/10 sm:grid-cols-3">
+        <nav className="mb-4 grid gap-2 rounded-xl border border-amber-200 bg-white/80 p-2 shadow-lg shadow-amber-900/10 sm:grid-cols-4">
           {adminTabs.map((tab) => {
             const TabIcon = tab.icon
             const selected = activeTab === tab.id
@@ -132,6 +142,8 @@ export function AdminApp() {
 
         {activeTab === 'orders' ? (
           <OrdersPanel />
+        ) : activeTab === 'inventory' ? (
+          <InventoryPanel />
         ) : activeTab === 'integrations' ? (
           <IntegrationsPanel />
         ) : (

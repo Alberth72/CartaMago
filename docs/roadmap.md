@@ -48,11 +48,32 @@ Frente: activar el eje brands -> warehouses -> branches
 
 | Acción | Gate |
 |---|---|
-| Aplicar en orden y en staging: `202608080001` y `202608080002` | Supabase staging |
+| Aplicar en orden y en staging (local): `202608080001` y `202608080002` | `supabase db reset` verde |
 | Alinear el código a `branch_id` (hoy usa `restaurant_id`) | Build verde |
+| Actualizar `supabase/seed.sql` al modelo `branches` | Seed aplica |
 | Reescribir `adminInventoryRepository` y consultas de menú/pedidos | E2E admin ok |
 | RLS por tenant verificada | `supabase/tests/security_rls_check.sql` |
 | **Salida:** multi-tenant operativo. | — |
+
+> ⚠️ **Lección de estabilidad (validada en staging local, 08-ago-2026):**
+> La migración multi-marca y la app son **dos mitades de un mismo cambio**.
+> La cadena `202608080001+002` convierte `restaurants`→`branches` y
+> `restaurant_id`→`branch_id`, pero `seed.sql` y todo el código siguen en el
+> modelo `restaurants`. Forzar la migración sin migrar app+seed **rompe la base
+> estable actual**. NO aplicar a producción hasta alinear código y seed juntos.
+> Fixes necesarios de la cadena `202608080002` (hallados en staging):
+> 1. Orden de DROPs por dependencias (`dispatch_items` antes que `dispatches`,
+>    `dispatch_request_items` antes que `dispatch_requests`).
+> 2. Dropear la `branches` stub de `202608080001` (y sus FKs
+>    `inventory_movements.branch_id/warehouse_id`) antes del rename
+>    `restaurants → branches`.
+> 3. No dropear `can_manage_brand/warehouse/branch` (crear-or-replace conserva
+>    las policies de `brands/warehouses/suppliers/purchase*/warehouse_stock`).
+> 4. `DROP ... CASCADE` para las funciones de tenancy del restaurante
+>    (`is_restaurant_member`, `restaurant_has_members`, `can_manage_restaurant`).
+> 5. `drop policy` previa de storage `"public can read menu assets"`.
+> 6. Dropear `register_merma` antes de recrearla (cambia `p_restaurant_id`→`p_branch_id`;
+>    Postgres no permite renombrar parámetros con CREATE OR REPLACE).
 
 ### Fase 3 — Operaciones (inventario transaccional, POS, DIAN)
 Núcleo operativo pesado; requiere arquitectura SaaS y decisión de negocio.

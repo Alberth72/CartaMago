@@ -6,6 +6,8 @@
 Build CartaMago as a reusable QR menu and WhatsApp ordering product.
 ```
 
+> La ruta de ejecución (fases, salidas y gates) está definida en `docs/roadmap.md`.
+
 ## Status
 
 | Frente | Progress | Evidence | Current Gap | Next Decision |

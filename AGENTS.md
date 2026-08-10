@@ -145,6 +145,8 @@ docs/
   scalability-map.md
   agent-operating-model.md
   multi-agent-operating-model.md
+  adr-template.md
+  sales-report-multibrand.md
   work-cycles.md
   technical-specialists.md
   quality-gates.md

@@ -20,7 +20,7 @@ import {
 
 export function OrderTrackingPage() {
   const { orderId = '' } = useParams()
-  const { restaurantId } = getSupabaseConfig()
+  const { branchId } = getSupabaseConfig()
   const [order, setOrder] = useState<OrderWithItems | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
@@ -31,11 +31,11 @@ export function OrderTrackingPage() {
       return
     }
 
-    const nextOrder = await fetchTrackableOrder(restaurantId, orderId)
+    const nextOrder = await fetchTrackableOrder(branchId, orderId)
     setOrder(nextOrder)
     setLastSyncedAt(new Date().toISOString())
     setLoading(false)
-  }, [orderId, restaurantId])
+  }, [orderId, branchId])
 
   useEffect(() => {
     void loadOrder()
@@ -43,13 +43,13 @@ export function OrderTrackingPage() {
 
   useEffect(() => {
     const intervalId = window.setInterval(() => void loadOrder(), 10000)
-    const unsubscribe = subscribeToTrackableOrderChanges(restaurantId, () => void loadOrder())
+    const unsubscribe = subscribeToTrackableOrderChanges(branchId, () => void loadOrder())
 
     return () => {
       window.clearInterval(intervalId)
       unsubscribe?.()
     }
-  }, [loadOrder, restaurantId])
+  }, [loadOrder, branchId])
 
   if (loading) {
     return (

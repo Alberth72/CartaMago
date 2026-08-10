@@ -18,17 +18,17 @@ const displayColumns: Array<{ status: OrderStatus; title: string; tone: string }
 ]
 
 export function KitchenDisplayPage() {
-  const { restaurantId } = getSupabaseConfig()
+  const { branchId } = getSupabaseConfig()
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
 
   const loadOrders = useCallback(async () => {
-    const nextOrders = await fetchTrackableOrders(restaurantId)
+    const nextOrders = await fetchTrackableOrders(branchId)
     setOrders(nextOrders.filter(isActiveKitchenOrder))
     setLastSyncedAt(new Date().toISOString())
     setLoading(false)
-  }, [restaurantId])
+  }, [branchId])
 
   useEffect(() => {
     void loadOrders()
@@ -36,13 +36,13 @@ export function KitchenDisplayPage() {
 
   useEffect(() => {
     const intervalId = window.setInterval(() => void loadOrders(), 10000)
-    const unsubscribe = subscribeToTrackableOrderChanges(restaurantId, () => void loadOrders())
+    const unsubscribe = subscribeToTrackableOrderChanges(branchId, () => void loadOrders())
 
     return () => {
       window.clearInterval(intervalId)
       unsubscribe?.()
     }
-  }, [loadOrders, restaurantId])
+  }, [loadOrders, branchId])
 
   const groupedOrders = useMemo(() => {
     const groups = new Map<OrderStatus, OrderWithItems[]>()

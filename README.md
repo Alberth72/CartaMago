@@ -117,7 +117,7 @@ Copy `.env.example` to `.env.local` for local Supabase-backed testing:
 ```text
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
-VITE_RESTAURANT_ID=brasas-sazon
+VITE_BRANCH_ID=brasas-sazon
 VITE_MENU_STORAGE_BUCKET=menu-assets
 ```
 

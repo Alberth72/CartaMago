@@ -26,7 +26,7 @@ const now = Date.now()
 let orders: OrderWithItems[] = [
   {
     id: 'ord_demo_pending_pickup',
-    restaurant_id: defaultSeed.id,
+    branch_id: defaultSeed.id,
     status: 'pending',
     order_channel: 'cartamago',
     delivery_provider: 'none',
@@ -71,7 +71,7 @@ let orders: OrderWithItems[] = [
   },
   {
     id: 'ord_demo_confirmed_delivery',
-    restaurant_id: defaultSeed.id,
+    branch_id: defaultSeed.id,
     status: 'confirmed',
     order_channel: 'cartamago',
     delivery_provider: 'local',
@@ -116,7 +116,7 @@ let orders: OrderWithItems[] = [
   },
   {
     id: 'ord_demo_preparing_pickup',
-    restaurant_id: defaultSeed.id,
+    branch_id: defaultSeed.id,
     status: 'preparing',
     order_channel: 'whatsapp',
     delivery_provider: 'none',
@@ -160,7 +160,7 @@ let orders: OrderWithItems[] = [
   },
   {
     id: 'ord_demo_ready_table',
-    restaurant_id: defaultSeed.id,
+    branch_id: defaultSeed.id,
     status: 'ready',
     order_channel: 'cartamago',
     delivery_provider: 'none',
@@ -213,7 +213,7 @@ let orders: OrderWithItems[] = [
   },
   {
     id: 'ord_demo_delivered_local',
-    restaurant_id: defaultSeed.id,
+    branch_id: defaultSeed.id,
     status: 'delivered',
     order_channel: 'cartamago',
     delivery_provider: 'local',
@@ -257,7 +257,7 @@ let orders: OrderWithItems[] = [
   },
   {
     id: 'ord_demo_cancelled_didi',
-    restaurant_id: defaultSeed.id,
+    branch_id: defaultSeed.id,
     status: 'cancelled',
     order_channel: 'didi_food',
     delivery_provider: 'didi_food',

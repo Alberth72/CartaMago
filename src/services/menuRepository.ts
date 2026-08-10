@@ -10,7 +10,7 @@ import {
 } from '../data/restaurantSeed'
 
 export type MenuData = {
-  restaurantId: string
+  branchId: string
   restaurant: RestaurantProfile
   categories: MenuCategory[]
   menuItems: MenuItem[]
@@ -20,7 +20,7 @@ export type MenuData = {
 
 export type ProductRow = {
   id: string
-  restaurant_id: string
+  branch_id: string
   category_id: string
   name: string
   description: string
@@ -33,7 +33,7 @@ export type ProductRow = {
 
 export type CategoryRow = {
   id: string
-  restaurant_id: string
+  branch_id: string
   name: string
   description: string
   image_url: string | null
@@ -77,7 +77,7 @@ export function getSupabaseConfig() {
   return {
     url: env.VITE_SUPABASE_URL,
     anonKey: env.VITE_SUPABASE_ANON_KEY,
-    restaurantId: env.VITE_RESTAURANT_ID ?? 'brasas-sazon',
+    branchId: env.VITE_BRANCH_ID ?? 'brasas-sazon',
     storageBucket: env.VITE_MENU_STORAGE_BUCKET ?? 'menu-assets',
   }
 }
@@ -98,13 +98,13 @@ export function getSupabaseClient() {
 }
 
 export function getSeedMenuData(): MenuData {
-  const { restaurantId } = getSupabaseConfig()
-  const seed = getSeedById(restaurantId)
+  const { branchId } = getSupabaseConfig()
+  const seed = getSeedById(branchId)
   if (!seed) {
-    throw new Error(`No seed data for restaurant: ${restaurantId}`)
+    throw new Error(`No seed data for restaurant: ${branchId}`)
   }
   return {
-    restaurantId,
+    branchId,
     restaurant: seed.restaurant,
     categories: seed.categories,
     menuItems: seed.menuItems,
@@ -120,12 +120,12 @@ export async function fetchPublicMenu(): Promise<MenuData> {
 
   try {
     const supabase = getSupabaseClient()
-    const { restaurantId } = getSupabaseConfig()
+    const { branchId } = getSupabaseConfig()
     const [restaurantResult, categoriesResult, productsResult, photosResult] = await Promise.all([
-      supabase.from('restaurants').select('*').eq('id', restaurantId).single(),
-      supabase.from('categories').select('*').eq('restaurant_id', restaurantId).order('sort_order', { ascending: true }),
-      supabase.from('products').select('*').eq('restaurant_id', restaurantId).order('sort_order', { ascending: true }),
-      supabase.from('menu_photos').select('*').eq('restaurant_id', restaurantId).order('sort_order', { ascending: true }),
+      supabase.from('branches').select('*').eq('id', branchId).single(),
+      supabase.from('categories').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),
+      supabase.from('products').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),
+      supabase.from('menu_photos').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),
     ])
 
     if (restaurantResult.error || categoriesResult.error || productsResult.error || photosResult.error) {
@@ -138,7 +138,7 @@ export async function fetchPublicMenu(): Promise<MenuData> {
     }
 
     return {
-      restaurantId,
+      branchId,
       restaurant: {
         name: restaurantResult.data.name,
         shortName: restaurantResult.data.short_name ?? restaurantResult.data.name,
@@ -147,7 +147,7 @@ export async function fetchPublicMenu(): Promise<MenuData> {
         headline: restaurantResult.data.headline,
         description: restaurantResult.data.description,
         fulfillmentModes: normalizeFulfillmentModes(restaurantResult.data.fulfillment_modes),
-        heroImage: restaurantResult.data.hero_image_url ?? getSeedById(restaurantId)?.restaurant.heroImage ?? '',
+        heroImage: restaurantResult.data.hero_image_url ?? getSeedById(branchId)?.restaurant.heroImage ?? '',
         socialHandle: restaurantResult.data.social_handle ?? '',
       },
       categories: ((categoriesResult.data ?? []) as CategoryRow[]).map((category) => ({
@@ -179,10 +179,10 @@ export async function fetchPublicMenu(): Promise<MenuData> {
   }
 }
 
-export function toProductRow(product: MenuItem, restaurantId: string, sortOrder = 0): ProductRow {
+export function toProductRow(product: MenuItem, branchId: string, sortOrder = 0): ProductRow {
   return {
     id: product.id,
-    restaurant_id: restaurantId,
+    branch_id: branchId,
     category_id: product.categoryId,
     name: product.name,
     description: product.description,

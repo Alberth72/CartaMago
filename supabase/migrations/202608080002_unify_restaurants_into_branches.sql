@@ -5,25 +5,31 @@
 -- Ejecuta sobre el esquema que dejan las migraciones previas (aditivo).
 
 -- 1) Retirar la capa branch duplicada del modelo multi-marca (se re-creará unificada)
-drop table if exists public.multibrand_members;
-drop table if exists public.formula_ingredients;
-drop table if exists public.formula_options;
-drop table if exists public.formulas;
-drop table if exists public.dispatch_request_items;
-drop table if exists public.dispatch_requests;
+-- Orden de DROPs por dependencias: hijas primero (dispatch_items -> dispatches /
+-- dispatch_request_items), luego padres. Evita SQLSTATE 2BP01.
 drop table if exists public.dispatch_items;
 drop table if exists public.dispatches;
+drop table if exists public.dispatch_request_items;
+drop table if exists public.dispatch_requests;
+drop table if exists public.formula_options;
+drop table if exists public.formula_ingredients;
+drop table if exists public.formulas;
+drop table if exists public.multibrand_members;
 drop table if exists public.branch_stock;
 
-drop function if exists public.can_manage_brand(text);
-drop function if exists public.can_manage_warehouse(text);
-drop function if exists public.can_manage_branch(text);
+-- 202608080001 creo una tabla `branches` (stub) y agrego FKs branch_id/warehouse_id a
+-- inventory_movements. Se retiran estas FKs y la stub antes del rename unificado.
+alter table public.inventory_movements drop column if exists branch_id;
+alter table public.inventory_movements drop column if exists warehouse_id;
+drop table if exists public.branches;
+
+-- can_manage_brand/warehouse/branch se re-definen mas abajo con create or replace
+-- (misma firma). NO se dropean aqui: policies de brands/warehouses/suppliers/
+-- purchase*/warehouse_stock (que 202608080002 no recrea) dependen de ellas.
 drop function if exists public.register_branch_merma(text, text, numeric, text, text);
 drop function if exists public.sell_product(text, text, numeric, text[], text);
 
 -- Quitar columnas branch/warehouse que 202608080001 agregó a inventory_movements
-alter table public.inventory_movements drop column if exists branch_id;
-alter table public.inventory_movements drop column if exists warehouse_id;
 alter table public.inventory_movements alter column restaurant_id set not null;
 
 -- 2) restaurants -> branches (la sede)
@@ -54,9 +60,10 @@ alter table public.restaurant_members rename to branch_members;
 alter table public.branch_members rename column restaurant_id to branch_id;
 
 -- 6) Renombrar funciones de tenancy del restaurante -> branch
-drop function if exists public.is_restaurant_member(text);
-drop function if exists public.restaurant_has_members(text);
-drop function if exists public.can_manage_restaurant(text);
+-- CASCADE: las policies legacy referencian estas funciones y se regeneran en 8-15.
+drop function if exists public.is_restaurant_member(text) cascade;
+drop function if exists public.restaurant_has_members(text) cascade;
+drop function if exists public.can_manage_restaurant(text) cascade;
 
 create or replace function public.is_branch_member(p_branch_id text)
 returns boolean
@@ -221,7 +228,66 @@ create policy "authenticated members can read order status events"
 on public.order_status_events for select to authenticated
 using (public.can_manage_branch(branch_id));
 
+-- Recrear el trigger de eventos con el nombre de columna unificado (branch_id),
+-- porque 202607280003 lo dejo apuntando a restaurant_id que ya no existe.
+create or replace function public.log_order_status_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  next_actor_type text;
+  next_event_type text;
+  previous_value text;
+begin
+  if tg_op = 'INSERT' then
+    next_event_type := 'order_created';
+    previous_value := null;
+  elsif tg_op = 'UPDATE' and old.status is distinct from new.status then
+    next_event_type := 'status_changed';
+    previous_value := old.status;
+  else
+    return new;
+  end if;
+
+  if current_user_id is not null then
+    next_actor_type := 'user';
+  elsif auth.role() = 'anon' then
+    next_actor_type := 'anonymous';
+  else
+    next_actor_type := 'system';
+  end if;
+
+  insert into public.order_status_events (
+    id,
+    order_id,
+    branch_id,
+    event_type,
+    previous_status,
+    next_status,
+    actor_user_id,
+    actor_type,
+    source
+  ) values (
+    'evt_' || replace(gen_random_uuid()::text, '-', ''),
+    new.id,
+    new.branch_id,
+    next_event_type,
+    previous_value,
+    new.status,
+    current_user_id,
+    next_actor_type,
+    'database'
+  );
+
+  return new;
+end;
+$$;
+
 -- 13) Policies de storage (primera carpeta = id de la sede)
+drop policy if exists "public can read menu assets" on storage.objects;
 create policy "public can read menu assets"
 on storage.objects for select to anon, authenticated
 using (bucket_id = 'menu-assets');
@@ -564,6 +630,9 @@ with check (
 
 
 -- 20) RPC: registrar merma por sede (Enfoque A) - descuenta branch_stock atómicamente
+-- La migracion 202608070001 creo register_merma con parametro p_restaurant_id;
+-- se dropea porque Postgres no permite renombrar parametros con CREATE OR REPLACE.
+drop function if exists public.register_merma(text, text, numeric, text, text);
 create or replace function public.register_merma(
   p_branch_id text,
   p_item_id text,

@@ -26,11 +26,11 @@ export async function fetchAdminMenu(): Promise<AdminMenuData> {
   }
 
   const supabase = getSupabaseClient()
-  const { restaurantId } = getSupabaseConfig()
+  const { branchId } = getSupabaseConfig()
   const [restaurantResult, categoriesResult, productsResult] = await Promise.all([
-    supabase.from('restaurants').select('*').eq('id', restaurantId).single(),
-    supabase.from('categories').select('*').eq('restaurant_id', restaurantId).order('sort_order', { ascending: true }),
-    supabase.from('products').select('*').eq('restaurant_id', restaurantId).order('sort_order', { ascending: true }),
+    supabase.from('branches').select('*').eq('id', branchId).single(),
+    supabase.from('categories').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),
+    supabase.from('products').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),
   ])
 
   if (restaurantResult.error || categoriesResult.error || productsResult.error) {
@@ -74,10 +74,10 @@ export async function upsertAdminCategory(name: string, description: string, sor
     return
   }
 
-  const { restaurantId } = getSupabaseConfig()
+  const { branchId } = getSupabaseConfig()
   const { error } = await getSupabaseClient().from('categories').upsert({
     id: slugify(name),
-    restaurant_id: restaurantId,
+    branch_id: branchId,
     name: name.trim(),
     description: description.trim(),
     image_url: null,
@@ -103,9 +103,9 @@ export async function updateAdminRestaurant(form: AdminRestaurantForm, whatsappN
     return
   }
 
-  const { restaurantId } = getSupabaseConfig()
+  const { branchId } = getSupabaseConfig()
   const { error } = await getSupabaseClient()
-    .from('restaurants')
+    .from('branches')
     .update({
       name: form.name.trim(),
       short_name: form.shortName.trim() || null,
@@ -115,7 +115,7 @@ export async function updateAdminRestaurant(form: AdminRestaurantForm, whatsappN
       description: form.description.trim(),
       social_handle: form.socialHandle.trim() || null,
     })
-    .eq('id', restaurantId)
+    .eq('id', branchId)
 
   if (error) throw new Error(error.message)
 }
@@ -126,10 +126,10 @@ export async function upsertAdminProduct(product: MenuItem, sortOrder: number) {
     return
   }
 
-  const { restaurantId } = getSupabaseConfig()
+  const { branchId } = getSupabaseConfig()
   const { error } = await getSupabaseClient()
     .from('products')
-    .upsert(toProductRow(product, restaurantId, sortOrder))
+    .upsert(toProductRow(product, branchId, sortOrder))
 
   if (error) throw new Error(error.message)
 }
@@ -150,10 +150,10 @@ export async function uploadAdminProductImage(file: File, productName: string) {
   }
 
   const supabase = getSupabaseClient()
-  const { restaurantId, storageBucket } = getSupabaseConfig()
+  const { branchId, storageBucket } = getSupabaseConfig()
   const extension = file.name.split('.').pop() ?? 'jpg'
   const productSlug = slugify(productName || 'producto')
-  const path = `${restaurantId}/products/${productSlug}-${Date.now()}.${extension}`
+  const path = `${branchId}/products/${productSlug}-${Date.now()}.${extension}`
 
   const { error } = await supabase.storage.from(storageBucket).upload(path, file, {
     cacheControl: '3600',

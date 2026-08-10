@@ -48,12 +48,13 @@ Frente: activar el eje brands -> warehouses -> branches
 
 | Acción | Gate |
 |---|---|
-| Aplicar en orden y en staging (local): `202608080001` y `202608080002` | `supabase db reset` verde |
-| Alinear el código a `branch_id` (hoy usa `restaurant_id`) | Build verde |
-| Actualizar `supabase/seed.sql` al modelo `branches` | Seed aplica |
-| Reescribir `adminInventoryRepository` y consultas de menú/pedidos | E2E admin ok |
+| Aplicar en orden y en staging (local): `202608080001` y `202608080002` | ✅ migraciones + seed aplican (validado en staging local) |
+| Alinear el código a `branch_id` (hoy usa `restaurant_id`) | ✅ build verde en rama `phase2/multibrand-branch-id` |
+| Actualizar `supabase/seed.sql` al modelo `branches` | ✅ hecho |
+| Reescribir `adminInventoryRepository` (`branch_stock`) y consultas de menú/pedidos | ✅ hecho |
 | RLS por tenant verificada | `supabase/tests/security_rls_check.sql` |
-| **Salida:** multi-tenant operativo. | — |
+| Rollout: aplicar migraciones + seed a staging/producción JUNTOS con el deploy de código | Pendiente de coordinar |
+| **Salida:** multi-tenant operativo. | En rama; falta rollout coordinado |
 
 > ⚠️ **Lección de estabilidad (validada en staging local, 08-ago-2026):**
 > La migración multi-marca y la app son **dos mitades de un mismo cambio**.

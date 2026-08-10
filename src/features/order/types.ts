@@ -2,7 +2,7 @@ export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'del
 
 export type OrderRow = {
   id: string
-  restaurant_id: string
+  branch_id: string
   status: OrderStatus
   order_channel?: string
   delivery_provider?: string
@@ -41,7 +41,7 @@ export type OrderItemRow = {
 export type OrderWithItems = OrderRow & { items: OrderItemRow[] }
 
 export type SaveOrderInput = {
-  restaurantId: string
+  branchId: string
   orderChannel?: string
   deliveryProvider?: string
   paymentStatus?: string

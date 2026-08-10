@@ -4,7 +4,7 @@ import { getSupabaseClient, isSupabaseConfigured } from '../../services/menuRepo
 import { fetchMockOrders } from '../admin/repositories/adminMockRepository'
 import type { OrderItemRow, OrderRow, OrderWithItems } from '../order/types'
 
-export async function fetchTrackableOrders(restaurantId: string): Promise<OrderWithItems[]> {
+export async function fetchTrackableOrders(branchId: string): Promise<OrderWithItems[]> {
   if (isE2EAdminMockEnabled()) {
     return fetchMockOrders()
   }
@@ -16,7 +16,7 @@ export async function fetchTrackableOrders(restaurantId: string): Promise<OrderW
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('branch_id', branchId)
       .order('created_at', { ascending: false })
 
     if (ordersError) {
@@ -31,7 +31,7 @@ export async function fetchTrackableOrders(restaurantId: string): Promise<OrderW
   }
 }
 
-export async function fetchTrackableOrder(restaurantId: string, orderId: string): Promise<OrderWithItems | null> {
+export async function fetchTrackableOrder(branchId: string, orderId: string): Promise<OrderWithItems | null> {
   if (isE2EAdminMockEnabled()) {
     const orders = await fetchMockOrders()
     return orders.find((order) => order.id === orderId) ?? null
@@ -44,7 +44,7 @@ export async function fetchTrackableOrder(restaurantId: string, orderId: string)
     const { data: order, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('branch_id', branchId)
       .eq('id', orderId)
       .maybeSingle()
 
@@ -62,7 +62,7 @@ export async function fetchTrackableOrder(restaurantId: string, orderId: string)
 }
 
 export function subscribeToTrackableOrderChanges(
-  restaurantId: string,
+  branchId: string,
   onChange: () => void,
 ): (() => void) | null {
   if (isE2EAdminMockEnabled() || !isSupabaseConfigured()) return null
@@ -70,27 +70,27 @@ export function subscribeToTrackableOrderChanges(
   const supabase = getSupabaseClient()
   const channels: RealtimeChannel[] = [
     supabase
-      .channel(`public-tracking-orders:${restaurantId}`)
+      .channel(`public-tracking-orders:${branchId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'orders',
-          filter: `restaurant_id=eq.${restaurantId}`,
+          filter: `branch_id=eq.${branchId}`,
         },
         onChange,
       )
       .subscribe(),
     supabase
-      .channel(`public-tracking-events:${restaurantId}`)
+      .channel(`public-tracking-events:${branchId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'order_status_events',
-          filter: `restaurant_id=eq.${restaurantId}`,
+          filter: `branch_id=eq.${branchId}`,
         },
         onChange,
       )

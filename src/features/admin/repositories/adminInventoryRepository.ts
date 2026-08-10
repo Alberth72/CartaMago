@@ -12,15 +12,15 @@ export async function fetchAdminInventory(): Promise<InventoryData> {
   }
 
   const supabase = getSupabaseClient()
-  const { restaurantId } = getSupabaseConfig()
+  const { branchId } = getSupabaseConfig()
 
   const [itemsResult, stockResult, movementsResult] = await Promise.all([
-    supabase.from('inventory_items').select('*').eq('restaurant_id', restaurantId).order('name', { ascending: true }),
-    supabase.from('inventory_stock').select('*').eq('restaurant_id', restaurantId),
+    supabase.from('inventory_items').select('*').eq('branch_id', branchId).order('name', { ascending: true }),
+    supabase.from('branch_stock').select('*').eq('branch_id', branchId),
     supabase
       .from('inventory_movements')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('branch_id', branchId)
       .eq('movement_type', 'merma')
       .order('created_at', { ascending: false })
       .limit(50),
@@ -64,9 +64,9 @@ export async function registerAdminMerma(itemId: string, quantity: number, reaso
     return
   }
 
-  const { restaurantId } = getSupabaseConfig()
+  const { branchId } = getSupabaseConfig()
   const { error } = await getSupabaseClient().rpc('register_merma', {
-    p_restaurant_id: restaurantId,
+    p_branch_id: branchId,
     p_item_id: itemId,
     p_quantity: quantity,
     p_reason: reason,

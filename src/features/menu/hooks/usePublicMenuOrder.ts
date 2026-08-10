@@ -25,13 +25,13 @@ const defaultCustomerDetails: CustomerDetails = {
 }
 
 type UsePublicMenuOrderInput = {
-  restaurantId: string
+  branchId: string
   restaurant: RestaurantProfile
   menuItems: MenuItem[]
 }
 
 export function usePublicMenuOrder({
-  restaurantId,
+  branchId,
   restaurant,
   menuItems,
 }: UsePublicMenuOrderInput) {
@@ -72,7 +72,7 @@ export function usePublicMenuOrder({
           : 'none'
 
     void saveOrder({
-      restaurantId,
+      branchId,
       orderChannel: 'cartamago',
       deliveryProvider,
       paymentStatus: getInitialPaymentStatus(details.paymentMethod),
@@ -105,7 +105,7 @@ export function usePublicMenuOrder({
         lineNote: line.note,
       })),
     })
-  }, [restaurant, restaurantId, cartLines, details, itemCount, total])
+  }, [restaurant, branchId, cartLines, details, itemCount, total])
 
   function addItem(itemId: string) {
     setCart((current: unknown) => {

@@ -20,7 +20,7 @@ export function AdminSetupNotice() {
         <pre className="mt-5 overflow-x-auto rounded-md bg-stone-950 p-4 text-sm text-stone-50">
 {`VITE_SUPABASE_URL=https://xxxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=ey...
-VITE_RESTAURANT_ID=brasas-sazon
+VITE_BRANCH_ID=brasas-sazon
 VITE_MENU_STORAGE_BUCKET=menu-assets`}
         </pre>
         <p className="mt-4 text-sm leading-6 text-stone-600">

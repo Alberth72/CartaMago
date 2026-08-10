@@ -10,17 +10,17 @@ import { formatLiveTime, formatShortOrderId, isActiveKitchenOrder } from './trac
 const roomStatuses: OrderStatus[] = ['confirmed', 'preparing', 'ready']
 
 export function LiveRoomDisplayPage() {
-  const { restaurantId } = getSupabaseConfig()
+  const { branchId } = getSupabaseConfig()
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
 
   const loadOrders = useCallback(async () => {
-    const nextOrders = await fetchTrackableOrders(restaurantId)
+    const nextOrders = await fetchTrackableOrders(branchId)
     setOrders(nextOrders.filter((order) => isActiveKitchenOrder(order) && roomStatuses.includes(order.status)))
     setLastSyncedAt(new Date().toISOString())
     setLoading(false)
-  }, [restaurantId])
+  }, [branchId])
 
   useEffect(() => {
     void loadOrders()
@@ -28,13 +28,13 @@ export function LiveRoomDisplayPage() {
 
   useEffect(() => {
     const intervalId = window.setInterval(() => void loadOrders(), 10000)
-    const unsubscribe = subscribeToTrackableOrderChanges(restaurantId, () => void loadOrders())
+    const unsubscribe = subscribeToTrackableOrderChanges(branchId, () => void loadOrders())
 
     return () => {
       window.clearInterval(intervalId)
       unsubscribe?.()
     }
-  }, [loadOrders, restaurantId])
+  }, [loadOrders, branchId])
 
   const readyOrders = useMemo(() => orders.filter((order) => order.status === 'ready'), [orders])
   const workingOrders = useMemo(() => orders.filter((order) => order.status !== 'ready'), [orders])

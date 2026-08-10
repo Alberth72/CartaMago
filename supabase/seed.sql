@@ -1,4 +1,4 @@
-insert into public.restaurants (
+insert into public.branches (
   id,
   name,
   short_name,
@@ -31,7 +31,7 @@ insert into public.restaurants (
   hero_image_url = excluded.hero_image_url,
   social_handle = excluded.social_handle;
 
-insert into public.categories (id, restaurant_id, name, description, image_url, sort_order) values
+insert into public.categories (id, branch_id, name, description, image_url, sort_order) values
   ('pollos', 'brasas-sazon', 'Pollo', 'Pollo asado al carbon o apanado.', null, 10),
   ('asados', 'brasas-sazon', 'Asados', 'Carnes de 300 gr con papas, arepa, queso y ensalada dulce.', null, 20),
   ('bandejas', 'brasas-sazon', 'Bandejas', 'Bandejas con sopa, arroz, frijol, maduro, huevo, ensalada y bebida.', null, 30),
@@ -41,13 +41,13 @@ insert into public.categories (id, restaurant_id, name, description, image_url, 
   ('bebidas', 'brasas-sazon', 'Bebidas', 'Limonadas, jugos y gaseosas.', null, 70),
   ('adiciones', 'brasas-sazon', 'Adiciones', 'Acompanamientos y extras.', null, 80)
 on conflict (id) do update set
-  restaurant_id = excluded.restaurant_id,
+  branch_id = excluded.branch_id,
   name = excluded.name,
   description = excluded.description,
   image_url = excluded.image_url,
   sort_order = excluded.sort_order;
 
-insert into public.products (id, restaurant_id, category_id, name, description, price_cop, badge, available, sort_order) values
+insert into public.products (id, branch_id, category_id, name, description, price_cop, badge, available, sort_order) values
   ('pollo-entero', 'brasas-sazon', 'pollos', '1 Pollo asado al carbon', 'Incluye 4 arepas, 4 papas y maduro.', 26000, 'Especialidad', true, 10),
   ('medio-asado', 'brasas-sazon', 'pollos', '1/2 asado', 'Media porcion de pollo asado al carbon.', 26000, null, true, 20),
   ('cuarto-asado', 'brasas-sazon', 'pollos', '1/4 asado', 'Cuarto de pollo asado al carbon.', 26000, null, true, 30),
@@ -80,7 +80,7 @@ insert into public.products (id, restaurant_id, category_id, name, description, 
   ('para-llevar', 'brasas-sazon', 'adiciones', 'Para llevar', 'Empaque para llevar. En el menu fisico aparece con $500 adicionales.', 26000, null, true, 300),
   ('ensalada-dulce', 'brasas-sazon', 'adiciones', 'Ensalada dulce', 'Adicion para acompanar el pedido.', 26000, null, true, 310)
 on conflict (id) do update set
-  restaurant_id = excluded.restaurant_id,
+  branch_id = excluded.branch_id,
   category_id = excluded.category_id,
   name = excluded.name,
   description = excluded.description,
@@ -89,9 +89,9 @@ on conflict (id) do update set
   available = excluded.available,
   sort_order = excluded.sort_order;
 
-delete from public.menu_photos where restaurant_id = 'brasas-sazon';
+delete from public.menu_photos where branch_id = 'brasas-sazon';
 
-insert into public.orders (id, restaurant_id, status, payment_status, payment_method, payment_provider, customer_name, customer_note, fulfillment_mode, delivery_address, table_number, total_items, total_cop, whatsapp_message, whatsapp_link, created_at) values
+insert into public.orders (id, branch_id, status, payment_status, payment_method, payment_provider, customer_name, customer_note, fulfillment_mode, delivery_address, table_number, total_items, total_cop, whatsapp_message, whatsapp_link, created_at) values
   ('ord_demo_001', 'brasas-sazon', 'pending', 'pending', 'cash', 'manual', 'Carlos Mendez', 'Sin cebolla en las papas', 'delivery', 'Calle 10 #5-20, Barrio Centro', '', 3, 78000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x 1 Pollo asado al carbon: $26.000\n- 2 x Churrasco 300 gr: $52.000\n\nTotal aproximado: $78.000\nEntrega: Domicilio\nPago: Efectivo\nDireccion: Calle 10 #5-20, Barrio Centro\nNombre: Carlos Mendez\nNotas: Sin cebolla en las papas\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '2 hours'),
   ('ord_demo_002', 'brasas-sazon', 'confirmed', 'paid', 'bank_transfer', 'manual', 'Maria Gutierrez', '', 'pickup', '', '', 2, 52000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x Bandeja paisa: $26.000\n- 1 x Limonada natural: $26.000\n\nTotal aproximado: $52.000\nEntrega: Recoger en el local\nPago: Transferencia\nNombre: Maria Gutierrez\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '1 hour'),
   ('ord_demo_003', 'brasas-sazon', 'preparing', 'pending', 'card_at_table', 'manual', 'Pedro Ramirez', 'Bien asada la carne', 'table', '', '5', 4, 104000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 2 x Punta de anca 300 gr: $52.000\n- 1 x Sopa de pollo: $26.000\n- 1 x Jugo en agua: $26.000\n\nTotal aproximado: $104.000\nEntrega: Mesa\nMesa: 5\nPago: Tarjeta en mesa\nNombre: Pedro Ramirez\nNotas: Bien asada la carne\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '30 minutes')

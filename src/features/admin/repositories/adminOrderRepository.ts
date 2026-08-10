@@ -4,7 +4,7 @@ import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
 import { fetchMockOrders, updateMockOrderStatus } from './adminMockRepository'
 import type { OrderItemRow, OrderRow, OrderStatus, OrderWithItems } from '../../order/types'
 
-export async function fetchOrders(restaurantId: string): Promise<OrderWithItems[]> {
+export async function fetchOrders(branchId: string): Promise<OrderWithItems[]> {
   if (isE2EAdminMockEnabled()) {
     return fetchMockOrders()
   }
@@ -19,7 +19,7 @@ export async function fetchOrders(restaurantId: string): Promise<OrderWithItems[
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('branch_id', branchId)
       .order('created_at', { ascending: false })
 
     if (ordersError) {
@@ -60,7 +60,7 @@ export async function fetchOrders(restaurantId: string): Promise<OrderWithItems[
 }
 
 export function subscribeToOrderChanges(
-  restaurantId: string,
+  branchId: string,
   onChange: () => void,
 ): (() => void) | null {
   if (isE2EAdminMockEnabled() || !isSupabaseConfigured()) {
@@ -70,27 +70,27 @@ export function subscribeToOrderChanges(
   const supabase = getSupabaseClient()
   const channels: RealtimeChannel[] = [
     supabase
-      .channel(`orders:${restaurantId}`)
+      .channel(`orders:${branchId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'orders',
-          filter: `restaurant_id=eq.${restaurantId}`,
+          filter: `branch_id=eq.${branchId}`,
         },
         onChange,
       )
       .subscribe(),
     supabase
-      .channel(`order_status_events:${restaurantId}`)
+      .channel(`order_status_events:${branchId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'order_status_events',
-          filter: `restaurant_id=eq.${restaurantId}`,
+          filter: `branch_id=eq.${branchId}`,
         },
         onChange,
       )

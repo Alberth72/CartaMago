@@ -1,7 +1,7 @@
 import type { CartLine, CustomerDetails } from '../../order/orderMessage'
 
 export type DidiFoodDraftOrder = {
-  restaurantId: string
+  branchId: string
   customerName: string
   deliveryAddress: string
   note: string
@@ -16,12 +16,12 @@ export type DidiFoodDraftOrder = {
 }
 
 export function buildDidiFoodDraftOrder(
-  restaurantId: string,
+  branchId: string,
   lines: CartLine[],
   details: CustomerDetails,
 ): DidiFoodDraftOrder {
   return {
-    restaurantId,
+    branchId,
     customerName: details.name,
     deliveryAddress: details.address,
     note: details.note,

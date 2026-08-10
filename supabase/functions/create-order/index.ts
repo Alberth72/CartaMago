@@ -15,7 +15,7 @@ type CreateOrderItem = {
 }
 
 type CreateOrderPayload = {
-  restaurantId: string
+  branchId: string
   orderChannel?: string
   deliveryProvider?: string
   paymentStatus?: string
@@ -43,7 +43,7 @@ type CreateOrderPayload = {
 
 type ProductRow = {
   id: string
-  restaurant_id: string
+  branch_id: string
   name: string
   price_cop: number | null
   available: boolean
@@ -96,7 +96,7 @@ async function sha256(value: string) {
 }
 
 function validatePayload(payload: Partial<CreateOrderPayload>) {
-  if (!payload.restaurantId) return 'restaurantId is required'
+  if (!payload.branchId) return 'branchId is required'
   if (!payload.fulfillmentMode) return 'fulfillmentMode is required'
   if (!Array.isArray(payload.items) || payload.items.length === 0) return 'items are required'
   if ((payload.totalItems ?? 0) <= 0) return 'totalItems must be greater than zero'
@@ -158,14 +158,14 @@ async function verifyCaptchaIfConfigured(token: string | undefined) {
 
 async function enforceRateLimit(
   supabase: ReturnType<typeof createClient>,
-  restaurantId: string,
+  branchId: string,
   clientIp: string,
 ) {
   const now = new Date()
   const windowStartedAtMs = Math.floor(now.getTime() / (rateLimitWindowSeconds * 1000)) * rateLimitWindowSeconds * 1000
   const windowStartedAt = new Date(windowStartedAtMs)
   const expiresAt = new Date(windowStartedAtMs + rateLimitWindowSeconds * 1000)
-  const limitHash = await sha256(`${restaurantId}:${clientIp}:${windowStartedAt.toISOString()}`)
+  const limitHash = await sha256(`${branchId}:${clientIp}:${windowStartedAt.toISOString()}`)
   const id = `orl_${limitHash.slice(0, 32)}`
 
   const { data: existing, error: selectError } = await supabase
@@ -198,7 +198,7 @@ async function enforceRateLimit(
 
   const { error: insertError } = await supabase.from('order_rate_limits').insert({
     id,
-    restaurant_id: restaurantId,
+    branch_id: branchId,
     limit_key: limitHash,
     window_started_at: windowStartedAt.toISOString(),
     expires_at: expiresAt.toISOString(),
@@ -221,9 +221,9 @@ async function validateMenuAndPricing(
   payload: CreateOrderPayload,
 ) {
   const { data: restaurant, error: restaurantError } = await supabase
-    .from('restaurants')
+    .from('branches')
     .select('id, fulfillment_modes')
-    .eq('id', payload.restaurantId)
+    .eq('id', payload.branchId)
     .maybeSingle()
 
   if (restaurantError) throw new Error(restaurantError.message)
@@ -238,8 +238,8 @@ async function validateMenuAndPricing(
   const productIds = Array.from(new Set(payload.items.map((item) => item.productId)))
   const { data: products, error: productsError } = await supabase
     .from('products')
-    .select('id, restaurant_id, name, price_cop, available')
-    .eq('restaurant_id', payload.restaurantId)
+    .select('id, branch_id, name, price_cop, available')
+    .eq('branch_id', payload.branchId)
     .in('id', productIds)
 
   if (productsError) throw new Error(productsError.message)
@@ -323,7 +323,7 @@ Deno.serve(async (request) => {
   const { data: existingKey, error: existingError } = await supabase
     .from('order_idempotency_keys')
     .select('order_id, request_hash, response_json')
-    .eq('restaurant_id', payload.restaurantId)
+    .eq('branch_id', payload.branchId)
     .eq('idempotency_key', idempotencyKey)
     .maybeSingle()
 
@@ -340,7 +340,7 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const allowed = await enforceRateLimit(supabase, payload.restaurantId, getClientIp(request))
+    const allowed = await enforceRateLimit(supabase, payload.branchId, getClientIp(request))
     if (!allowed) {
       return jsonResponse({ error: 'rate_limited' }, 429)
     }
@@ -364,7 +364,7 @@ Deno.serve(async (request) => {
   const orderId = makeId('ord')
   const order = {
     id: orderId,
-    restaurant_id: payload.restaurantId,
+    branch_id: payload.branchId,
     status: 'pending',
     order_channel: payload.orderChannel ?? 'cartamago',
     delivery_provider: payload.deliveryProvider ?? 'none',
@@ -405,7 +405,7 @@ Deno.serve(async (request) => {
   const response = { orderId }
   const { error: idempotencyError } = await supabase.from('order_idempotency_keys').insert({
     id: makeId('idem'),
-    restaurant_id: payload.restaurantId,
+    branch_id: payload.branchId,
     idempotency_key: idempotencyKey,
     order_id: orderId,
     request_hash: requestHash,

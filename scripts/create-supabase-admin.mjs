@@ -21,7 +21,7 @@ const { data, error } = await supabase.auth.admin.createUser({
   email_confirm: true,
   user_metadata: {
     role: 'restaurant_owner',
-    restaurant_id: process.env.VITE_RESTAURANT_ID ?? 'brasas-sazon',
+    branch_id: process.env.VITE_BRANCH_ID ?? 'brasas-sazon',
   },
 })
 

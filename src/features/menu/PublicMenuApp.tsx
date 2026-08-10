@@ -24,10 +24,10 @@ export function PublicMenuApp() {
   }, [setMenuData])
 
   const { categories, menuItems, restaurant } = menuData
-  const restaurantId = menuData.restaurantId ?? 'brasas-sazon'
+  const branchId = menuData.branchId ?? 'brasas-sazon'
   const visibleItems = menuItems.filter((item) => item.categoryId === activeCategory)
   const activeCategoryData = categories.find((category) => category.id === activeCategory)
-  const order = usePublicMenuOrder({ restaurantId, restaurant, menuItems })
+  const order = usePublicMenuOrder({ branchId, restaurant, menuItems })
   const menuTitle = `Menu ${restaurant.shortName} | CartaMago`
 
   const ogImage = restaurant.heroImage.startsWith('http')

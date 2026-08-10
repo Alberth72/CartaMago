@@ -24,8 +24,8 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
   const loadOrders = useCallback(async (showInitialLoading = false) => {
     if (showInitialLoading) setLoading(true)
     setRefreshing(true)
-    const { restaurantId } = getSupabaseConfig()
-    const data = await fetchOrders(restaurantId)
+    const { branchId } = getSupabaseConfig()
+    const data = await fetchOrders(branchId)
     setOrders(data)
     setLastSyncedAt(new Date().toISOString())
     setLoading(false)
@@ -51,8 +51,8 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
   }, [loadOrders])
 
   useEffect(() => {
-    const { restaurantId } = getSupabaseConfig()
-    const unsubscribe = subscribeToOrderChanges(restaurantId, () => void loadOrders())
+    const { branchId } = getSupabaseConfig()
+    const unsubscribe = subscribeToOrderChanges(branchId, () => void loadOrders())
     if (!unsubscribe) return
 
     return unsubscribe

@@ -37,8 +37,8 @@ export function useAdminIntegrations() {
 
   const loadIntegrations = useCallback(async () => {
     setLoading(true)
-    const { restaurantId } = getSupabaseConfig()
-    const rows = await fetchRestaurantIntegrations(restaurantId)
+    const { branchId } = getSupabaseConfig()
+    const rows = await fetchRestaurantIntegrations(branchId)
     const didiFood = rows.find((integration) => integration.provider === 'didi_food')
 
     setIntegrations(rows)
@@ -62,9 +62,9 @@ export function useAdminIntegrations() {
     setSaving(true)
     setStatus('')
 
-    const { restaurantId } = getSupabaseConfig()
+    const { branchId } = getSupabaseConfig()
     const saved = await saveRestaurantIntegration({
-      restaurantId,
+      branchId,
       provider: 'didi_food',
       enabled: false,
       externalStoreId: form.externalStoreId,

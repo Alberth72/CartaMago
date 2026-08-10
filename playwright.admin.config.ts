@@ -20,7 +20,7 @@ export default defineConfig({
     env: {
       VITE_SUPABASE_URL: 'https://cartamago-e2e.supabase.co',
       VITE_SUPABASE_ANON_KEY: 'cartamago-e2e-anon-key',
-      VITE_RESTAURANT_ID: 'brasas-sazon',
+      VITE_BRANCH_ID: 'brasas-sazon',
       VITE_MENU_STORAGE_BUCKET: 'menu-assets',
       VITE_E2E_ADMIN_MOCK: 'true',
     },

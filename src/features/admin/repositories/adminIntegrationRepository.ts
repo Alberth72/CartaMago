@@ -5,7 +5,7 @@ export type IntegrationProvider = 'whatsapp' | 'didi_food' | 'didi_pay'
 
 export type RestaurantIntegrationRow = {
   id: string
-  restaurant_id: string
+  branch_id: string
   provider: IntegrationProvider
   enabled: boolean
   external_store_id: string | null
@@ -16,18 +16,18 @@ export type RestaurantIntegrationRow = {
 }
 
 export type SaveIntegrationInput = {
-  restaurantId: string
+  branchId: string
   provider: IntegrationProvider
   enabled: boolean
   externalStoreId: string
   settings: Record<string, unknown>
 }
 
-function makeIntegrationId(restaurantId: string, provider: IntegrationProvider) {
-  return `${restaurantId}_${provider}`
+function makeIntegrationId(branchId: string, provider: IntegrationProvider) {
+  return `${branchId}_${provider}`
 }
 
-export async function fetchRestaurantIntegrations(restaurantId: string): Promise<RestaurantIntegrationRow[]> {
+export async function fetchRestaurantIntegrations(branchId: string): Promise<RestaurantIntegrationRow[]> {
   if (isE2EAdminMockEnabled() || !isSupabaseConfigured()) {
     return []
   }
@@ -37,7 +37,7 @@ export async function fetchRestaurantIntegrations(restaurantId: string): Promise
     const { data, error } = await supabase
       .from('restaurant_integrations')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('branch_id', branchId)
       .order('provider', { ascending: true })
 
     if (error) {
@@ -55,8 +55,8 @@ export async function fetchRestaurantIntegrations(restaurantId: string): Promise
 export async function saveRestaurantIntegration(input: SaveIntegrationInput): Promise<RestaurantIntegrationRow | null> {
   if (isE2EAdminMockEnabled() || !isSupabaseConfigured()) {
     return {
-      id: makeIntegrationId(input.restaurantId, input.provider),
-      restaurant_id: input.restaurantId,
+      id: makeIntegrationId(input.branchId, input.provider),
+      branch_id: input.branchId,
       provider: input.provider,
       enabled: input.enabled,
       external_store_id: input.externalStoreId.trim() || null,
@@ -70,8 +70,8 @@ export async function saveRestaurantIntegration(input: SaveIntegrationInput): Pr
   try {
     const supabase = getSupabaseClient()
     const row = {
-      id: makeIntegrationId(input.restaurantId, input.provider),
-      restaurant_id: input.restaurantId,
+      id: makeIntegrationId(input.branchId, input.provider),
+      branch_id: input.branchId,
       provider: input.provider,
       enabled: input.enabled,
       external_store_id: input.externalStoreId.trim() || null,

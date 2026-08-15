@@ -17,9 +17,12 @@ const moneyFormatter = new Intl.NumberFormat('es-CO', {
   maximumFractionDigits: 0,
 })
 
+type PurchasingView = 'receive' | 'suppliers' | 'history'
+
 export function WarehousePurchasingPanel() {
   const purchasing = useWarehousePurchasing()
   const data = purchasing.data
+  const [activeView, setActiveView] = useState<PurchasingView>('receive')
   const [warehouseId, setWarehouseId] = useState('')
   const [supplierId, setSupplierId] = useState('')
   const [itemId, setItemId] = useState('')
@@ -205,6 +208,56 @@ export function WarehousePurchasingPanel() {
         </div>
       </section>
 
+      <section className="grid gap-2 rounded-lg border border-stone-200 bg-white p-2 shadow-sm md:grid-cols-3">
+        {[
+          {
+            id: 'receive' as const,
+            label: 'Recibir compras',
+            description: `${openOrders.length} abiertas`,
+            icon: Truck,
+          },
+          {
+            id: 'suppliers' as const,
+            label: 'Proveedores e insumos',
+            description: `${suppliers.length} proveedores`,
+            icon: Phone,
+          },
+          {
+            id: 'history' as const,
+            label: 'Historial',
+            description: `${recentOrders.length} recientes`,
+            icon: CheckCircle2,
+          },
+        ].map((action) => {
+          const ActionIcon = action.icon
+          const selected = activeView === action.id
+          return (
+            <button
+              key={action.id}
+              type="button"
+              onClick={() => setActiveView(action.id)}
+              aria-pressed={selected}
+              className={`flex min-h-16 items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors ${
+                selected
+                  ? 'border-red-900 bg-red-50 text-red-950'
+                  : 'border-transparent bg-white text-stone-700 hover:border-stone-200 hover:bg-stone-50'
+              }`}
+            >
+              <span className={`grid size-9 shrink-0 place-items-center rounded-md ${
+                selected ? 'bg-red-900 text-white' : 'bg-stone-100 text-stone-500'
+              }`}>
+                <ActionIcon size={18} />
+              </span>
+              <span>
+                <span className="block text-sm font-black">{action.label}</span>
+                <span className="block text-xs font-bold text-stone-500">{action.description}</span>
+              </span>
+            </button>
+          )
+        })}
+      </section>
+
+      {activeView === 'receive' ? (
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2">
@@ -258,26 +311,6 @@ export function WarehousePurchasingPanel() {
             )}
           </div>
 
-          {recentOrders.length > 0 ? (
-            <div className="mt-5 border-t border-stone-200 pt-4">
-              <h3 className="text-sm font-black text-stone-950">Historial reciente</h3>
-              <div className="mt-2 grid gap-2">
-                {recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between gap-3 rounded-md bg-stone-50 px-3 py-2">
-                    <div>
-                      <p className="text-sm font-black text-stone-800">{getSupplierName(order.supplierId)}</p>
-                      <p className="text-xs font-bold text-stone-500">
-                        {order.items.map((item) => getItemName(item.itemId)).join(', ')}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-white px-2 py-1 text-xs font-black text-stone-600">
-                      {statusLabels[order.status]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </section>
 
         <aside className="h-fit rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
@@ -402,7 +435,9 @@ export function WarehousePurchasingPanel() {
           </div>
         </aside>
       </div>
+      ) : null}
 
+      {activeView === 'suppliers' ? (
       <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
         <div className="flex items-center gap-2">
           <span className="grid size-10 place-items-center rounded-md bg-sky-100 text-sky-700">
@@ -667,6 +702,46 @@ export function WarehousePurchasingPanel() {
           </aside>
         </div>
       </section>
+      ) : null}
+
+      {activeView === 'history' ? (
+        <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="grid size-10 place-items-center rounded-md bg-emerald-100 text-emerald-700">
+              <CheckCircle2 size={22} />
+            </span>
+            <div>
+              <h2 className="text-lg font-black text-stone-950">Historial de compras</h2>
+              <p className="text-sm font-bold text-stone-500">Compras recibidas, pagadas o cerradas</p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2">
+            {recentOrders.length === 0 ? (
+              <p className="rounded-md bg-stone-100 px-3 py-2 text-sm font-bold text-stone-600">
+                No hay compras cerradas recientes.
+              </p>
+            ) : (
+              recentOrders.map((order) => (
+                <article key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-stone-200 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-black text-stone-950">{getSupplierName(order.supplierId)}</p>
+                    <p className="text-xs font-bold text-stone-500">
+                      {order.items.map((item) => getItemName(item.itemId)).join(', ')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-black text-stone-600">
+                      {statusLabels[order.status]}
+                    </span>
+                    <p className="mt-1 text-sm font-black text-stone-950">{moneyFormatter.format(order.totalCost)}</p>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+      ) : null}
 
       {purchasing.status ? (
         <p

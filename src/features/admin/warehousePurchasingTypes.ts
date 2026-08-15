@@ -79,3 +79,13 @@ export type LinkSupplierItemInput = {
   unitCost: number
   leadTimeDays: number
 }
+
+export type CreateAndLinkSupplierItemInput = {
+  warehouseId: string
+  supplierId: string
+  name: string
+  unit: string
+  category: string
+  unitCost: number
+  leadTimeDays: number
+}

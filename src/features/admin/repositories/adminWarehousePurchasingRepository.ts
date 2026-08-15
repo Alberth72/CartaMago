@@ -2,6 +2,7 @@ import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
 import { getSupabaseClient } from '../../../services/menuRepository'
 import type {
   CreatePurchaseOrderInput,
+  CreateAndLinkSupplierItemInput,
   CreateSupplierInput,
   LinkSupplierItemInput,
   PurchaseOrder,
@@ -194,4 +195,27 @@ export async function linkWarehouseSupplierItem(input: LinkSupplierItemInput) {
 
   if (error) throw new Error(error.message)
   return id
+}
+
+export async function createAndLinkWarehouseSupplierItem(input: CreateAndLinkSupplierItemInput) {
+  if (isE2EAdminMockEnabled()) return `item_mock_${Date.now()}`
+
+  const { data, error } = await getSupabaseClient().rpc('create_inventory_item_for_warehouse', {
+    p_warehouse_id: input.warehouseId,
+    p_name: input.name,
+    p_unit: input.unit,
+    p_category: input.category,
+  })
+
+  if (error) throw new Error(error.message)
+
+  const itemId = String(data)
+  await linkWarehouseSupplierItem({
+    supplierId: input.supplierId,
+    itemId,
+    unitCost: input.unitCost,
+    leadTimeDays: input.leadTimeDays,
+  })
+
+  return itemId
 }

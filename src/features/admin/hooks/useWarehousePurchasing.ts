@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import type {
   CreatePurchaseOrderInput,
+  CreateAndLinkSupplierItemInput,
   CreateSupplierInput,
   LinkSupplierItemInput,
   WarehousePurchasingData,
 } from '../warehousePurchasingTypes'
 import {
+  createAndLinkWarehouseSupplierItem,
   createWarehousePurchaseOrder,
   createWarehouseSupplier,
   fetchWarehousePurchasing,
@@ -65,6 +67,8 @@ export function useWarehousePurchasing() {
       runAction(() => createWarehouseSupplier(input), 'Proveedor guardado para esta bodega.'),
     linkSupplierItem: (input: LinkSupplierItemInput) =>
       runAction(() => linkWarehouseSupplierItem(input), 'Insumo vinculado al proveedor.'),
+    createAndLinkItem: (input: CreateAndLinkSupplierItemInput) =>
+      runAction(() => createAndLinkWarehouseSupplierItem(input), 'Insumo creado y asociado al proveedor.'),
     reload: loadPurchasing,
   }
 }

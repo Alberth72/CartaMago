@@ -885,6 +885,79 @@ $$;
 grant execute on function public.create_purchase_order(text, text, jsonb, text, text) to authenticated;
 grant execute on function public.receive_purchase_order(text, text) to authenticated;
 
+drop function if exists public.create_inventory_item_for_warehouse(text, text, text, text);
+create or replace function public.create_inventory_item_for_warehouse(
+  p_warehouse_id text,
+  p_name text,
+  p_unit text default 'unidad',
+  p_category text default 'General'
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_item_id text;
+  v_branch_id text;
+  v_brand_id text;
+  v_name text := nullif(trim(coalesce(p_name, '')), '');
+  v_unit text := coalesce(nullif(trim(coalesce(p_unit, '')), ''), 'unidad');
+  v_category text := coalesce(nullif(trim(coalesce(p_category, '')), ''), 'General');
+begin
+  if not public.can_manage_warehouse(p_warehouse_id) then
+    raise exception 'No tienes permiso para crear insumos en esta bodega.';
+  end if;
+
+  if v_name is null then
+    raise exception 'El insumo debe tener nombre.';
+  end if;
+
+  select brand_id into v_brand_id
+  from public.warehouses
+  where id = p_warehouse_id;
+
+  if v_brand_id is null then
+    raise exception 'Bodega no encontrada.';
+  end if;
+
+  select id into v_branch_id
+  from public.branches
+  where warehouse_id = p_warehouse_id
+  order by name
+  limit 1;
+
+  if v_branch_id is null then
+    raise exception 'La bodega no tiene sedes para asociar el insumo maestro.';
+  end if;
+
+  if exists (
+    select 1
+    from public.inventory_items
+    where brand_id = v_brand_id
+      and lower(name) = lower(v_name)
+  ) then
+    select id into v_item_id
+    from public.inventory_items
+    where brand_id = v_brand_id
+      and lower(name) = lower(v_name)
+    order by created_at
+    limit 1;
+
+    return v_item_id;
+  end if;
+
+  v_item_id := 'item_' || substr(md5(p_warehouse_id || ':' || v_name || ':' || clock_timestamp()::text), 1, 16);
+
+  insert into public.inventory_items (id, branch_id, brand_id, name, unit, category)
+  values (v_item_id, v_branch_id, v_brand_id, v_name, v_unit, v_category);
+
+  return v_item_id;
+end;
+$$;
+
+grant execute on function public.create_inventory_item_for_warehouse(text, text, text, text) to authenticated;
+
 create or replace function public.register_merma(
   p_branch_id text,
   p_item_id text,

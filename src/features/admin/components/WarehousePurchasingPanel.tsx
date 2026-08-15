@@ -34,6 +34,11 @@ export function WarehousePurchasingPanel() {
   const [linkItemId, setLinkItemId] = useState('')
   const [linkUnitCost, setLinkUnitCost] = useState('')
   const [linkLeadTimeDays, setLinkLeadTimeDays] = useState('1')
+  const [newItemName, setNewItemName] = useState('')
+  const [newItemUnit, setNewItemUnit] = useState('unidad')
+  const [newItemCategory, setNewItemCategory] = useState('General')
+  const [newItemUnitCost, setNewItemUnitCost] = useState('')
+  const [newItemLeadTimeDays, setNewItemLeadTimeDays] = useState('1')
 
   const warehouses = useMemo(() => data?.warehouses ?? [], [data?.warehouses])
   const suppliers = useMemo(() => data?.suppliers ?? [], [data?.suppliers])
@@ -80,6 +85,14 @@ export function WarehousePurchasingPanel() {
   const canCreateSupplier = Boolean(selectedWarehouseId) && supplierName.trim().length > 2
   const canLinkSupplierItem =
     Boolean(selectedSupplierDetail?.id) && Boolean(linkItemId) && Number(linkUnitCost) >= 0 && Number(linkLeadTimeDays) > 0
+  const canCreateAndLinkItem =
+    Boolean(selectedWarehouseId) &&
+    Boolean(selectedSupplierDetail?.id) &&
+    newItemName.trim().length > 1 &&
+    Boolean(newItemUnit.trim()) &&
+    Boolean(newItemCategory.trim()) &&
+    Number(newItemUnitCost) >= 0 &&
+    Number(newItemLeadTimeDays) > 0
 
   const handleCreateOrder = () => {
     if (!canCreateOrder) return
@@ -122,6 +135,24 @@ export function WarehousePurchasingPanel() {
     setLinkItemId('')
     setLinkUnitCost('')
     setLinkLeadTimeDays('1')
+  }
+
+  const handleCreateAndLinkItem = () => {
+    if (!canCreateAndLinkItem || !selectedSupplierDetail) return
+    void purchasing.createAndLinkItem({
+      warehouseId: selectedWarehouseId,
+      supplierId: selectedSupplierDetail.id,
+      name: newItemName,
+      unit: newItemUnit,
+      category: newItemCategory,
+      unitCost: Number(newItemUnitCost),
+      leadTimeDays: Number(newItemLeadTimeDays),
+    })
+    setNewItemName('')
+    setNewItemUnit('unidad')
+    setNewItemCategory('General')
+    setNewItemUnitCost('')
+    setNewItemLeadTimeDays('1')
   }
 
   if (purchasing.isLoading) {
@@ -470,7 +501,66 @@ export function WarehousePurchasingPanel() {
                 </div>
 
                 <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3">
-                  <h4 className="text-sm font-black text-amber-950">Asociar insumo a este proveedor</h4>
+                  <h4 className="text-sm font-black text-amber-950">Crear insumo nuevo para este proveedor</h4>
+                  <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1.2fr)_110px_130px_110px_90px]">
+                    <label className="grid gap-1 text-sm font-bold text-stone-700">
+                      Nombre
+                      <input
+                        value={newItemName}
+                        onChange={(event) => setNewItemName(event.target.value)}
+                        className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-bold text-stone-700">
+                      Unidad
+                      <input
+                        value={newItemUnit}
+                        onChange={(event) => setNewItemUnit(event.target.value)}
+                        className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-bold text-stone-700">
+                      Categoria
+                      <input
+                        value={newItemCategory}
+                        onChange={(event) => setNewItemCategory(event.target.value)}
+                        className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-bold text-stone-700">
+                      Costo
+                      <input
+                        type="number"
+                        min="0"
+                        value={newItemUnitCost}
+                        onChange={(event) => setNewItemUnitCost(event.target.value)}
+                        className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-bold text-stone-700">
+                      Dias
+                      <input
+                        type="number"
+                        min="1"
+                        value={newItemLeadTimeDays}
+                        onChange={(event) => setNewItemLeadTimeDays(event.target.value)}
+                        className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCreateAndLinkItem}
+                    disabled={!canCreateAndLinkItem || purchasing.isSaving}
+                    className="mt-3 inline-flex items-center justify-center gap-2 rounded-md bg-red-900 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+                  >
+                    <Plus size={15} />
+                    Crear y asociar
+                  </button>
+                </div>
+
+                <div className="mt-3 rounded-md border border-stone-200 bg-stone-50 p-3">
+                  <h4 className="text-sm font-black text-stone-950">Asociar insumo existente</h4>
                   <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_110px_90px]">
                     <label className="grid gap-1 text-sm font-bold text-stone-700">
                       Insumo

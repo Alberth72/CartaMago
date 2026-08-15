@@ -113,6 +113,7 @@ Núcleo operativo pesado; requiere arquitectura SaaS y decisión de negocio.
 | Scope por usuario: admin de sede queda atado a su sede y admin de bodega gestiona despacho central | Hecho |
 | Panel Admin `Compras` para bodega: proveedores, ordenes de compra y recepcion a stock central | Hecho local |
 | Relacion proveedor -> insumos ofrecidos para filtrar compras y costos | Hecho local |
+| Crear insumo maestro desde bodega y asociarlo a proveedor | Hecho local |
 | E2E mock del ciclo solicitud -> despacho -> recepcion | Hecho: `npm.cmd run test:e2e:admin` |
 | Smoke local bodega: crear compra, recibir proveedor y subir stock central | Hecho |
 | Aplicar `202608150001` en Supabase cloud | Pendiente |

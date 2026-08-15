@@ -37,6 +37,7 @@ Cerrar el ciclo comercial del restaurante real.
 |---|---|
 | Confirmar precios reales y reemplazar temporales | `src/data/restaurantSeed.ts`, Supabase |
 | Guardar número oficial de WhatsApp | `docs/whatsapp-launch-checklist.md` |
+| Validar edición/upload desde admin en producción | Hecho: upload temporal en `pollo-entero`, QR público verificó imagen, rollback limpio |
 | Re-verificar QR → menú → carrito → WhatsApp → confirmación | Test manual en móvil |
 | QA visual móvil y densidad del product-card | Deploy en Netlify |
 | Push a GitHub (`main`) | `docs/github-publish-checklist.md` |

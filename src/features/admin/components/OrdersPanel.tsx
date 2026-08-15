@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getSupabaseConfig } from '../../../services/menuRepository'
 import {
   fetchOrders,
   subscribeToOrderChanges,
   updateOrderStatus,
 } from '../repositories/adminOrderRepository'
+import { fetchAdminScope } from '../repositories/adminScopeRepository'
 import type { OrderStatus, OrderWithItems } from '../../order/types'
 import { OrderDetailModal } from './OrderDetailModal'
 import { OrdersList } from './OrdersList'
@@ -24,8 +24,8 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
   const loadOrders = useCallback(async (showInitialLoading = false) => {
     if (showInitialLoading) setLoading(true)
     setRefreshing(true)
-    const { branchId } = getSupabaseConfig()
-    const data = await fetchOrders(branchId)
+    const scope = await fetchAdminScope()
+    const data = scope.primaryBranchId ? await fetchOrders(scope.primaryBranchId) : []
     setOrders(data)
     setLastSyncedAt(new Date().toISOString())
     setLoading(false)
@@ -51,11 +51,18 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
   }, [loadOrders])
 
   useEffect(() => {
-    const { branchId } = getSupabaseConfig()
-    const unsubscribe = subscribeToOrderChanges(branchId, () => void loadOrders())
-    if (!unsubscribe) return
+    let unsubscribe: (() => void) | null = null
+    let cancelled = false
 
-    return unsubscribe
+    fetchAdminScope().then((scope) => {
+      if (cancelled || !scope.primaryBranchId) return
+      unsubscribe = subscribeToOrderChanges(scope.primaryBranchId, () => void loadOrders())
+    })
+
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
   }, [loadOrders])
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowDownUp, CheckCircle2, PackageCheck, RefreshCw, Save, ShoppingCart, Truck, Warehouse } from 'lucide-react'
 import { useAdminOperations } from '../hooks/useAdminOperations'
 import type { DispatchRequestStatus, DispatchStatus } from '../operationsTypes'
@@ -18,6 +18,13 @@ const dispatchStatusLabels: Record<DispatchStatus, string> = {
   cancelled: 'Cancelada',
 }
 
+const roleLabels = {
+  superadmin: 'Superadmin',
+  warehouse_admin: 'Admin de bodega',
+  branch_admin: 'Admin de sede',
+  cashier: 'Cajero',
+}
+
 export function OperationsPanel() {
   const operations = useAdminOperations()
   const data = operations.data
@@ -35,10 +42,23 @@ export function OperationsPanel() {
   const products = data?.products ?? []
   const requests = data?.requests ?? []
   const dispatches = data?.dispatches ?? []
+  const profile = data?.profile
 
-  const selectedRequestBranch = branches.find((branch) => branch.id === requestBranchId) ?? branches[0]
+  const lockedBranchId = profile?.canManageWarehouse ? null : profile?.primaryBranchId
+  const selectedRequestBranch =
+    branches.find((branch) => branch.id === (lockedBranchId ?? requestBranchId)) ?? branches[0]
   const selectedWarehouseId = selectedRequestBranch?.warehouseId ?? warehouses[0]?.id ?? ''
   const saleProducts = products.filter((product) => !saleBranchId || product.branchId === saleBranchId)
+  const canOperateAsBranch = Boolean(profile?.primaryBranchId || profile?.role === 'superadmin')
+  const canDispatchFromWarehouse = Boolean(profile?.canManageWarehouse)
+
+  useEffect(() => {
+    if (!data) return
+
+    const nextBranchId = lockedBranchId ?? data.branches[0]?.id ?? ''
+    if (nextBranchId && requestBranchId !== nextBranchId) setRequestBranchId(nextBranchId)
+    if (nextBranchId && saleBranchId !== nextBranchId) setSaleBranchId(nextBranchId)
+  }, [data, lockedBranchId, requestBranchId, saleBranchId])
 
   const branchRows = branches.map((branch) => ({
     branch,
@@ -55,8 +75,12 @@ export function OperationsPanel() {
     warehouses.find((warehouse) => warehouse.id === warehouseId)?.name ?? warehouseId
 
   const canCreateRequest =
-    Boolean(selectedRequestBranch?.id) && Boolean(selectedWarehouseId) && Boolean(requestItemId) && Number(requestQuantity) > 0
-  const canSell = Boolean(saleBranchId) && Boolean(saleProductId) && Number(saleQuantity) > 0
+    canOperateAsBranch &&
+    Boolean(selectedRequestBranch?.id) &&
+    Boolean(selectedWarehouseId) &&
+    Boolean(requestItemId) &&
+    Number(requestQuantity) > 0
+  const canSell = canOperateAsBranch && Boolean(saleBranchId) && Boolean(saleProductId) && Number(saleQuantity) > 0
 
   const handleCreateRequest = () => {
     if (!canCreateRequest || !selectedRequestBranch) return
@@ -87,6 +111,30 @@ export function OperationsPanel() {
 
   return (
     <div className="grid gap-4">
+      {profile ? (
+        <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-stone-500">Perfil operativo</p>
+              <h2 className="mt-1 text-lg font-black text-stone-950">{roleLabels[profile.role]}</h2>
+              <p className="text-sm font-bold text-stone-500">{profile.email}</p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs font-black text-stone-700">
+              {profile.primaryBranchId ? (
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">
+                  Sede: {getBranchName(profile.primaryBranchId)}
+                </span>
+              ) : null}
+              {profile.primaryWarehouseId ? (
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-sky-800">
+                  Bodega: {getWarehouseName(profile.primaryWarehouseId)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -147,12 +195,14 @@ export function OperationsPanel() {
             </div>
           </div>
 
+          {canOperateAsBranch ? (
           <div className="mt-4 grid gap-3">
             <label className="grid gap-1 text-sm font-bold text-stone-700">
               Sede
               <select
                 value={requestBranchId}
                 onChange={(event) => setRequestBranchId(event.target.value)}
+                disabled={Boolean(lockedBranchId)}
                 className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
               >
                 <option value="">Selecciona una sede</option>
@@ -211,6 +261,11 @@ export function OperationsPanel() {
               Crear solicitud
             </button>
           </div>
+          ) : (
+            <p className="mt-4 rounded-md bg-stone-100 px-3 py-2 text-sm font-bold text-stone-600">
+              Este usuario gestiona bodega; las solicitudes las crean las sedes.
+            </p>
+          )}
         </aside>
       </div>
 
@@ -278,18 +333,18 @@ export function OperationsPanel() {
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {(request.status === 'pending' || request.status === 'approved') && (
+                      {canDispatchFromWarehouse && (request.status === 'pending' || request.status === 'approved') && (
                         <button
                           type="button"
                           onClick={() => void operations.dispatchRequest(request.id)}
-                          disabled={operations.isSaving}
+                          disabled={!canDispatchFromWarehouse || operations.isSaving}
                           className="inline-flex items-center gap-2 rounded-md bg-stone-900 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
                         >
                           <Truck size={15} />
                           Despachar
                         </button>
                       )}
-                      {linkedDispatch?.status === 'shipped' ? (
+                      {canOperateAsBranch && linkedDispatch?.status === 'shipped' ? (
                         <button
                           type="button"
                           onClick={() => void operations.receiveDispatch(linkedDispatch.id)}
@@ -324,6 +379,7 @@ export function OperationsPanel() {
             </div>
           </div>
 
+          {canOperateAsBranch ? (
           <div className="mt-4 grid gap-3">
             <label className="grid gap-1 text-sm font-bold text-stone-700">
               Sede
@@ -333,6 +389,7 @@ export function OperationsPanel() {
                   setSaleBranchId(event.target.value)
                   setSaleProductId('')
                 }}
+                disabled={Boolean(lockedBranchId)}
                 className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
               >
                 <option value="">Selecciona una sede</option>
@@ -381,6 +438,11 @@ export function OperationsPanel() {
               Registrar venta
             </button>
           </div>
+          ) : (
+            <p className="mt-4 rounded-md bg-stone-100 px-3 py-2 text-sm font-bold text-stone-600">
+              La venta operativa se registra desde un usuario de sede.
+            </p>
+          )}
         </aside>
       </div>
 

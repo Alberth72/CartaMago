@@ -8,10 +8,21 @@ import type {
   DispatchStatus,
   OperationsData,
 } from '../operationsTypes'
+import { fetchAdminScope } from './adminScopeRepository'
 
 const now = Date.now()
 
 let mockData: OperationsData = {
+  profile: {
+    userId: 'mock-superadmin',
+    email: 'owner@cartamago.test',
+    role: 'superadmin',
+    branchIds: ['brasas-sazon', 'brasas-sazon-norte'],
+    warehouseIds: ['brasas-central'],
+    primaryBranchId: 'brasas-sazon',
+    primaryWarehouseId: 'brasas-central',
+    canManageWarehouse: true,
+  },
   warehouses: [{ id: 'brasas-central', name: 'Bodega Central Brasas' }],
   branches: [
     { id: 'brasas-sazon', name: 'Brasas & Sazon Principal', warehouseId: 'brasas-central' },
@@ -59,6 +70,11 @@ let mockData: OperationsData = {
 
 function cloneOperationsData(): OperationsData {
   return {
+    profile: {
+      ...mockData.profile,
+      branchIds: [...mockData.profile.branchIds],
+      warehouseIds: [...mockData.profile.warehouseIds],
+    },
     warehouses: mockData.warehouses.map((warehouse) => ({ ...warehouse })),
     branches: mockData.branches.map((branch) => ({ ...branch })),
     items: mockData.items.map((item) => ({ ...item })),
@@ -71,6 +87,10 @@ function cloneOperationsData(): OperationsData {
     })),
     dispatches: mockData.dispatches.map((dispatch) => ({ ...dispatch })),
   }
+}
+
+function uniq(values: Array<string | null | undefined>) {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))]
 }
 
 function mapDispatchRequest(row: Record<string, unknown>): DispatchRequest {
@@ -111,6 +131,7 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
   }
 
   const supabase = getSupabaseClient()
+  const profile = await fetchAdminScope()
   const [
     warehousesResult,
     branchesResult,
@@ -149,38 +170,67 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     throw new Error(error.message)
   }
 
-  return {
-    warehouses: (warehousesResult.data ?? []).map((row) => ({ id: row.id, name: row.name })),
-    branches: (branchesResult.data ?? []).map((row) => ({
+  const branches = (branchesResult.data ?? []).map((row) => ({
       id: row.id,
       name: row.name,
       warehouseId: row.warehouse_id,
-    })),
+    }))
+  const visibleBranchIds = profile.canManageWarehouse
+    ? branches
+        .filter((branch) => profile.warehouseIds.length === 0 || profile.warehouseIds.includes(branch.warehouseId ?? ''))
+        .map((branch) => branch.id)
+    : profile.branchIds
+  const visibleWarehouseIds = profile.canManageWarehouse
+    ? profile.warehouseIds
+    : uniq(branches.filter((branch) => visibleBranchIds.includes(branch.id)).map((branch) => branch.warehouseId))
+
+  return {
+    profile,
+    warehouses: (warehousesResult.data ?? [])
+      .filter((row) => visibleWarehouseIds.length === 0 || visibleWarehouseIds.includes(row.id))
+      .map((row) => ({ id: row.id, name: row.name })),
+    branches: branches.filter((branch) => visibleBranchIds.length === 0 || visibleBranchIds.includes(branch.id)),
     items: (itemsResult.data ?? []).map((row) => ({
       id: row.id,
       name: row.name,
       unit: row.unit,
       category: row.category,
     })),
-    warehouseStock: (warehouseStockResult.data ?? []).map((row) => ({
-      id: row.id,
-      warehouseId: row.warehouse_id,
-      itemId: row.item_id,
-      quantity: Number(row.quantity),
-    })),
-    branchStock: (branchStockResult.data ?? []).map((row) => ({
-      id: row.id,
-      branchId: row.branch_id,
-      itemId: row.item_id,
-      quantity: Number(row.quantity),
-    })),
+    warehouseStock: (warehouseStockResult.data ?? [])
+      .filter((row) => visibleWarehouseIds.length === 0 || visibleWarehouseIds.includes(row.warehouse_id))
+      .map((row) => ({
+        id: row.id,
+        warehouseId: row.warehouse_id,
+        itemId: row.item_id,
+        quantity: Number(row.quantity),
+      })),
+    branchStock: (branchStockResult.data ?? [])
+      .filter((row) => visibleBranchIds.length === 0 || visibleBranchIds.includes(row.branch_id))
+      .map((row) => ({
+        id: row.id,
+        branchId: row.branch_id,
+        itemId: row.item_id,
+        quantity: Number(row.quantity),
+      })),
     products: (productsResult.data ?? []).map((row) => ({
       id: row.id,
       branchId: row.branch_id,
       name: row.name,
-    })),
-    requests: ((requestsResult.data ?? []) as Array<Record<string, unknown>>).map(mapDispatchRequest),
-    dispatches: ((dispatchesResult.data ?? []) as Array<Record<string, unknown>>).map(mapDispatch),
+    })).filter((product) => visibleBranchIds.length === 0 || visibleBranchIds.includes(product.branchId)),
+    requests: ((requestsResult.data ?? []) as Array<Record<string, unknown>>)
+      .map(mapDispatchRequest)
+      .filter(
+        (request) =>
+          visibleBranchIds.includes(request.branchId) ||
+          (profile.canManageWarehouse && visibleWarehouseIds.includes(request.warehouseId)),
+      ),
+    dispatches: ((dispatchesResult.data ?? []) as Array<Record<string, unknown>>)
+      .map(mapDispatch)
+      .filter(
+        (dispatch) =>
+          visibleBranchIds.includes(dispatch.branchId) ||
+          (profile.canManageWarehouse && visibleWarehouseIds.includes(dispatch.warehouseId)),
+      ),
   }
 }
 

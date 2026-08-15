@@ -1,6 +1,7 @@
 import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
 import { getSupabaseClient, getSupabaseConfig } from '../../../services/menuRepository'
 import type { InventoryData, MermaReason } from '../inventoryTypes'
+import { fetchAdminScope } from './adminScopeRepository'
 import {
   fetchMockInventory,
   registerMockMerma,
@@ -12,7 +13,8 @@ export async function fetchAdminInventory(): Promise<InventoryData> {
   }
 
   const supabase = getSupabaseClient()
-  const { branchId } = getSupabaseConfig()
+  const scope = await fetchAdminScope()
+  const branchId = scope.primaryBranchId ?? getSupabaseConfig().branchId
 
   const [itemsResult, stockResult, movementsResult] = await Promise.all([
     supabase.from('inventory_items').select('*').eq('branch_id', branchId).order('name', { ascending: true }),
@@ -64,7 +66,8 @@ export async function registerAdminMerma(itemId: string, quantity: number, reaso
     return
   }
 
-  const { branchId } = getSupabaseConfig()
+  const scope = await fetchAdminScope()
+  const branchId = scope.primaryBranchId ?? getSupabaseConfig().branchId
   const { error } = await getSupabaseClient().rpc('register_merma', {
     p_branch_id: branchId,
     p_item_id: itemId,

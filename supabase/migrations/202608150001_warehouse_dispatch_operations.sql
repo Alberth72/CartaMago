@@ -13,20 +13,125 @@ as $$
   select auth.role() = 'authenticated'
     and (
       public.is_branch_member(p_branch_id)
-      or not public.branch_has_members(p_branch_id)
       or exists (
         select 1
         from public.multibrand_members m
         join public.branches b on b.id = p_branch_id
         where m.user_id = auth.uid()
           and (
-            m.branch_id = p_branch_id
-            or (m.warehouse_id is not null and m.warehouse_id = b.warehouse_id)
-            or (m.brand_id is not null and m.brand_id = b.brand_id)
+            (m.role in ('branch_admin', 'cashier') and m.branch_id = p_branch_id)
+            or (m.role = 'warehouse_admin' and m.warehouse_id = b.warehouse_id)
+            or (m.role = 'superadmin' and m.brand_id = b.brand_id)
           )
       )
     );
 $$;
+
+create or replace function public.can_manage_warehouse(p_warehouse_id text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select auth.role() = 'authenticated'
+    and exists (
+      select 1
+      from public.multibrand_members m
+      join public.warehouses w on w.id = p_warehouse_id
+      where m.user_id = auth.uid()
+        and (
+          (m.role = 'warehouse_admin' and m.warehouse_id = p_warehouse_id)
+          or (m.role = 'superadmin' and m.brand_id = w.brand_id)
+        )
+    );
+$$;
+
+create or replace function public.can_operate_branch(p_branch_id text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select auth.role() = 'authenticated'
+    and (
+      exists (
+        select 1
+        from public.branch_members bm
+        where bm.user_id = auth.uid()
+          and bm.branch_id = p_branch_id
+          and bm.role in ('owner', 'admin')
+      )
+      or exists (
+        select 1
+        from public.multibrand_members m
+        join public.branches b on b.id = p_branch_id
+        where m.user_id = auth.uid()
+          and (
+            (m.role in ('branch_admin', 'cashier') and m.branch_id = p_branch_id)
+            or (m.role = 'superadmin' and m.brand_id = b.brand_id)
+          )
+      )
+    );
+$$;
+
+drop policy if exists "members can read warehouses" on public.warehouses;
+create policy "members can read warehouses"
+on public.warehouses for select to authenticated
+using (
+  public.can_manage_warehouse(id)
+  or exists (
+    select 1
+    from public.branches b
+    where b.warehouse_id = warehouses.id
+      and public.can_manage_branch(b.id)
+  )
+);
+
+drop policy if exists "authenticated can read inventory stock" on public.branch_stock;
+drop policy if exists "authenticated can manage inventory stock" on public.branch_stock;
+drop policy if exists "members can read branch stock" on public.branch_stock;
+create policy "members can read branch stock"
+on public.branch_stock for select to authenticated
+using (public.can_manage_branch(branch_id));
+
+drop policy if exists "members can manage branch stock" on public.branch_stock;
+create policy "members can manage branch stock"
+on public.branch_stock for all to authenticated
+using (public.can_operate_branch(branch_id))
+with check (public.can_operate_branch(branch_id));
+
+drop policy if exists "members can read warehouse stock" on public.warehouse_stock;
+create policy "members can read warehouse stock"
+on public.warehouse_stock for select to authenticated
+using (public.can_manage_warehouse(warehouse_id));
+
+drop policy if exists "members can manage warehouse stock" on public.warehouse_stock;
+create policy "members can manage warehouse stock"
+on public.warehouse_stock for all to authenticated
+using (public.can_manage_warehouse(warehouse_id))
+with check (public.can_manage_warehouse(warehouse_id));
+
+drop policy if exists "authenticated can read inventory movements" on public.inventory_movements;
+drop policy if exists "authenticated can manage inventory movements" on public.inventory_movements;
+create policy "members can read inventory movements"
+on public.inventory_movements for select to authenticated
+using (
+  public.can_manage_branch(branch_id)
+  or (warehouse_id is not null and public.can_manage_warehouse(warehouse_id))
+);
+
+create policy "members can manage inventory movements"
+on public.inventory_movements for all to authenticated
+using (
+  public.can_operate_branch(branch_id)
+  or (warehouse_id is not null and public.can_manage_warehouse(warehouse_id))
+)
+with check (
+  public.can_operate_branch(branch_id)
+  or (warehouse_id is not null and public.can_manage_warehouse(warehouse_id))
+);
 
 insert into public.brands (id, name, slug)
 values ('brasas-sazon-brand', 'Brasas & Sazon', 'brasas-sazon')
@@ -234,7 +339,7 @@ declare
   v_quantity numeric;
   v_branch_warehouse_id text;
 begin
-  if not public.can_manage_branch(p_branch_id) then
+  if not public.can_operate_branch(p_branch_id) then
     raise exception 'No tienes permiso para solicitar inventario para esta sede.';
   end if;
 
@@ -391,7 +496,7 @@ begin
     raise exception 'Despacho no encontrado.';
   end if;
 
-  if not public.can_manage_branch(v_dispatch.branch_id) then
+  if not public.can_operate_branch(v_dispatch.branch_id) then
     raise exception 'No tienes permiso para recibir inventario en esta sede.';
   end if;
 
@@ -443,6 +548,155 @@ $$;
 grant execute on function public.create_dispatch_request(text, text, jsonb, text, text) to authenticated;
 grant execute on function public.dispatch_request(text, text) to authenticated;
 grant execute on function public.receive_dispatch(text, text) to authenticated;
+
+create or replace function public.register_merma(
+  p_branch_id text,
+  p_item_id text,
+  p_quantity numeric,
+  p_reason text,
+  p_created_by text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.can_operate_branch(p_branch_id) then
+    raise exception 'No tienes permiso para registrar merma en esta sede.';
+  end if;
+
+  if p_quantity <= 0 then
+    raise exception 'La cantidad de merma debe ser mayor a cero.';
+  end if;
+
+  if p_reason not in ('vencimiento', 'dano', 'despiece', 'robo', 'otro') then
+    raise exception 'Motivo de merma invalido.';
+  end if;
+
+  perform 1
+  from public.branch_stock
+  where branch_id = p_branch_id and item_id = p_item_id
+  for update;
+
+  if not exists (
+    select 1 from public.branch_stock
+    where branch_id = p_branch_id
+      and item_id = p_item_id
+      and quantity >= p_quantity
+  ) then
+    raise exception 'Stock insuficiente para registrar la merma.';
+  end if;
+
+  update public.branch_stock
+  set quantity = quantity - p_quantity,
+      updated_at = now()
+  where branch_id = p_branch_id and item_id = p_item_id;
+
+  insert into public.inventory_movements (
+    id, item_id, quantity, movement_type, reason, branch_id, created_by
+  ) values (
+    gen_random_uuid()::text, p_item_id, -p_quantity, 'merma', p_reason, p_branch_id, p_created_by
+  );
+end;
+$$;
+
+create or replace function public.sell_product(
+  p_branch_id text,
+  p_product_id text,
+  p_quantity numeric,
+  p_option_ids text[] default '{}'::text[],
+  p_created_by text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_formula_id text;
+  v_row record;
+begin
+  if not public.can_operate_branch(p_branch_id) then
+    raise exception 'No tienes permiso para registrar ventas en esta sede.';
+  end if;
+
+  if p_quantity <= 0 then
+    raise exception 'La cantidad debe ser mayor a cero.';
+  end if;
+
+  select id into v_formula_id
+  from public.formulas
+  where branch_id = p_branch_id and product_id = p_product_id and active
+  limit 1;
+
+  if v_formula_id is null then
+    raise exception 'No existe formula activa para el producto en esta sede.';
+  end if;
+
+  drop table if exists tmp_need;
+  create temp table tmp_need (item_id text primary key, needed numeric) on commit drop;
+
+  insert into tmp_need (item_id, needed)
+  select item_id, sum(q)
+  from (
+    select i.item_id,
+           (i.quantity_per_unit * (1 + i.merma_percent / 100.0) * p_quantity) as q
+    from public.formula_ingredients i
+    where i.formula_id = v_formula_id
+
+    union all
+
+    select o.item_id,
+           (o.quantity_per_unit * (1 + o.merma_percent / 100.0) * p_quantity) as q
+    from public.formula_options o
+    where o.formula_id = v_formula_id
+      and o.id = any(p_option_ids)
+  ) t
+  group by item_id;
+
+  perform 1
+  from public.branch_stock s
+  join tmp_need n on s.item_id = n.item_id
+  where s.branch_id = p_branch_id
+  for update of s;
+
+  for v_row in
+    select n.item_id, n.needed, coalesce(s.quantity, 0) as stock_qty
+    from tmp_need n
+    left join public.branch_stock s
+      on s.branch_id = p_branch_id and s.item_id = n.item_id
+  loop
+    if v_row.stock_qty < v_row.needed then
+      raise exception 'Stock insuficiente del insumo %', v_row.item_id;
+    end if;
+  end loop;
+
+  for v_row in select item_id, needed from tmp_need
+  loop
+    update public.branch_stock
+    set quantity = quantity - v_row.needed,
+        updated_at = now()
+    where branch_id = p_branch_id and item_id = v_row.item_id;
+
+    insert into public.inventory_movements (
+      id, item_id, quantity, movement_type, reason, branch_id, created_by
+    ) values (
+      gen_random_uuid()::text,
+      v_row.item_id,
+      -v_row.needed,
+      'venta',
+      'venta_producto:' || p_product_id,
+      p_branch_id,
+      p_created_by
+    );
+  end loop;
+end;
+$$;
+
+grant execute on function public.can_operate_branch(text) to authenticated;
+grant execute on function public.register_merma(text, text, numeric, text, text) to authenticated;
+grant execute on function public.sell_product(text, text, numeric, text[], text) to authenticated;
 
 grant select, insert, update, delete on public.branch_members to service_role;
 grant select, insert, update, delete on public.multibrand_members to service_role;

@@ -19,6 +19,29 @@ import {
   upsertMockAdminCategory,
   upsertMockAdminProduct,
 } from './adminMockRepository'
+import { fetchAdminScope } from './adminScopeRepository'
+
+async function resolveAdminBranchId() {
+  const supabase = getSupabaseClient()
+  const scope = await fetchAdminScope()
+
+  if (scope.primaryBranchId) return scope.primaryBranchId
+
+  if (scope.primaryWarehouseId) {
+    const { data, error } = await supabase
+      .from('branches')
+      .select('id')
+      .eq('warehouse_id', scope.primaryWarehouseId)
+      .order('name', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message)
+    if (data?.id) return data.id
+  }
+
+  return getSupabaseConfig().branchId
+}
 
 export async function fetchAdminMenu(): Promise<AdminMenuData> {
   if (isE2EAdminMockEnabled()) {
@@ -26,7 +49,7 @@ export async function fetchAdminMenu(): Promise<AdminMenuData> {
   }
 
   const supabase = getSupabaseClient()
-  const { branchId } = getSupabaseConfig()
+  const branchId = await resolveAdminBranchId()
   const [restaurantResult, categoriesResult, productsResult] = await Promise.all([
     supabase.from('branches').select('*').eq('id', branchId).single(),
     supabase.from('categories').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),
@@ -74,7 +97,7 @@ export async function upsertAdminCategory(name: string, description: string, sor
     return
   }
 
-  const { branchId } = getSupabaseConfig()
+  const branchId = await resolveAdminBranchId()
   const { error } = await getSupabaseClient().from('categories').upsert({
     id: slugify(name),
     branch_id: branchId,
@@ -103,7 +126,7 @@ export async function updateAdminRestaurant(form: AdminRestaurantForm, whatsappN
     return
   }
 
-  const { branchId } = getSupabaseConfig()
+  const branchId = await resolveAdminBranchId()
   const { error } = await getSupabaseClient()
     .from('branches')
     .update({
@@ -126,7 +149,7 @@ export async function upsertAdminProduct(product: MenuItem, sortOrder: number) {
     return
   }
 
-  const { branchId } = getSupabaseConfig()
+  const branchId = await resolveAdminBranchId()
   const { error } = await getSupabaseClient()
     .from('products')
     .upsert(toProductRow(product, branchId, sortOrder))
@@ -150,7 +173,8 @@ export async function uploadAdminProductImage(file: File, productName: string) {
   }
 
   const supabase = getSupabaseClient()
-  const { branchId, storageBucket } = getSupabaseConfig()
+  const { storageBucket } = getSupabaseConfig()
+  const branchId = await resolveAdminBranchId()
   const extension = file.name.split('.').pop() ?? 'jpg'
   const productSlug = slugify(productName || 'producto')
   const path = `${branchId}/products/${productSlug}-${Date.now()}.${extension}`

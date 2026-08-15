@@ -32,6 +32,18 @@ export type OperationsProduct = {
 
 export type DispatchRequestStatus = 'pending' | 'approved' | 'dispatched' | 'received' | 'rejected'
 export type DispatchStatus = 'preparing' | 'shipped' | 'received' | 'cancelled'
+export type OperationsRole = 'superadmin' | 'warehouse_admin' | 'branch_admin' | 'cashier'
+
+export type OperationsProfile = {
+  userId: string
+  email: string
+  role: OperationsRole
+  branchIds: string[]
+  warehouseIds: string[]
+  primaryBranchId: string | null
+  primaryWarehouseId: string | null
+  canManageWarehouse: boolean
+}
 
 export type DispatchRequestItem = {
   id: string
@@ -59,6 +71,7 @@ export type Dispatch = {
 }
 
 export type OperationsData = {
+  profile: OperationsProfile
   warehouses: OperationsWarehouse[]
   branches: OperationsBranch[]
   items: OperationsItem[]

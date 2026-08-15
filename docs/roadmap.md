@@ -110,6 +110,7 @@ Núcleo operativo pesado; requiere arquitectura SaaS y decisión de negocio.
 | RPCs operativas de solicitud, despacho y recepcion | Hecho: `202608150001_warehouse_dispatch_operations.sql` |
 | Demo operativa con bodega central + dos sedes + stock inicial | Hecho en migracion idempotente |
 | Pantalla Admin `Operacion` para bodega/sedes/solicitudes/venta | Hecho |
+| Scope por usuario: admin de sede queda atado a su sede y admin de bodega gestiona despacho central | Hecho |
 | E2E mock del ciclo solicitud -> despacho -> recepcion | Hecho: `npm.cmd run test:e2e:admin` |
 | Aplicar `202608150001` en Supabase cloud | Pendiente |
 | Smoke cloud con usuario real: crear solicitud, despachar, recibir, registrar venta | Pendiente |

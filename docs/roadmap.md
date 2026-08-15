@@ -14,6 +14,13 @@ segundo pagador lo justifica** (regla dura: no backend pesado en el MVP).
 
 ---
 
+## Objetivo operativo vigente
+
+```text
+Bodega central -> sedes -> solicitud de reabastecimiento -> despacho ->
+recepcion en sede -> descuento por venta/formula.
+```
+
 ## Fases
 
 ### Fase 0 — Estabilizar y consolidar (actual)
@@ -95,6 +102,17 @@ Núcleo operativo pesado; requiere arquitectura SaaS y decisión de negocio.
 | **Salida:** plataforma operativa (no solo menú). | — |
 
 ---
+
+## Tajada activa: bodega central + dos sedes
+
+| Accion | Gate |
+|---|---|
+| RPCs operativas de solicitud, despacho y recepcion | Hecho: `202608150001_warehouse_dispatch_operations.sql` |
+| Demo operativa con bodega central + dos sedes + stock inicial | Hecho en migracion idempotente |
+| Pantalla Admin `Operacion` para bodega/sedes/solicitudes/venta | Hecho |
+| E2E mock del ciclo solicitud -> despacho -> recepcion | Hecho: `npm.cmd run test:e2e:admin` |
+| Aplicar `202608150001` en Supabase cloud | Pendiente |
+| Smoke cloud con usuario real: crear solicitud, despachar, recibir, registrar venta | Pendiente |
 
 ## Reglas de avance
 

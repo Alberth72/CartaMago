@@ -3,7 +3,7 @@
 ## Current Focus
 
 ```text
-Stabilize CartaMago: keep build/tests/docs aligned before the next client-facing slice.
+Build the operational warehouse cycle: central warehouse, two branches, stock movement, replenishment requests, dispatch, reception, and sale-based inventory decrement.
 ```
 
 > La ruta de ejecución (fases, salidas y gates) está definida en `docs/roadmap.md`.
@@ -26,11 +26,10 @@ Stabilize CartaMago: keep build/tests/docs aligned before the next client-facing
 | Public MVP Preview | Stable Netlify URL, production QR, and WhatsApp handoff verified | `docs/public-mvp-preview.md`, `public/client-assets/brasas-sazon/processed/qr-netlify-production.png`, user confirmation | None for MVP sharing | Move to owner admin planning |
 | Repository Readiness | Stabilization checkpoint merged to `master` and pushed to GitHub | Commit `9f646f1`, `git push origin master`, `npm.cmd run build`, `npm.cmd run lint`, `npm.cmd run test:e2e`, `npm.cmd run test:e2e:admin` | None for current rollout | Continue from clean `master` |
 | Client Cycle | Cloud rollout unblocked; public menu, WhatsApp link, admin login/menu, `create-order`, and reversible image-upload cycle verified in production | Netlify deploy `6a7fbf1709294fda6d2c916f`, public smoke no console/network errors, WhatsApp `wa.me` link OK, smoke order created/deleted, `pollo-entero` upload verified and rolled back | Real product photo, official WhatsApp, and final prices still pending | Run owner-supervised phone test and content update |
+| Operations Core | Backend/front slice implemented for bodega central, two sedes, dispatch requests, warehouse dispatch, branch reception, and sale decrement by formula | `supabase/migrations/202608150001_warehouse_dispatch_operations.sql`, `src/features/admin/components/OperationsPanel.tsx`, `npm.cmd run build`, `npm.cmd run lint`, `npm.cmd run test:e2e:admin` | New migration not applied to Supabase cloud yet | Apply migration, deploy, and run cloud smoke for solicitud -> despacho -> recepcion -> venta |
 
 ## Next Slice
 
 ```text
-Run the owner-supervised content cycle: upload one real product image, confirm it appears from the QR on phone, test WhatsApp with the restaurant admin, and replace temporary prices with confirmed prices.
-
-For the official WhatsApp test, use `docs/whatsapp-launch-checklist.md` and save the restaurant number from `/admin`.
+Roll out the operations slice: apply `202608150001` to Supabase cloud, deploy the Admin `Operacion` tab, then smoke test solicitud -> despacho -> recepcion -> venta with the real admin account.
 ```

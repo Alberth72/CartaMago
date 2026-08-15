@@ -94,7 +94,7 @@ export function AdminApp() {
     () =>
       isWarehouseAdmin
         ? adminTabs
-            .filter((tab) => tab.id !== 'menu' && tab.id !== 'inventory')
+            .filter((tab) => tab.id !== 'menu' && tab.id !== 'inventory' && tab.id !== 'integrations')
             .map((tab) =>
               tab.id === 'orders'
                 ? {
@@ -236,7 +236,7 @@ export function AdminApp() {
 
         <nav
           className={`mb-4 grid gap-2 rounded-xl border border-amber-200 bg-white/80 p-2 shadow-lg shadow-amber-900/10 sm:grid-cols-2 ${
-            isWarehouseAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-5'
+            isWarehouseAdmin ? 'lg:grid-cols-2' : 'lg:grid-cols-5'
           }`}
         >
           {visibleTabs.map((tab) => {

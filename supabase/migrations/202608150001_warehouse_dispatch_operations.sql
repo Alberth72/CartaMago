@@ -6,6 +6,58 @@ alter table public.inventory_movements
 alter table public.inventory_movements
   alter column branch_id drop not null;
 
+create table if not exists public.supplier_items (
+  id text primary key,
+  supplier_id text not null references public.suppliers(id) on delete cascade,
+  item_id text not null references public.inventory_items(id) on delete cascade,
+  unit_cost numeric not null default 0,
+  lead_time_days integer not null default 1,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (supplier_id, item_id)
+);
+
+drop trigger if exists set_supplier_items_updated_at on public.supplier_items;
+create trigger set_supplier_items_updated_at
+before update on public.supplier_items
+for each row execute function public.set_updated_at();
+
+alter table public.supplier_items enable row level security;
+grant select, insert, update, delete on public.supplier_items to authenticated, service_role;
+
+drop policy if exists "members can read supplier items" on public.supplier_items;
+create policy "members can read supplier items"
+on public.supplier_items for select to authenticated
+using (
+  exists (
+    select 1
+    from public.suppliers s
+    where s.id = supplier_items.supplier_id
+      and public.can_manage_brand(s.brand_id)
+  )
+);
+
+drop policy if exists "members can manage supplier items" on public.supplier_items;
+create policy "members can manage supplier items"
+on public.supplier_items for all to authenticated
+using (
+  exists (
+    select 1
+    from public.suppliers s
+    where s.id = supplier_items.supplier_id
+      and public.can_manage_brand(s.brand_id)
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.suppliers s
+    where s.id = supplier_items.supplier_id
+      and public.can_manage_brand(s.brand_id)
+  )
+);
+
 create or replace function public.can_manage_branch(p_branch_id text)
 returns boolean
 language sql
@@ -301,6 +353,19 @@ on conflict (id) do update set
   phone = excluded.phone,
   tax_id = excluded.tax_id,
   terms = excluded.terms,
+  active = excluded.active,
+  updated_at = now();
+
+insert into public.supplier_items (id, supplier_id, item_id, unit_cost, lead_time_days, active)
+values
+  ('supi_pollo_andino_pollo', 'sup_pollo_andino', 'pollo-entero', 24000, 1, true),
+  ('supi_agro_norte_papa', 'sup_agro_norte', 'papa-criolla', 2200, 1, true),
+  ('supi_agro_norte_limon', 'sup_agro_norte', 'limon', 3200, 1, true),
+  ('supi_agro_norte_arroz', 'sup_agro_norte', 'arroz', 2800, 2, true),
+  ('supi_fogon_carbon', 'sup_insumos_fogon', 'carbon', 14000, 1, true)
+on conflict (supplier_id, item_id) do update set
+  unit_cost = excluded.unit_cost,
+  lead_time_days = excluded.lead_time_days,
   active = excluded.active,
   updated_at = now();
 
@@ -970,6 +1035,7 @@ grant execute on function public.register_merma(text, text, numeric, text, text)
 grant execute on function public.sell_product(text, text, numeric, text[], text) to authenticated;
 
 grant select, insert, update, delete on public.suppliers to authenticated, service_role;
+grant select, insert, update, delete on public.supplier_items to authenticated, service_role;
 grant select, insert, update, delete on public.purchase_orders to authenticated, service_role;
 grant select, insert, update, delete on public.purchase_order_items to authenticated, service_role;
 grant select, insert, update, delete on public.warehouse_stock to authenticated, service_role;

@@ -3,6 +3,7 @@ import { getSupabaseClient } from '../../../services/menuRepository'
 import type {
   CreatePurchaseOrderInput,
   CreateSupplierInput,
+  LinkSupplierItemInput,
   PurchaseOrder,
   WarehousePurchaseStatus,
   WarehousePurchasingData,
@@ -52,12 +53,14 @@ export async function fetchWarehousePurchasing(): Promise<WarehousePurchasingDat
   const [
     warehousesResult,
     suppliersResult,
+    supplierItemsResult,
     itemsResult,
     stockResult,
     purchaseOrdersResult,
   ] = await Promise.all([
     supabase.from('warehouses').select('id,brand_id,name').order('name', { ascending: true }),
     supabase.from('suppliers').select('*').eq('active', true).order('name', { ascending: true }),
+    supabase.from('supplier_items').select('*').eq('active', true),
     supabase.from('inventory_items').select('id,name,unit,category').order('name', { ascending: true }),
     supabase.from('warehouse_stock').select('id,warehouse_id,item_id,quantity'),
     supabase
@@ -70,6 +73,7 @@ export async function fetchWarehousePurchasing(): Promise<WarehousePurchasingDat
   const error =
     warehousesResult.error ??
     suppliersResult.error ??
+    supplierItemsResult.error ??
     itemsResult.error ??
     stockResult.error ??
     purchaseOrdersResult.error
@@ -81,20 +85,32 @@ export async function fetchWarehousePurchasing(): Promise<WarehousePurchasingDat
     .filter((row) => visibleWarehouseIds.length === 0 || visibleWarehouseIds.includes(row.id))
     .map((row) => ({ id: row.id, brandId: row.brand_id, name: row.name }))
   const brandIds = [...new Set(warehouses.map((warehouse) => warehouse.brandId))]
+  const suppliers = (suppliersResult.data ?? [])
+    .filter((row) => brandIds.length === 0 || brandIds.includes(row.brand_id))
+    .map((row) => ({
+      id: row.id,
+      brandId: row.brand_id,
+      name: row.name,
+      contactName: row.contact_name,
+      phone: row.phone,
+      taxId: row.tax_id,
+      terms: row.terms,
+      active: Boolean(row.active),
+    }))
+  const supplierIds = new Set(suppliers.map((supplier) => supplier.id))
 
   return {
     profile,
     warehouses,
-    suppliers: (suppliersResult.data ?? [])
-      .filter((row) => brandIds.length === 0 || brandIds.includes(row.brand_id))
+    suppliers,
+    supplierItems: (supplierItemsResult.data ?? [])
+      .filter((row) => supplierIds.has(row.supplier_id))
       .map((row) => ({
         id: row.id,
-        brandId: row.brand_id,
-        name: row.name,
-        contactName: row.contact_name,
-        phone: row.phone,
-        taxId: row.tax_id,
-        terms: row.terms,
+        supplierId: row.supplier_id,
+        itemId: row.item_id,
+        unitCost: Number(row.unit_cost ?? 0),
+        leadTimeDays: Number(row.lead_time_days ?? 1),
         active: Boolean(row.active),
       })),
     items: (itemsResult.data ?? []).map((row) => ({
@@ -158,6 +174,23 @@ export async function createWarehouseSupplier(input: CreateSupplierInput) {
     terms: input.terms.trim() || null,
     active: true,
   })
+
+  if (error) throw new Error(error.message)
+  return id
+}
+
+export async function linkWarehouseSupplierItem(input: LinkSupplierItemInput) {
+  if (isE2EAdminMockEnabled()) return `supi_mock_${Date.now()}`
+
+  const id = `supi_${input.supplierId}_${input.itemId}`
+  const { error } = await getSupabaseClient().from('supplier_items').upsert({
+    id,
+    supplier_id: input.supplierId,
+    item_id: input.itemId,
+    unit_cost: input.unitCost,
+    lead_time_days: input.leadTimeDays,
+    active: true,
+  }, { onConflict: 'supplier_id,item_id' })
 
   if (error) throw new Error(error.message)
   return id

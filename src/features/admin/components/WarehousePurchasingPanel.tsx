@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, Phone, RefreshCw, Save, Truck, Warehouse } from 'lucide-react'
+import { CheckCircle2, Phone, Plus, RefreshCw, Save, Truck, Warehouse } from 'lucide-react'
 import { useWarehousePurchasing } from '../hooks/useWarehousePurchasing'
 import type { WarehousePurchaseStatus } from '../warehousePurchasingTypes'
 
@@ -26,9 +26,18 @@ export function WarehousePurchasingPanel() {
   const [quantity, setQuantity] = useState('')
   const [unitCost, setUnitCost] = useState('')
   const [notes, setNotes] = useState('')
+  const [supplierName, setSupplierName] = useState('')
+  const [supplierContact, setSupplierContact] = useState('')
+  const [supplierPhone, setSupplierPhone] = useState('')
+  const [supplierTerms, setSupplierTerms] = useState('')
+  const [linkSupplierId, setLinkSupplierId] = useState('')
+  const [linkItemId, setLinkItemId] = useState('')
+  const [linkUnitCost, setLinkUnitCost] = useState('')
+  const [linkLeadTimeDays, setLinkLeadTimeDays] = useState('1')
 
   const warehouses = data?.warehouses ?? []
   const suppliers = data?.suppliers ?? []
+  const supplierItems = data?.supplierItems ?? []
   const items = data?.items ?? []
   const orders = data?.purchaseOrders ?? []
   const selectedWarehouseId = warehouseId || data?.profile.primaryWarehouseId || warehouses[0]?.id || ''
@@ -36,6 +45,10 @@ export function WarehousePurchasingPanel() {
   const openOrders = visibleOrders.filter((order) => order.status === 'draft' || order.status === 'sent')
   const recentOrders = visibleOrders.filter((order) => order.status !== 'draft' && order.status !== 'sent').slice(0, 4)
   const selectedSupplier = suppliers.find((supplier) => supplier.id === supplierId)
+  const selectedSupplierItems = supplierItems.filter((entry) => entry.supplierId === supplierId)
+  const purchaseItems = selectedSupplierItems.length > 0
+    ? items.filter((item) => selectedSupplierItems.some((entry) => entry.itemId === item.id))
+    : items
 
   useEffect(() => {
     if (!data) return
@@ -54,6 +67,9 @@ export function WarehousePurchasingPanel() {
     Boolean(itemId) &&
     Number(quantity) > 0 &&
     Number(unitCost) >= 0
+  const canCreateSupplier = Boolean(selectedWarehouseId) && supplierName.trim().length > 2
+  const canLinkSupplierItem =
+    Boolean(linkSupplierId) && Boolean(linkItemId) && Number(linkUnitCost) >= 0 && Number(linkLeadTimeDays) > 0
 
   const handleCreateOrder = () => {
     if (!canCreateOrder) return
@@ -68,6 +84,34 @@ export function WarehousePurchasingPanel() {
     setQuantity('')
     setUnitCost('')
     setNotes('')
+  }
+
+  const handleCreateSupplier = () => {
+    if (!canCreateSupplier) return
+    void purchasing.createSupplier({
+      warehouseId: selectedWarehouseId,
+      name: supplierName,
+      contactName: supplierContact,
+      phone: supplierPhone,
+      terms: supplierTerms,
+    })
+    setSupplierName('')
+    setSupplierContact('')
+    setSupplierPhone('')
+    setSupplierTerms('')
+  }
+
+  const handleLinkSupplierItem = () => {
+    if (!canLinkSupplierItem) return
+    void purchasing.linkSupplierItem({
+      supplierId: linkSupplierId,
+      itemId: linkItemId,
+      unitCost: Number(linkUnitCost),
+      leadTimeDays: Number(linkLeadTimeDays),
+    })
+    setLinkItemId('')
+    setLinkUnitCost('')
+    setLinkLeadTimeDays('1')
   }
 
   if (purchasing.isLoading) {
@@ -228,7 +272,11 @@ export function WarehousePurchasingPanel() {
               Proveedor
               <select
                 value={supplierId}
-                onChange={(event) => setSupplierId(event.target.value)}
+                onChange={(event) => {
+                  setSupplierId(event.target.value)
+                  setItemId('')
+                  setUnitCost('')
+                }}
                 className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
               >
                 <option value="">Selecciona proveedor</option>
@@ -251,11 +299,16 @@ export function WarehousePurchasingPanel() {
               Insumo
               <select
                 value={itemId}
-                onChange={(event) => setItemId(event.target.value)}
+                onChange={(event) => {
+                  const nextItemId = event.target.value
+                  setItemId(nextItemId)
+                  const offer = selectedSupplierItems.find((entry) => entry.itemId === nextItemId)
+                  if (offer) setUnitCost(String(offer.unitCost))
+                }}
                 className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
               >
                 <option value="">Selecciona insumo</option>
-                {items.map((item) => (
+                {purchaseItems.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name} ({item.unit})
                   </option>
@@ -313,19 +366,163 @@ export function WarehousePurchasingPanel() {
         <summary className="cursor-pointer text-sm font-black text-stone-950">
           Proveedores cargados ({suppliers.length})
         </summary>
-        <div className="mt-3 grid gap-2 md:grid-cols-3">
-          {suppliers.map((supplier) => (
-            <article key={supplier.id} className="rounded-md border border-stone-200 p-3">
-              <p className="text-sm font-black text-stone-950">{supplier.name}</p>
-              <p className="mt-1 text-xs font-bold text-stone-500">{supplier.contactName ?? 'Contacto pendiente'}</p>
-              {supplier.phone ? (
-                <a href={`tel:${supplier.phone}`} className="mt-2 inline-flex items-center gap-2 text-xs font-black text-sky-700">
-                  <Phone size={14} />
-                  {supplier.phone}
-                </a>
-              ) : null}
-            </article>
-          ))}
+        <div className="mt-3 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="grid gap-2">
+            {suppliers.map((supplier) => {
+              const offers = supplierItems.filter((entry) => entry.supplierId === supplier.id)
+              return (
+                <article key={supplier.id} className="rounded-md border border-stone-200 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black text-stone-950">{supplier.name}</p>
+                      <p className="mt-1 text-xs font-bold text-stone-500">
+                        {supplier.contactName ?? 'Contacto pendiente'}
+                      </p>
+                      {supplier.phone ? (
+                        <a
+                          href={`tel:${supplier.phone}`}
+                          className="mt-2 inline-flex items-center gap-2 text-xs font-black text-sky-700"
+                        >
+                          <Phone size={14} />
+                          {supplier.phone}
+                        </a>
+                      ) : null}
+                    </div>
+                    <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-black text-stone-700">
+                      {offers.length} insumos
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {offers.length === 0 ? (
+                      <span className="text-xs font-bold text-stone-500">Sin insumos vinculados</span>
+                    ) : (
+                      offers.map((offer) => (
+                        <span key={offer.id} className="rounded-full bg-amber-50 px-2 py-1 text-xs font-black text-amber-900">
+                          {getItemName(offer.itemId)} · {moneyFormatter.format(offer.unitCost)}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+
+          <aside className="grid h-fit gap-3 rounded-md border border-stone-200 p-3">
+            <div>
+              <h3 className="text-sm font-black text-stone-950">Gestionar proveedor</h3>
+              <p className="text-xs font-bold text-stone-500">Crear contacto y vincular insumos</p>
+            </div>
+
+            <label className="grid gap-1 text-sm font-bold text-stone-700">
+              Nombre proveedor
+              <input
+                value={supplierName}
+                onChange={(event) => setSupplierName(event.target.value)}
+                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+              />
+            </label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Contacto
+                <input
+                  value={supplierContact}
+                  onChange={(event) => setSupplierContact(event.target.value)}
+                  className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Telefono
+                <input
+                  value={supplierPhone}
+                  onChange={(event) => setSupplierPhone(event.target.value)}
+                  className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                />
+              </label>
+            </div>
+            <label className="grid gap-1 text-sm font-bold text-stone-700">
+              Condiciones
+              <textarea
+                value={supplierTerms}
+                onChange={(event) => setSupplierTerms(event.target.value)}
+                rows={2}
+                className="resize-none rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleCreateSupplier}
+              disabled={!canCreateSupplier || purchasing.isSaving}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-2 text-xs font-black text-stone-900 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:text-stone-400"
+            >
+              <Plus size={15} />
+              Guardar proveedor
+            </button>
+
+            <div className="border-t border-stone-200 pt-3">
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Proveedor
+                <select
+                  value={linkSupplierId}
+                  onChange={(event) => setLinkSupplierId(event.target.value)}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                >
+                  <option value="">Selecciona proveedor</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="mt-2 grid gap-1 text-sm font-bold text-stone-700">
+                Insumo que ofrece
+                <select
+                  value={linkItemId}
+                  onChange={(event) => setLinkItemId(event.target.value)}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                >
+                  <option value="">Selecciona insumo</option>
+                  {items.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.unit})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <label className="grid gap-1 text-sm font-bold text-stone-700">
+                  Costo
+                  <input
+                    type="number"
+                    min="0"
+                    value={linkUnitCost}
+                    onChange={(event) => setLinkUnitCost(event.target.value)}
+                    className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm font-bold text-stone-700">
+                  Dias
+                  <input
+                    type="number"
+                    min="1"
+                    value={linkLeadTimeDays}
+                    onChange={(event) => setLinkLeadTimeDays(event.target.value)}
+                    className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-950 outline-none focus:border-red-500"
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={handleLinkSupplierItem}
+                disabled={!canLinkSupplierItem || purchasing.isSaving}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-stone-900 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
+              >
+                <Plus size={15} />
+                Vincular insumo
+              </button>
+            </div>
+          </aside>
         </div>
       </details>
 

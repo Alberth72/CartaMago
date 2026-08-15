@@ -19,6 +19,15 @@ export type Supplier = {
   active: boolean
 }
 
+export type SupplierItem = {
+  id: string
+  supplierId: string
+  itemId: string
+  unitCost: number
+  leadTimeDays: number
+  active: boolean
+}
+
 export type PurchaseOrderItem = {
   id: string
   itemId: string
@@ -41,6 +50,7 @@ export type WarehousePurchasingData = {
   profile: OperationsProfile
   warehouses: PurchasingWarehouse[]
   suppliers: Supplier[]
+  supplierItems: SupplierItem[]
   items: OperationsItem[]
   stock: OperationsStock[]
   purchaseOrders: PurchaseOrder[]
@@ -61,4 +71,11 @@ export type CreateSupplierInput = {
   contactName: string
   phone: string
   terms: string
+}
+
+export type LinkSupplierItemInput = {
+  supplierId: string
+  itemId: string
+  unitCost: number
+  leadTimeDays: number
 }

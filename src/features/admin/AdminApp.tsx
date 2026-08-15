@@ -72,6 +72,26 @@ const roleLabels: Record<OperationsRole, string> = {
   cashier: 'Cajero',
 }
 
+type ScopeCardTone = 'emerald' | 'sky' | 'stone'
+
+const scopeCardStyles: Record<ScopeCardTone, { box: string; label: string; value: string }> = {
+  emerald: {
+    box: 'border-emerald-100 bg-emerald-50',
+    label: 'text-emerald-700',
+    value: 'text-emerald-950',
+  },
+  sky: {
+    box: 'border-sky-100 bg-sky-50',
+    label: 'text-sky-700',
+    value: 'text-sky-950',
+  },
+  stone: {
+    box: 'border-stone-200 bg-stone-50',
+    label: 'text-stone-500',
+    value: 'text-stone-950',
+  },
+}
+
 export function AdminApp() {
   const [activeTab, setActiveTab] = useState<AdminTab>('orders')
   const [adminSummary, setAdminSummary] = useState<{
@@ -110,6 +130,42 @@ export function AdminApp() {
     [isWarehouseAdmin],
   )
   const activeTabMeta = visibleTabs.find((tab) => tab.id === activeTab)
+  const scopeCards = useMemo(() => {
+    if (!adminSummary) {
+      return [
+        { label: 'Perfil operativo', value: 'Validando permisos', tone: 'stone' as const },
+        { label: 'Alcance', value: 'Cargando acceso', tone: 'sky' as const },
+      ]
+    }
+
+    if (adminSummary.role === 'warehouse_admin') {
+      return [
+        {
+          label: 'Bodega operativa',
+          value: adminSummary.warehouseName ?? 'Sin bodega asignada',
+          tone: 'sky' as const,
+        },
+        {
+          label: 'Alcance',
+          value: 'Compras, proveedores y despachos',
+          tone: 'stone' as const,
+        },
+      ]
+    }
+
+    return [
+      {
+        label: 'Sede asignada',
+        value: adminSummary.branchName ?? 'Sin sede asignada',
+        tone: 'emerald' as const,
+      },
+      {
+        label: 'Bodega conectada',
+        value: adminSummary.warehouseName ?? 'Sin bodega conectada',
+        tone: 'sky' as const,
+      },
+    ]
+  }, [adminSummary])
 
   useEffect(() => {
     if (!auth.isLoggedIn) {
@@ -218,18 +274,16 @@ export function AdminApp() {
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
-                <p className="text-[11px] font-black uppercase tracking-wide text-emerald-700">Sede asignada</p>
-                <p className="mt-1 text-sm font-black text-emerald-950">
-                  {adminSummary?.branchName ?? 'Sin sede asignada'}
-                </p>
-              </div>
-              <div className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2">
-                <p className="text-[11px] font-black uppercase tracking-wide text-sky-700">Bodega asignada</p>
-                <p className="mt-1 text-sm font-black text-sky-950">
-                  {adminSummary?.warehouseName ?? 'Sin bodega asignada'}
-                </p>
-              </div>
+              {scopeCards.map((card) => {
+                const styles = scopeCardStyles[card.tone]
+
+                return (
+                  <div key={card.label} className={`rounded-lg border px-3 py-2 ${styles.box}`}>
+                    <p className={`text-[11px] font-black uppercase tracking-wide ${styles.label}`}>{card.label}</p>
+                    <p className={`mt-1 text-sm font-black ${styles.value}`}>{card.value}</p>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </section>

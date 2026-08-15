@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Boxes, LogOut, Package, PlugZap, ReceiptText, Warehouse, type LucideIcon } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Boxes, LogOut, Package, PlugZap, ReceiptText, Truck, Warehouse, type LucideIcon } from 'lucide-react'
 import { isSupabaseConfigured } from '../../services/menuRepository'
 import { AdminSetupNotice } from './components/AdminSetupNotice'
 import { AdminShell } from './components/AdminShell'
@@ -13,6 +13,7 @@ import { OrdersPanel } from './components/OrdersPanel'
 import { ProductEditor } from './components/ProductEditor'
 import { ProductGrid } from './components/ProductGrid'
 import { RestaurantPanel } from './components/RestaurantPanel'
+import { WarehousePurchasingPanel } from './components/WarehousePurchasingPanel'
 import { useAdminAuth } from './hooks/useAdminAuth'
 import { useAdminMenu } from './hooks/useAdminMenu'
 import { fetchAdminScopeSummary } from './repositories/adminScopeRepository'
@@ -88,6 +89,27 @@ export function AdminApp() {
     onSignedOut: menu.clearMenu,
     setStatus: menu.setStatus,
   })
+  const isWarehouseAdmin = adminSummary?.role === 'warehouse_admin'
+  const visibleTabs = useMemo(
+    () =>
+      isWarehouseAdmin
+        ? adminTabs
+            .filter((tab) => tab.id !== 'menu' && tab.id !== 'inventory')
+            .map((tab) =>
+              tab.id === 'orders'
+                ? {
+                    ...tab,
+                    label: 'Compras',
+                    description: 'Proveedores y ordenes',
+                    badge: 'Proveedor',
+                    icon: Truck,
+                  }
+                : tab,
+            )
+        : adminTabs,
+    [isWarehouseAdmin],
+  )
+  const activeTabMeta = visibleTabs.find((tab) => tab.id === activeTab)
 
   useEffect(() => {
     if (!auth.isLoggedIn) {
@@ -125,6 +147,13 @@ export function AdminApp() {
     }
   }, [auth.isLoggedIn])
 
+  useEffect(() => {
+    if (!auth.isLoggedIn) return
+    if (!visibleTabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(visibleTabs[0]?.id ?? 'orders')
+    }
+  }, [activeTab, auth.isLoggedIn, visibleTabs])
+
   if (!configured) {
     return <AdminSetupNotice />
   }
@@ -151,7 +180,7 @@ export function AdminApp() {
   return (
     <AdminShell
       title="Admin"
-      documentTitle={`${adminTabs.find((tab) => tab.id === activeTab)?.label ?? 'Admin'} | Admin CartaMago`}
+      documentTitle={`${activeTabMeta?.label ?? 'Admin'} | Admin CartaMago`}
       actions={
         <button
           type="button"
@@ -164,7 +193,9 @@ export function AdminApp() {
       }
       subtitle={
         activeTab === 'orders'
-          ? 'Gestion de pedidos recibidos'
+          ? isWarehouseAdmin
+            ? 'Compras, proveedores y reabastecimiento central'
+            : 'Gestion de pedidos recibidos'
           : activeTab === 'inventory'
             ? 'Stock de insumos y registro de mermas'
             : activeTab === 'operations'
@@ -203,8 +234,12 @@ export function AdminApp() {
           </div>
         </section>
 
-        <nav className="mb-4 grid gap-2 rounded-xl border border-amber-200 bg-white/80 p-2 shadow-lg shadow-amber-900/10 sm:grid-cols-2 lg:grid-cols-5">
-          {adminTabs.map((tab) => {
+        <nav
+          className={`mb-4 grid gap-2 rounded-xl border border-amber-200 bg-white/80 p-2 shadow-lg shadow-amber-900/10 sm:grid-cols-2 ${
+            isWarehouseAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-5'
+          }`}
+        >
+          {visibleTabs.map((tab) => {
             const TabIcon = tab.icon
             const selected = activeTab === tab.id
 
@@ -241,7 +276,7 @@ export function AdminApp() {
         </nav>
 
         {activeTab === 'orders' ? (
-          <OrdersPanel />
+          isWarehouseAdmin ? <WarehousePurchasingPanel /> : <OrdersPanel />
         ) : activeTab === 'operations' ? (
           <OperationsPanel />
         ) : activeTab === 'inventory' ? (

@@ -111,9 +111,11 @@ Núcleo operativo pesado; requiere arquitectura SaaS y decisión de negocio.
 | Demo operativa con bodega central + dos sedes + stock inicial | Hecho en migracion idempotente |
 | Pantalla Admin `Operacion` para bodega/sedes/solicitudes/venta | Hecho |
 | Scope por usuario: admin de sede queda atado a su sede y admin de bodega gestiona despacho central | Hecho |
+| Panel Admin `Compras` para bodega: proveedores, ordenes de compra y recepcion a stock central | Hecho local |
 | E2E mock del ciclo solicitud -> despacho -> recepcion | Hecho: `npm.cmd run test:e2e:admin` |
+| Smoke local bodega: crear compra, recibir proveedor y subir stock central | Hecho |
 | Aplicar `202608150001` en Supabase cloud | Pendiente |
-| Smoke cloud con usuario real: crear solicitud, despachar, recibir, registrar venta | Pendiente |
+| Smoke cloud con usuario real: compra a proveedor, crear solicitud, despachar, recibir, registrar venta | Pendiente |
 
 ## Reglas de avance
 

@@ -3,6 +3,9 @@
 alter table public.inventory_movements
   add column if not exists warehouse_id text references public.warehouses(id) on delete set null;
 
+alter table public.inventory_movements
+  alter column branch_id drop not null;
+
 create or replace function public.can_manage_branch(p_branch_id text)
 returns boolean
 language sql
@@ -286,6 +289,43 @@ on conflict (branch_id, item_id) do update set
   quantity = greatest(public.branch_stock.quantity, excluded.quantity),
   updated_at = now();
 
+insert into public.suppliers (id, brand_id, name, contact_name, phone, tax_id, terms, active)
+values
+  ('sup_pollo_andino', 'brasas-sazon-brand', 'Avicola Andina', 'Laura Perez', '573112223344', '900111222-1', 'Entrega lunes, miercoles y viernes. Pago a 15 dias.', true),
+  ('sup_agro_norte', 'brasas-sazon-brand', 'Agro Norte Mayorista', 'Jorge Castillo', '573155556666', '900333444-5', 'Verduras y granos con corte diario hasta 10am.', true),
+  ('sup_insumos_fogon', 'brasas-sazon-brand', 'Insumos El Fogon', 'Diana Rojas', '573177778888', '900555666-7', 'Carbon, empaques y consumibles. Pago contra entrega.', true)
+on conflict (id) do update set
+  brand_id = excluded.brand_id,
+  name = excluded.name,
+  contact_name = excluded.contact_name,
+  phone = excluded.phone,
+  tax_id = excluded.tax_id,
+  terms = excluded.terms,
+  active = excluded.active,
+  updated_at = now();
+
+insert into public.purchase_orders (id, warehouse_id, supplier_id, status, total_cost, notes, created_by, created_at)
+values
+  ('po_demo_pollo_semana', 'brasas-central', 'sup_pollo_andino', 'sent', 2160000, 'Pedido abierto para cubrir fin de semana y solicitudes de sedes.', 'seed', now() - interval '6 hours'),
+  ('po_demo_carbon_recibido', 'brasas-central', 'sup_insumos_fogon', 'received', 280000, 'Compra ya recibida para mantener stock base de carbon.', 'seed', now() - interval '2 days')
+on conflict (id) do update set
+  warehouse_id = excluded.warehouse_id,
+  supplier_id = excluded.supplier_id,
+  status = excluded.status,
+  total_cost = excluded.total_cost,
+  notes = excluded.notes,
+  updated_at = now();
+
+insert into public.purchase_order_items (id, purchase_order_id, item_id, quantity, unit_cost)
+values
+  ('poi_demo_pollo_semana', 'po_demo_pollo_semana', 'pollo-entero', 90, 24000),
+  ('poi_demo_carbon_recibido', 'po_demo_carbon_recibido', 'carbon', 20, 14000)
+on conflict (id) do update set
+  purchase_order_id = excluded.purchase_order_id,
+  item_id = excluded.item_id,
+  quantity = excluded.quantity,
+  unit_cost = excluded.unit_cost;
+
 insert into public.formulas (id, branch_id, product_id, active)
 select 'formula_brasas_pollo_entero', 'brasas-sazon', 'pollo-entero', true
 where exists (select 1 from public.products where id = 'pollo-entero' and branch_id = 'brasas-sazon')
@@ -557,6 +597,159 @@ grant execute on function public.create_dispatch_request(text, text, jsonb, text
 grant execute on function public.dispatch_request(text, text) to authenticated;
 grant execute on function public.receive_dispatch(text, text) to authenticated;
 
+drop function if exists public.create_purchase_order(text, text, jsonb, text, text);
+create or replace function public.create_purchase_order(
+  p_warehouse_id text,
+  p_supplier_id text,
+  p_items jsonb,
+  p_notes text default null,
+  p_created_by text default null
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order_id text := gen_random_uuid()::text;
+  v_item jsonb;
+  v_item_id text;
+  v_quantity numeric;
+  v_unit_cost numeric;
+  v_total numeric := 0;
+  v_warehouse_brand_id text;
+begin
+  if not public.can_manage_warehouse(p_warehouse_id) then
+    raise exception 'No tienes permiso para comprar desde esta bodega.';
+  end if;
+
+  select brand_id into v_warehouse_brand_id
+  from public.warehouses
+  where id = p_warehouse_id;
+
+  if v_warehouse_brand_id is null then
+    raise exception 'Bodega no encontrada.';
+  end if;
+
+  if not exists (
+    select 1
+    from public.suppliers
+    where id = p_supplier_id
+      and brand_id = v_warehouse_brand_id
+      and active
+  ) then
+    raise exception 'Proveedor no disponible para esta bodega.';
+  end if;
+
+  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
+    raise exception 'La orden debe incluir al menos un insumo.';
+  end if;
+
+  insert into public.purchase_orders (id, warehouse_id, supplier_id, status, total_cost, notes, created_by)
+  values (v_order_id, p_warehouse_id, p_supplier_id, 'sent', 0, nullif(trim(coalesce(p_notes, '')), ''), p_created_by);
+
+  for v_item in select * from jsonb_array_elements(p_items)
+  loop
+    v_item_id := v_item->>'item_id';
+    v_quantity := coalesce((v_item->>'quantity')::numeric, 0);
+    v_unit_cost := coalesce((v_item->>'unit_cost')::numeric, 0);
+
+    if v_item_id is null or v_quantity <= 0 then
+      raise exception 'Cada insumo debe tener cantidad mayor a cero.';
+    end if;
+
+    if not exists (
+      select 1
+      from public.inventory_items
+      where id = v_item_id
+        and (brand_id = v_warehouse_brand_id or brand_id is null)
+    ) then
+      raise exception 'El insumo % no pertenece a esta marca.', v_item_id;
+    end if;
+
+    v_total := v_total + (v_quantity * v_unit_cost);
+
+    insert into public.purchase_order_items (id, purchase_order_id, item_id, quantity, unit_cost)
+    values (gen_random_uuid()::text, v_order_id, v_item_id, v_quantity, v_unit_cost);
+  end loop;
+
+  update public.purchase_orders
+  set total_cost = v_total,
+      updated_at = now()
+  where id = v_order_id;
+
+  return v_order_id;
+end;
+$$;
+
+drop function if exists public.receive_purchase_order(text, text);
+create or replace function public.receive_purchase_order(
+  p_purchase_order_id text,
+  p_received_by text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order public.purchase_orders%rowtype;
+  v_item record;
+begin
+  select * into v_order
+  from public.purchase_orders
+  where id = p_purchase_order_id
+  for update;
+
+  if not found then
+    raise exception 'Orden de compra no encontrada.';
+  end if;
+
+  if not public.can_manage_warehouse(v_order.warehouse_id) then
+    raise exception 'No tienes permiso para recibir compras en esta bodega.';
+  end if;
+
+  if v_order.status not in ('draft', 'sent') then
+    raise exception 'Solo se pueden recibir ordenes abiertas.';
+  end if;
+
+  for v_item in
+    select item_id, sum(quantity) as quantity
+    from public.purchase_order_items
+    where purchase_order_id = p_purchase_order_id
+    group by item_id
+  loop
+    insert into public.warehouse_stock (id, warehouse_id, item_id, quantity)
+    values (gen_random_uuid()::text, v_order.warehouse_id, v_item.item_id, v_item.quantity)
+    on conflict (warehouse_id, item_id) do update set
+      quantity = public.warehouse_stock.quantity + excluded.quantity,
+      updated_at = now();
+
+    insert into public.inventory_movements (
+      id, branch_id, warehouse_id, item_id, quantity, movement_type, reason, reference_id, created_by
+    ) values (
+      gen_random_uuid()::text,
+      null,
+      v_order.warehouse_id,
+      v_item.item_id,
+      v_item.quantity,
+      'compra',
+      'proveedor:' || coalesce(v_order.supplier_id, 'sin_proveedor'),
+      v_order.id,
+      p_received_by
+    );
+  end loop;
+
+  update public.purchase_orders
+  set status = 'received',
+      updated_at = now()
+  where id = v_order.id;
+end;
+$$;
+
+grant execute on function public.create_purchase_order(text, text, jsonb, text, text) to authenticated;
+grant execute on function public.receive_purchase_order(text, text) to authenticated;
+
 create or replace function public.register_merma(
   p_branch_id text,
   p_item_id text,
@@ -706,5 +899,9 @@ grant execute on function public.can_operate_branch(text) to authenticated;
 grant execute on function public.register_merma(text, text, numeric, text, text) to authenticated;
 grant execute on function public.sell_product(text, text, numeric, text[], text) to authenticated;
 
+grant select, insert, update, delete on public.suppliers to authenticated, service_role;
+grant select, insert, update, delete on public.purchase_orders to authenticated, service_role;
+grant select, insert, update, delete on public.purchase_order_items to authenticated, service_role;
+grant select, insert, update, delete on public.warehouse_stock to authenticated, service_role;
 grant select, insert, update, delete on public.branch_members to service_role;
 grant select, insert, update, delete on public.multibrand_members to service_role;

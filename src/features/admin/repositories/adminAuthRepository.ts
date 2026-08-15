@@ -12,8 +12,17 @@ export async function hasActiveAdminSession() {
     return hasMockAdminSession()
   }
 
-  const { data } = await getSupabaseClient().auth.getSession()
-  return Boolean(data.session)
+  const supabase = getSupabaseClient()
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) return false
+
+  const user = await supabase.auth.getUser()
+  if (user.error || !user.data.user) {
+    await supabase.auth.signOut()
+    return false
+  }
+
+  return true
 }
 
 export function subscribeAdminSession(onSessionChange: (isLoggedIn: boolean) => void) {
@@ -21,8 +30,22 @@ export function subscribeAdminSession(onSessionChange: (isLoggedIn: boolean) => 
     return subscribeMockAdminSession(onSessionChange)
   }
 
-  const { data: listener } = getSupabaseClient().auth.onAuthStateChange((_event, session) => {
-    onSessionChange(Boolean(session))
+  const supabase = getSupabaseClient()
+  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (!session) {
+      onSessionChange(false)
+      return
+    }
+
+    queueMicrotask(async () => {
+      const user = await supabase.auth.getUser()
+      if (user.error || !user.data.user) {
+        await supabase.auth.signOut()
+        onSessionChange(false)
+        return
+      }
+      onSessionChange(true)
+    })
   })
 
   return () => listener.subscription.unsubscribe()

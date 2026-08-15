@@ -110,8 +110,14 @@ export function AdminApp() {
       })
       .catch((error) => {
         if (cancelled) return
+        const message = error instanceof Error ? error.message : 'No se pudo cargar el perfil del admin.'
+        if (message.includes('User from sub claim') || message.includes('JWT')) {
+          setAdminSummary(null)
+          setAdminSummaryStatus('Sesion local vencida. Cierra sesion e ingresa de nuevo.')
+          return
+        }
         setAdminSummary(null)
-        setAdminSummaryStatus(error instanceof Error ? error.message : 'No se pudo cargar el perfil del admin.')
+        setAdminSummaryStatus(message)
       })
 
     return () => {
@@ -170,27 +176,29 @@ export function AdminApp() {
     >
       <div className="mx-auto max-w-7xl px-4 py-4">
         <section className="mb-4 rounded-xl border border-stone-200 bg-white p-4 shadow-lg shadow-amber-900/10">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
             <div>
               <p className="text-xs font-black uppercase tracking-wide text-stone-500">Sesion activa</p>
-              <h2 className="mt-1 text-lg font-black text-stone-950">
-                {adminSummary ? roleLabels[adminSummary.role] : 'Cargando perfil'}
+              <h2 className="mt-1 text-xl font-black text-stone-950">
+                {adminSummary ? `Estas operando como ${roleLabels[adminSummary.role]}` : 'Cargando perfil operativo'}
               </h2>
               <p className="text-sm font-bold text-stone-500">
                 {adminSummary?.email ?? adminSummaryStatus ?? 'Validando permisos del usuario'}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs font-black text-stone-700">
-              {adminSummary?.branchName ? (
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">
-                  Sede: {adminSummary.branchName}
-                </span>
-              ) : null}
-              {adminSummary?.warehouseName ? (
-                <span className="rounded-full bg-sky-100 px-3 py-1 text-sky-800">
-                  Bodega: {adminSummary.warehouseName}
-                </span>
-              ) : null}
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
+                <p className="text-[11px] font-black uppercase tracking-wide text-emerald-700">Sede asignada</p>
+                <p className="mt-1 text-sm font-black text-emerald-950">
+                  {adminSummary?.branchName ?? 'Sin sede asignada'}
+                </p>
+              </div>
+              <div className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2">
+                <p className="text-[11px] font-black uppercase tracking-wide text-sky-700">Bodega asignada</p>
+                <p className="mt-1 text-sm font-black text-sky-950">
+                  {adminSummary?.warehouseName ?? 'Sin bodega asignada'}
+                </p>
+              </div>
             </div>
           </div>
         </section>

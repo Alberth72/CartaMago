@@ -43,6 +43,38 @@ on conflict (id) do update set
   address = excluded.address,
   updated_at = now();
 
+insert into public.branches (
+  id,
+  brand_id,
+  warehouse_id,
+  name,
+  short_name,
+  whatsapp_number,
+  location,
+  headline,
+  description,
+  fulfillment_modes,
+  qr_slug
+)
+values (
+  'brasas-sazon',
+  'brasas-sazon-brand',
+  'brasas-central',
+  'Brasas & Sazon',
+  'Brasas',
+  '573000000000',
+  'Sede Principal',
+  'Menu de Brasas & Sazon',
+  'Sede principal para validar pedidos e inventario operativo.',
+  array['pickup', 'local_delivery', 'didi_food', 'table'],
+  'brasas-sazon'
+)
+on conflict (id) do update set
+  brand_id = coalesce(public.branches.brand_id, excluded.brand_id),
+  warehouse_id = coalesce(public.branches.warehouse_id, excluded.warehouse_id),
+  qr_slug = coalesce(public.branches.qr_slug, excluded.qr_slug),
+  updated_at = now();
+
 update public.branches
 set brand_id = coalesce(brand_id, 'brasas-sazon-brand'),
     warehouse_id = coalesce(warehouse_id, 'brasas-central'),
@@ -411,3 +443,6 @@ $$;
 grant execute on function public.create_dispatch_request(text, text, jsonb, text, text) to authenticated;
 grant execute on function public.dispatch_request(text, text) to authenticated;
 grant execute on function public.receive_dispatch(text, text) to authenticated;
+
+grant select, insert, update, delete on public.branch_members to service_role;
+grant select, insert, update, delete on public.multibrand_members to service_role;

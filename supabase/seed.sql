@@ -89,6 +89,18 @@ on conflict (id) do update set
   available = excluded.available,
   sort_order = excluded.sort_order;
 
+insert into public.formulas (id, branch_id, product_id, active)
+values ('formula_brasas_pollo_entero', 'brasas-sazon', 'pollo-entero', true)
+on conflict (branch_id, product_id) do update set
+  active = true,
+  updated_at = now();
+
+insert into public.formula_ingredients (id, formula_id, item_id, quantity_per_unit, merma_percent)
+values ('fing_brasas_pollo_entero', 'formula_brasas_pollo_entero', 'pollo-entero', 1, 0)
+on conflict (formula_id, item_id) do update set
+  quantity_per_unit = excluded.quantity_per_unit,
+  merma_percent = excluded.merma_percent;
+
 delete from public.menu_photos where branch_id = 'brasas-sazon';
 
 insert into public.orders (id, branch_id, status, payment_status, payment_method, payment_provider, customer_name, customer_note, fulfillment_mode, delivery_address, table_number, total_items, total_cop, whatsapp_message, whatsapp_link, created_at) values

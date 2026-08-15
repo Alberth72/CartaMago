@@ -44,6 +44,7 @@ export function OperationsPanel() {
   const dispatches = data?.dispatches ?? []
   const profile = data?.profile
 
+  const isWarehouseOnly = profile?.role === 'warehouse_admin'
   const lockedBranchId = profile?.canManageWarehouse ? null : profile?.primaryBranchId
   const selectedRequestBranch =
     branches.find((branch) => branch.id === (lockedBranchId ?? requestBranchId)) ?? branches[0]
@@ -81,6 +82,10 @@ export function OperationsPanel() {
     Boolean(requestItemId) &&
     Number(requestQuantity) > 0
   const canSell = canOperateAsBranch && Boolean(saleBranchId) && Boolean(saleProductId) && Number(saleQuantity) > 0
+  const pendingRequestsCount = requests.filter(
+    (request) => request.status === 'pending' || request.status === 'approved',
+  ).length
+  const shippedDispatchesCount = dispatches.filter((dispatch) => dispatch.status === 'shipped').length
 
   const handleCreateRequest = () => {
     if (!canCreateRequest || !selectedRequestBranch) return
@@ -135,7 +140,7 @@ export function OperationsPanel() {
         </section>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className={`grid gap-4 ${isWarehouseOnly ? '' : 'xl:grid-cols-[minmax(0,1fr)_380px]'}`}>
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -184,90 +189,103 @@ export function OperationsPanel() {
           </div>
         </section>
 
-        <aside className="h-fit rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="grid size-10 place-items-center rounded-md bg-amber-100 text-amber-700">
-              <ArrowDownUp size={22} />
-            </span>
-            <div>
-              <h3 className="text-base font-black text-stone-950">Solicitar reabastecimiento</h3>
-              <p className="text-sm font-bold text-stone-500">La sede pide inventario a su bodega</p>
+        {!isWarehouseOnly ? (
+          <aside className="h-fit rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="grid size-10 place-items-center rounded-md bg-amber-100 text-amber-700">
+                <ArrowDownUp size={22} />
+              </span>
+              <div>
+                <h3 className="text-base font-black text-stone-950">Solicitar reabastecimiento</h3>
+                <p className="text-sm font-bold text-stone-500">Pedido interno de sede a bodega</p>
+              </div>
             </div>
-          </div>
 
-          {canOperateAsBranch ? (
-          <div className="mt-4 grid gap-3">
-            <label className="grid gap-1 text-sm font-bold text-stone-700">
-              Sede
-              <select
-                value={requestBranchId}
-                onChange={(event) => setRequestBranchId(event.target.value)}
-                disabled={Boolean(lockedBranchId)}
-                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+            <div className="mt-4 grid gap-3">
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Sede
+                <select
+                  value={requestBranchId}
+                  onChange={(event) => setRequestBranchId(event.target.value)}
+                  disabled={Boolean(lockedBranchId)}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                >
+                  <option value="">Selecciona una sede</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Insumo
+                <select
+                  value={requestItemId}
+                  onChange={(event) => setRequestItemId(event.target.value)}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                >
+                  <option value="">Selecciona un insumo</option>
+                  {items.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.unit})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Cantidad
+                <input
+                  type="number"
+                  min="1"
+                  value={requestQuantity}
+                  onChange={(event) => setRequestQuantity(event.target.value)}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                />
+              </label>
+
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Nota
+                <textarea
+                  value={requestNotes}
+                  onChange={(event) => setRequestNotes(event.target.value)}
+                  rows={3}
+                  className="resize-none rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={handleCreateRequest}
+                disabled={!canCreateRequest || operations.isSaving}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-900 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400"
               >
-                <option value="">Selecciona una sede</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-1 text-sm font-bold text-stone-700">
-              Insumo
-              <select
-                value={requestItemId}
-                onChange={(event) => setRequestItemId(event.target.value)}
-                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-              >
-                <option value="">Selecciona un insumo</option>
-                {items.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} ({item.unit})
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-1 text-sm font-bold text-stone-700">
-              Cantidad
-              <input
-                type="number"
-                min="1"
-                value={requestQuantity}
-                onChange={(event) => setRequestQuantity(event.target.value)}
-                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-              />
-            </label>
-
-            <label className="grid gap-1 text-sm font-bold text-stone-700">
-              Nota
-              <textarea
-                value={requestNotes}
-                onChange={(event) => setRequestNotes(event.target.value)}
-                rows={3}
-                className="resize-none rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-              />
-            </label>
-
-            <button
-              type="button"
-              onClick={handleCreateRequest}
-              disabled={!canCreateRequest || operations.isSaving}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-900 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400"
-            >
-              <Save size={16} />
-              Crear solicitud
-            </button>
-          </div>
-          ) : (
-            <p className="mt-4 rounded-md bg-stone-100 px-3 py-2 text-sm font-bold text-stone-600">
-              Este usuario gestiona bodega; las solicitudes las crean las sedes.
-            </p>
-          )}
-        </aside>
+                <Save size={16} />
+                Crear solicitud
+              </button>
+            </div>
+          </aside>
+        ) : null}
       </div>
+
+      {isWarehouseOnly ? (
+        <section className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-amber-700">Por despachar</p>
+            <p className="mt-2 text-2xl font-black text-amber-950">{pendingRequestsCount}</p>
+          </div>
+          <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-sky-700">En transito</p>
+            <p className="mt-2 text-2xl font-black text-sky-950">{shippedDispatchesCount}</p>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Sedes abastecidas</p>
+            <p className="mt-2 text-2xl font-black text-emerald-950">{branches.length}</p>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
         <div className="flex items-center gap-2">
@@ -299,15 +317,19 @@ export function OperationsPanel() {
         </div>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className={`grid gap-4 ${isWarehouseOnly ? '' : 'xl:grid-cols-[minmax(0,1fr)_380px]'}`}>
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2">
             <span className="grid size-10 place-items-center rounded-md bg-orange-100 text-orange-700">
               <Truck size={22} />
             </span>
             <div>
-              <h2 className="text-lg font-black text-stone-950">Solicitudes de sedes</h2>
-              <p className="text-sm font-bold text-stone-500">Despacha desde bodega y recibe en sede</p>
+              <h2 className="text-lg font-black text-stone-950">
+                {isWarehouseOnly ? 'Reabastecimiento a sedes' : 'Solicitudes de reabastecimiento'}
+              </h2>
+              <p className="text-sm font-bold text-stone-500">
+                {isWarehouseOnly ? 'Cola de pedidos internos para despacho' : 'Estado de pedidos internos a bodega'}
+              </p>
             </div>
           </div>
 
@@ -368,82 +390,78 @@ export function OperationsPanel() {
           </div>
         </section>
 
-        <aside className="h-fit rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="grid size-10 place-items-center rounded-md bg-red-100 text-red-700">
-              <ShoppingCart size={22} />
-            </span>
-            <div>
-              <h3 className="text-base font-black text-stone-950">Registrar venta</h3>
-              <p className="text-sm font-bold text-stone-500">Descuenta insumos por formula</p>
+        {!isWarehouseOnly ? (
+          <aside className="h-fit rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="grid size-10 place-items-center rounded-md bg-red-100 text-red-700">
+                <ShoppingCart size={22} />
+              </span>
+              <div>
+                <h3 className="text-base font-black text-stone-950">Registrar venta</h3>
+                <p className="text-sm font-bold text-stone-500">Descuenta insumos por formula</p>
+              </div>
             </div>
-          </div>
 
-          {canOperateAsBranch ? (
-          <div className="mt-4 grid gap-3">
-            <label className="grid gap-1 text-sm font-bold text-stone-700">
-              Sede
-              <select
-                value={saleBranchId}
-                onChange={(event) => {
-                  setSaleBranchId(event.target.value)
-                  setSaleProductId('')
-                }}
-                disabled={Boolean(lockedBranchId)}
-                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+            <div className="mt-4 grid gap-3">
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Sede
+                <select
+                  value={saleBranchId}
+                  onChange={(event) => {
+                    setSaleBranchId(event.target.value)
+                    setSaleProductId('')
+                  }}
+                  disabled={Boolean(lockedBranchId)}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                >
+                  <option value="">Selecciona una sede</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Producto
+                <select
+                  value={saleProductId}
+                  onChange={(event) => setSaleProductId(event.target.value)}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                >
+                  <option value="">Selecciona un producto</option>
+                  {saleProducts.map((product) => (
+                    <option key={`${product.branchId}:${product.id}`} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Cantidad vendida
+                <input
+                  type="number"
+                  min="1"
+                  value={saleQuantity}
+                  onChange={(event) => setSaleQuantity(event.target.value)}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={handleSellProduct}
+                disabled={!canSell || operations.isSaving}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-900 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400"
               >
-                <option value="">Selecciona una sede</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-1 text-sm font-bold text-stone-700">
-              Producto
-              <select
-                value={saleProductId}
-                onChange={(event) => setSaleProductId(event.target.value)}
-                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-              >
-                <option value="">Selecciona un producto</option>
-                {saleProducts.map((product) => (
-                  <option key={`${product.branchId}:${product.id}`} value={product.id}>
-                    {product.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-1 text-sm font-bold text-stone-700">
-              Cantidad vendida
-              <input
-                type="number"
-                min="1"
-                value={saleQuantity}
-                onChange={(event) => setSaleQuantity(event.target.value)}
-                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-              />
-            </label>
-
-            <button
-              type="button"
-              onClick={handleSellProduct}
-              disabled={!canSell || operations.isSaving}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-900 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400"
-            >
-              <ShoppingCart size={16} />
-              Registrar venta
-            </button>
-          </div>
-          ) : (
-            <p className="mt-4 rounded-md bg-stone-100 px-3 py-2 text-sm font-bold text-stone-600">
-              La venta operativa se registra desde un usuario de sede.
-            </p>
-          )}
-        </aside>
+                <ShoppingCart size={16} />
+                Registrar venta
+              </button>
+            </div>
+          </aside>
+        ) : null}
       </div>
 
       {operations.status ? (

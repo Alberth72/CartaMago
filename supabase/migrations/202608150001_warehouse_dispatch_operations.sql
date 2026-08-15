@@ -326,6 +326,76 @@ on conflict (id) do update set
   quantity = excluded.quantity,
   unit_cost = excluded.unit_cost;
 
+insert into public.dispatch_requests (id, branch_id, warehouse_id, status, requested_by, notes, created_at)
+values
+  ('drq_demo_principal_papa', 'brasas-sazon', 'brasas-central', 'pending', 'seed', 'Sede Principal solicita papa y limon para turno de almuerzo.', now() - interval '50 minutes'),
+  ('drq_demo_norte_pollo', 'brasas-sazon-norte', 'brasas-central', 'approved', 'seed', 'Sede Norte solicita pollo para cubrir pedidos de la tarde.', now() - interval '35 minutes'),
+  ('drq_demo_norte_carbon', 'brasas-sazon-norte', 'brasas-central', 'dispatched', 'seed', 'Carbon despachado hacia Sede Norte.', now() - interval '2 hours')
+on conflict (id) do update set
+  branch_id = excluded.branch_id,
+  warehouse_id = excluded.warehouse_id,
+  status = excluded.status,
+  requested_by = excluded.requested_by,
+  notes = excluded.notes,
+  updated_at = now();
+
+insert into public.dispatch_request_items (id, dispatch_request_id, item_id, quantity)
+values
+  ('dri_demo_principal_papa', 'drq_demo_principal_papa', 'papa-criolla', 12),
+  ('dri_demo_principal_limon', 'drq_demo_principal_papa', 'limon', 4),
+  ('dri_demo_norte_pollo', 'drq_demo_norte_pollo', 'pollo-entero', 16),
+  ('dri_demo_norte_carbon', 'drq_demo_norte_carbon', 'carbon', 4)
+on conflict (id) do update set
+  dispatch_request_id = excluded.dispatch_request_id,
+  item_id = excluded.item_id,
+  quantity = excluded.quantity;
+
+insert into public.dispatches (id, warehouse_id, branch_id, dispatch_request_id, status, created_by, created_at)
+values (
+  'dsp_demo_norte_carbon',
+  'brasas-central',
+  'brasas-sazon-norte',
+  'drq_demo_norte_carbon',
+  'shipped',
+  'seed',
+  now() - interval '90 minutes'
+)
+on conflict (id) do update set
+  warehouse_id = excluded.warehouse_id,
+  branch_id = excluded.branch_id,
+  dispatch_request_id = excluded.dispatch_request_id,
+  status = excluded.status,
+  updated_at = now();
+
+insert into public.dispatch_items (id, dispatch_id, item_id, quantity)
+values ('di_demo_norte_carbon', 'dsp_demo_norte_carbon', 'carbon', 4)
+on conflict (id) do update set
+  dispatch_id = excluded.dispatch_id,
+  item_id = excluded.item_id,
+  quantity = excluded.quantity;
+
+update public.warehouse_stock
+set quantity = greatest(quantity - 4, 0),
+    updated_at = now()
+where warehouse_id = 'brasas-central'
+  and item_id = 'carbon'
+  and exists (select 1 from public.dispatches where id = 'dsp_demo_norte_carbon');
+
+insert into public.inventory_movements (
+  id, branch_id, warehouse_id, item_id, quantity, movement_type, reason, reference_id, created_by
+) values (
+  'im_demo_dispatch_norte_carbon',
+  'brasas-sazon-norte',
+  'brasas-central',
+  'carbon',
+  -4,
+  'despacho',
+  'demo_despacho_bodega',
+  'drq_demo_norte_carbon',
+  'seed'
+)
+on conflict (id) do nothing;
+
 insert into public.formulas (id, branch_id, product_id, active)
 select 'formula_brasas_pollo_entero', 'brasas-sazon', 'pollo-entero', true
 where exists (select 1 from public.products where id = 'pollo-entero' and branch_id = 'brasas-sazon')

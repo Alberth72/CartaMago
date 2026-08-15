@@ -114,6 +114,155 @@ export function OperationsPanel() {
     )
   }
 
+  if (isWarehouseOnly) {
+    return (
+      <div className="grid gap-4">
+        <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="grid size-10 place-items-center rounded-md bg-orange-100 text-orange-700">
+                <Truck size={22} />
+              </span>
+              <div>
+                <h2 className="text-lg font-black text-stone-950">Despachar a sedes</h2>
+                <p className="text-sm font-bold text-stone-500">{pendingRequestsCount} pendientes</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => void operations.reload()}
+              disabled={operations.isLoading}
+              className="inline-flex items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-black text-stone-800 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:text-stone-400"
+            >
+              <RefreshCw size={16} />
+              Actualizar
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {requests.length === 0 ? (
+              <p className="rounded-md bg-stone-100 px-3 py-2 text-sm font-bold text-stone-600">
+                No hay solicitudes de sedes.
+              </p>
+            ) : (
+              requests.map((request) => {
+                const linkedDispatch = dispatches.find((dispatch) => dispatch.dispatchRequestId === request.id)
+                return (
+                  <article key={request.id} className="rounded-lg border border-stone-200 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-stone-950">{getBranchName(request.branchId)}</p>
+                        <p className="text-xs font-bold text-stone-500">
+                          {request.items.map((item) => `${getItemName(item.itemId)} x ${item.quantity}`).join(', ')}
+                        </p>
+                        {request.notes ? <p className="mt-1 text-xs font-semibold text-stone-500">{request.notes}</p> : null}
+                      </div>
+                      <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-black text-stone-700">
+                        {requestStatusLabels[request.status]}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(request.status === 'pending' || request.status === 'approved') ? (
+                        <button
+                          type="button"
+                          onClick={() => void operations.dispatchRequest(request.id)}
+                          disabled={operations.isSaving}
+                          className="inline-flex items-center gap-2 rounded-md bg-stone-900 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
+                        >
+                          <Truck size={15} />
+                          Despachar
+                        </button>
+                      ) : null}
+                      {linkedDispatch ? (
+                        <span className="inline-flex items-center rounded-md border border-stone-200 px-3 py-2 text-xs font-black text-stone-600">
+                          Despacho: {dispatchStatusLabels[linkedDispatch.status]}
+                        </span>
+                      ) : null}
+                    </div>
+                  </article>
+                )
+              })
+            )}
+          </div>
+        </section>
+
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="grid size-10 place-items-center rounded-md bg-sky-100 text-sky-700">
+                <Warehouse size={22} />
+              </span>
+              <div>
+                <h2 className="text-lg font-black text-stone-950">Stock central</h2>
+                <p className="text-sm font-bold text-stone-500">{getWarehouseName(profile?.primaryWarehouseId ?? '')}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2 md:grid-cols-2">
+              {(data?.warehouseStock ?? []).map((stock) => (
+                <div key={stock.id} className="flex items-center justify-between gap-3 rounded-md border border-stone-200 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-black text-stone-950">{getItemName(stock.itemId)}</p>
+                    <p className="text-xs font-bold text-stone-500">
+                      {items.find((item) => item.id === stock.itemId)?.unit ?? 'unidad'}
+                    </p>
+                  </div>
+                  <span className="text-lg font-black text-stone-950">{stock.quantity}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="grid size-10 place-items-center rounded-md bg-emerald-100 text-emerald-700">
+                <PackageCheck size={22} />
+              </span>
+              <div>
+                <h2 className="text-lg font-black text-stone-950">Sedes</h2>
+                <p className="text-sm font-bold text-stone-500">{branches.length} conectadas</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {branchRows.map(({ branch, stock }) => (
+                <div key={branch.id} className="rounded-md border border-stone-200 p-3">
+                  <h3 className="text-sm font-black text-stone-950">{branch.name}</h3>
+                  <div className="mt-2 grid gap-1">
+                    {stock.slice(0, 3).map(({ item, quantity }) => (
+                      <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-bold text-stone-600">{item.name}</span>
+                        <span className={`font-black ${quantity <= 10 ? 'text-red-700' : 'text-stone-950'}`}>
+                          {quantity} {item.unit}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {operations.status ? (
+          <p
+            className={`rounded-lg border px-4 py-3 text-sm font-bold ${
+              operations.status.includes('correctamente') ||
+              operations.status.includes('despachada') ||
+              operations.status.includes('recibido') ||
+              operations.status.includes('descontado')
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-red-200 bg-red-50 text-red-800'
+            }`}
+          >
+            {operations.status}
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-4">
       {profile ? (

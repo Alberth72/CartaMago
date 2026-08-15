@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, Phone, Plus, RefreshCw, Save, Truck, Warehouse } from 'lucide-react'
+import { CheckCircle2, Phone, RefreshCw, Save, Truck, Warehouse } from 'lucide-react'
 import { useWarehousePurchasing } from '../hooks/useWarehousePurchasing'
 import type { WarehousePurchaseStatus } from '../warehousePurchasingTypes'
 
 const statusLabels: Record<WarehousePurchaseStatus, string> = {
   draft: 'Borrador',
-  sent: 'Enviada',
+  sent: 'Pendiente',
   received: 'Recibida',
   paid: 'Pagada',
   cancelled: 'Cancelada',
@@ -26,18 +26,16 @@ export function WarehousePurchasingPanel() {
   const [quantity, setQuantity] = useState('')
   const [unitCost, setUnitCost] = useState('')
   const [notes, setNotes] = useState('')
-  const [supplierName, setSupplierName] = useState('')
-  const [supplierContact, setSupplierContact] = useState('')
-  const [supplierPhone, setSupplierPhone] = useState('')
-  const [supplierTerms, setSupplierTerms] = useState('')
 
   const warehouses = data?.warehouses ?? []
   const suppliers = data?.suppliers ?? []
   const items = data?.items ?? []
   const orders = data?.purchaseOrders ?? []
-  const stock = data?.stock ?? []
   const selectedWarehouseId = warehouseId || data?.profile.primaryWarehouseId || warehouses[0]?.id || ''
   const visibleOrders = orders.filter((order) => !selectedWarehouseId || order.warehouseId === selectedWarehouseId)
+  const openOrders = visibleOrders.filter((order) => order.status === 'draft' || order.status === 'sent')
+  const recentOrders = visibleOrders.filter((order) => order.status !== 'draft' && order.status !== 'sent').slice(0, 4)
+  const selectedSupplier = suppliers.find((supplier) => supplier.id === supplierId)
 
   useEffect(() => {
     if (!data) return
@@ -47,6 +45,7 @@ export function WarehousePurchasingPanel() {
 
   const getItemName = (id: string) => items.find((item) => item.id === id)?.name ?? id
   const getItemUnit = (id: string) => items.find((item) => item.id === id)?.unit ?? 'unidad'
+  const getSupplierName = (id: string | null) => suppliers.find((supplier) => supplier.id === id)?.name ?? 'Proveedor'
   const getWarehouseName = (id: string) => warehouses.find((warehouse) => warehouse.id === id)?.name ?? id
 
   const canCreateOrder =
@@ -55,7 +54,6 @@ export function WarehousePurchasingPanel() {
     Boolean(itemId) &&
     Number(quantity) > 0 &&
     Number(unitCost) >= 0
-  const canCreateSupplier = Boolean(selectedWarehouseId) && supplierName.trim().length > 2
 
   const handleCreateOrder = () => {
     if (!canCreateOrder) return
@@ -72,25 +70,10 @@ export function WarehousePurchasingPanel() {
     setNotes('')
   }
 
-  const handleCreateSupplier = () => {
-    if (!canCreateSupplier) return
-    void purchasing.createSupplier({
-      warehouseId: selectedWarehouseId,
-      name: supplierName,
-      contactName: supplierContact,
-      phone: supplierPhone,
-      terms: supplierTerms,
-    })
-    setSupplierName('')
-    setSupplierContact('')
-    setSupplierPhone('')
-    setSupplierTerms('')
-  }
-
   if (purchasing.isLoading) {
     return (
       <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-        <p className="text-sm font-bold text-stone-500">Cargando proveedores y compras de bodega...</p>
+        <p className="text-sm font-bold text-stone-500">Cargando compras de bodega...</p>
       </section>
     )
   }
@@ -104,8 +87,8 @@ export function WarehousePurchasingPanel() {
               <Warehouse size={22} />
             </span>
             <div>
-              <h2 className="text-lg font-black text-stone-950">Compras a proveedores</h2>
-              <p className="text-sm font-bold text-stone-500">Reabastece la bodega central antes de despachar sedes</p>
+              <h2 className="text-lg font-black text-stone-950">Abastecer bodega</h2>
+              <p className="text-sm font-bold text-stone-500">{getWarehouseName(selectedWarehouseId)}</p>
             </div>
           </div>
           <button
@@ -119,120 +102,117 @@ export function WarehousePurchasingPanel() {
           </button>
         </div>
 
-        <div className="mt-4 grid gap-3 lg:grid-cols-3">
-          {suppliers.map((supplier) => (
-            <article key={supplier.id} className="rounded-lg border border-stone-200 p-3">
-              <p className="text-sm font-black text-stone-950">{supplier.name}</p>
-              <p className="mt-1 text-xs font-bold text-stone-500">
-                {supplier.contactName ?? 'Contacto pendiente'}
-              </p>
-              {supplier.phone ? (
-                <a
-                  href={`tel:${supplier.phone}`}
-                  className="mt-2 inline-flex items-center gap-2 text-xs font-black text-sky-700"
-                >
-                  <Phone size={14} />
-                  {supplier.phone}
-                </a>
-              ) : null}
-              {supplier.terms ? <p className="mt-2 text-xs font-semibold text-stone-500">{supplier.terms}</p> : null}
-            </article>
-          ))}
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs font-black uppercase tracking-wide text-amber-700">Compras abiertas</p>
+            <p className="mt-2 text-2xl font-black text-amber-950">{openOrders.length}</p>
+          </div>
+          <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+            <p className="text-xs font-black uppercase tracking-wide text-sky-700">Proveedores</p>
+            <p className="mt-2 text-2xl font-black text-sky-950">{suppliers.length}</p>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Recibidas</p>
+            <p className="mt-2 text-2xl font-black text-emerald-950">
+              {visibleOrders.filter((order) => order.status === 'received' || order.status === 'paid').length}
+            </p>
+          </div>
         </div>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2">
             <span className="grid size-10 place-items-center rounded-md bg-emerald-100 text-emerald-700">
               <Truck size={22} />
             </span>
             <div>
-              <h2 className="text-lg font-black text-stone-950">Pedidos por proveedor</h2>
-              <p className="text-sm font-bold text-stone-500">Ordenes abiertas y recepcionadas en bodega</p>
+              <h2 className="text-lg font-black text-stone-950">Ordenes abiertas</h2>
+              <p className="text-sm font-bold text-stone-500">Recibir mercancia suma al stock central</p>
             </div>
           </div>
 
           <div className="mt-4 grid gap-3">
-            {suppliers.map((supplier) => {
-              const supplierOrders = visibleOrders.filter((order) => order.supplierId === supplier.id)
-              return (
-                <div key={supplier.id} className="rounded-lg border border-stone-200 p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+            {openOrders.length === 0 ? (
+              <p className="rounded-md bg-stone-100 px-3 py-2 text-sm font-bold text-stone-600">
+                No hay compras pendientes por recibir.
+              </p>
+            ) : (
+              openOrders.map((order) => (
+                <article key={order.id} className="rounded-lg border border-stone-200 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-black text-stone-950">{supplier.name}</h3>
+                      <p className="text-sm font-black text-stone-950">{getSupplierName(order.supplierId)}</p>
                       <p className="text-xs font-bold text-stone-500">
-                        {supplierOrders.length} ordenes registradas
+                        {order.items
+                          .map((item) => `${getItemName(item.itemId)} x ${item.quantity} ${getItemUnit(item.itemId)}`)
+                          .join(', ')}
+                      </p>
+                      {order.notes ? <p className="mt-1 text-xs font-semibold text-stone-500">{order.notes}</p> : null}
+                    </div>
+                    <div className="text-right">
+                      <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-black text-amber-800">
+                        {statusLabels[order.status]}
+                      </span>
+                      <p className="mt-2 text-sm font-black text-stone-950">
+                        {moneyFormatter.format(order.totalCost)}
                       </p>
                     </div>
-                    <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-black text-stone-700">
-                      {supplier.contactName ?? 'Proveedor'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void purchasing.receiveOrder(order.id)}
+                    disabled={purchasing.isSaving}
+                    className="mt-3 inline-flex items-center gap-2 rounded-md bg-emerald-700 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-stone-400"
+                  >
+                    <CheckCircle2 size={15} />
+                    Recibir compra
+                  </button>
+                </article>
+              ))
+            )}
+          </div>
+
+          {recentOrders.length > 0 ? (
+            <div className="mt-5 border-t border-stone-200 pt-4">
+              <h3 className="text-sm font-black text-stone-950">Historial reciente</h3>
+              <div className="mt-2 grid gap-2">
+                {recentOrders.map((order) => (
+                  <div key={order.id} className="flex items-center justify-between gap-3 rounded-md bg-stone-50 px-3 py-2">
+                    <div>
+                      <p className="text-sm font-black text-stone-800">{getSupplierName(order.supplierId)}</p>
+                      <p className="text-xs font-bold text-stone-500">
+                        {order.items.map((item) => getItemName(item.itemId)).join(', ')}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-2 py-1 text-xs font-black text-stone-600">
+                      {statusLabels[order.status]}
                     </span>
                   </div>
-
-                  <div className="mt-3 grid gap-2">
-                    {supplierOrders.length === 0 ? (
-                      <p className="text-sm font-bold text-stone-500">Sin pedidos para este proveedor.</p>
-                    ) : (
-                      supplierOrders.map((order) => (
-                        <div key={order.id} className="rounded-md border border-stone-100 bg-stone-50 p-3">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-black text-stone-950">
-                                {getWarehouseName(order.warehouseId)} · {moneyFormatter.format(order.totalCost)}
-                              </p>
-                              <p className="text-xs font-bold text-stone-500">
-                                {order.items
-                                  .map((item) => `${getItemName(item.itemId)} x ${item.quantity} ${getItemUnit(item.itemId)}`)
-                                  .join(', ')}
-                              </p>
-                              {order.notes ? <p className="mt-1 text-xs font-semibold text-stone-500">{order.notes}</p> : null}
-                            </div>
-                            <span className="rounded-full bg-white px-2 py-1 text-xs font-black text-stone-700">
-                              {statusLabels[order.status]}
-                            </span>
-                          </div>
-
-                          {(order.status === 'draft' || order.status === 'sent') ? (
-                            <button
-                              type="button"
-                              onClick={() => void purchasing.receiveOrder(order.id)}
-                              disabled={purchasing.isSaving}
-                              className="mt-3 inline-flex items-center gap-2 rounded-md bg-emerald-700 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-stone-400"
-                            >
-                              <CheckCircle2 size={15} />
-                              Recibir en bodega
-                            </button>
-                          ) : null}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        <aside className="grid h-fit gap-4">
-          <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="grid size-10 place-items-center rounded-md bg-amber-100 text-amber-700">
-                <Save size={22} />
-              </span>
-              <div>
-                <h3 className="text-base font-black text-stone-950">Nueva orden</h3>
-                <p className="text-sm font-bold text-stone-500">Proveedor abastece stock central</p>
+                ))}
               </div>
             </div>
+          ) : null}
+        </section>
 
-            <div className="mt-4 grid gap-3">
+        <aside className="h-fit rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="grid size-10 place-items-center rounded-md bg-red-100 text-red-700">
+              <Save size={22} />
+            </span>
+            <div>
+              <h3 className="text-base font-black text-stone-950">Nueva compra</h3>
+              <p className="text-sm font-bold text-stone-500">Proveedor a bodega</p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {warehouses.length > 1 ? (
               <label className="grid gap-1 text-sm font-bold text-stone-700">
                 Bodega
                 <select
                   value={selectedWarehouseId}
                   onChange={(event) => setWarehouseId(event.target.value)}
-                  disabled={warehouses.length <= 1}
                   className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
                 >
                   {warehouses.map((warehouse) => (
@@ -242,157 +222,112 @@ export function WarehousePurchasingPanel() {
                   ))}
                 </select>
               </label>
+            ) : null}
 
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Proveedor
-                <select
-                  value={supplierId}
-                  onChange={(event) => setSupplierId(event.target.value)}
-                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                >
-                  <option value="">Selecciona proveedor</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Insumo
-                <select
-                  value={itemId}
-                  onChange={(event) => setItemId(event.target.value)}
-                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                >
-                  <option value="">Selecciona insumo</option>
-                  {items.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} ({item.unit})
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1 text-sm font-bold text-stone-700">
-                  Cantidad
-                  <input
-                    type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={(event) => setQuantity(event.target.value)}
-                    className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                  />
-                </label>
-                <label className="grid gap-1 text-sm font-bold text-stone-700">
-                  Costo unit.
-                  <input
-                    type="number"
-                    min="0"
-                    value={unitCost}
-                    onChange={(event) => setUnitCost(event.target.value)}
-                    className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                  />
-                </label>
-              </div>
-
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Nota
-                <textarea
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  rows={3}
-                  className="resize-none rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={handleCreateOrder}
-                disabled={!canCreateOrder || purchasing.isSaving}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-900 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+            <label className="grid gap-1 text-sm font-bold text-stone-700">
+              Proveedor
+              <select
+                value={supplierId}
+                onChange={(event) => setSupplierId(event.target.value)}
+                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
               >
-                <Save size={16} />
-                Enviar orden
-              </button>
-            </div>
-          </section>
+                <option value="">Selecciona proveedor</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="grid size-10 place-items-center rounded-md bg-sky-100 text-sky-700">
-                <Plus size={22} />
-              </span>
-              <div>
-                <h3 className="text-base font-black text-stone-950">Proveedor nuevo</h3>
-                <p className="text-sm font-bold text-stone-500">Contacto de compras de bodega</p>
+            {selectedSupplier ? (
+              <div className="rounded-md border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-900">
+                <p>{selectedSupplier.contactName ?? 'Contacto pendiente'}</p>
+                {selectedSupplier.phone ? <p>{selectedSupplier.phone}</p> : null}
               </div>
+            ) : null}
+
+            <label className="grid gap-1 text-sm font-bold text-stone-700">
+              Insumo
+              <select
+                value={itemId}
+                onChange={(event) => setItemId(event.target.value)}
+                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+              >
+                <option value="">Selecciona insumo</option>
+                {items.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} ({item.unit})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Cantidad
+                <input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(event) => setQuantity(event.target.value)}
+                  className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Costo unit.
+                <input
+                  type="number"
+                  min="0"
+                  value={unitCost}
+                  onChange={(event) => setUnitCost(event.target.value)}
+                  className="min-w-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                />
+              </label>
             </div>
 
-            <div className="mt-4 grid gap-3">
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Nombre
-                <input
-                  value={supplierName}
-                  onChange={(event) => setSupplierName(event.target.value)}
-                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                />
-              </label>
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Contacto
-                <input
-                  value={supplierContact}
-                  onChange={(event) => setSupplierContact(event.target.value)}
-                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                />
-              </label>
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Telefono
-                <input
-                  value={supplierPhone}
-                  onChange={(event) => setSupplierPhone(event.target.value)}
-                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                />
-              </label>
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Condiciones
-                <textarea
-                  value={supplierTerms}
-                  onChange={(event) => setSupplierTerms(event.target.value)}
-                  rows={3}
-                  className="resize-none rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={handleCreateSupplier}
-                disabled={!canCreateSupplier || purchasing.isSaving}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-black text-stone-900 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:text-stone-400"
-              >
-                <Plus size={16} />
-                Guardar proveedor
-              </button>
-            </div>
-          </section>
+            <label className="grid gap-1 text-sm font-bold text-stone-700">
+              Nota
+              <textarea
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                rows={2}
+                className="resize-none rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={handleCreateOrder}
+              disabled={!canCreateOrder || purchasing.isSaving}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-900 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+            >
+              <Save size={16} />
+              Enviar compra
+            </button>
+          </div>
         </aside>
       </div>
 
-      <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-black text-stone-950">Stock central despues de compras</h2>
-        <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
-          {stock.map((entry) => (
-            <div key={entry.id} className="rounded-lg border border-stone-200 p-3">
-              <p className="text-sm font-black text-stone-950">{getItemName(entry.itemId)}</p>
-              <p className="mt-1 text-xs font-bold text-stone-500">{getWarehouseName(entry.warehouseId ?? '')}</p>
-              <p className="mt-2 text-xl font-black text-stone-950">
-                {entry.quantity} {getItemUnit(entry.itemId)}
-              </p>
-            </div>
+      <details className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+        <summary className="cursor-pointer text-sm font-black text-stone-950">
+          Proveedores cargados ({suppliers.length})
+        </summary>
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          {suppliers.map((supplier) => (
+            <article key={supplier.id} className="rounded-md border border-stone-200 p-3">
+              <p className="text-sm font-black text-stone-950">{supplier.name}</p>
+              <p className="mt-1 text-xs font-bold text-stone-500">{supplier.contactName ?? 'Contacto pendiente'}</p>
+              {supplier.phone ? (
+                <a href={`tel:${supplier.phone}`} className="mt-2 inline-flex items-center gap-2 text-xs font-black text-sky-700">
+                  <Phone size={14} />
+                  {supplier.phone}
+                </a>
+              ) : null}
+            </article>
           ))}
         </div>
-      </section>
+      </details>
 
       {purchasing.status ? (
         <p

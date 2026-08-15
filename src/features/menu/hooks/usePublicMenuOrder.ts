@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react'
 import type { MenuItem, RestaurantProfile } from '../../../data/restaurantSeed'
+import { makeBranchLinks } from '../../../lib/branchLinks'
 import { useLocalStorage } from '../../../lib/useLocalStorage'
 import { saveOrder } from '../../order/repositories/publicOrderRepository'
 import { buildWhatsAppUrl, type CustomerDetails } from '../../order/orderMessage'
@@ -35,9 +36,10 @@ export function usePublicMenuOrder({
   restaurant,
   menuItems,
 }: UsePublicMenuOrderInput) {
-  const [storedCart, setCart] = useLocalStorage<unknown>('cart', {})
-  const [storedItemNotes, setItemNotes] = useLocalStorage<unknown>('item-notes', {})
-  const [storedDetails, setDetails] = useLocalStorage<unknown>('order-details', defaultCustomerDetails)
+  const storagePrefix = `branch:${branchId}`
+  const [storedCart, setCart] = useLocalStorage<unknown>(`${storagePrefix}:cart`, {})
+  const [storedItemNotes, setItemNotes] = useLocalStorage<unknown>(`${storagePrefix}:item-notes`, {})
+  const [storedDetails, setDetails] = useLocalStorage<unknown>(`${storagePrefix}:order-details`, defaultCustomerDetails)
   const orderPanelRef = useRef<HTMLElement | null>(null)
   const orderStartedAtRef = useRef(Date.now())
   const cart = normalizeCart(storedCart)
@@ -59,6 +61,7 @@ export function usePublicMenuOrder({
   const total = cartLines.reduce((sum, line) => sum + (line.item.price ?? 0) * line.quantity, 0)
   const hasUnknownPrices = cartLines.some((line) => line.item.price == null)
   const itemCount = cartLines.reduce((sum, line) => sum + line.quantity, 0)
+  const branchLinks = useMemo(() => makeBranchLinks(branchId), [branchId])
   const whatsappUrl = buildWhatsAppUrl(restaurant, cartLines, details)
 
   const handleWhatsAppClick = useCallback(() => {
@@ -96,7 +99,7 @@ export function usePublicMenuOrder({
       whatsappMessage: decodedMessage,
       whatsappLink: message,
       orderStartedAt: orderStartedAtRef.current,
-      website: '',
+      website: branchLinks.menuUrl,
       items: cartLines.map((line) => ({
         productId: line.item.id,
         productName: line.item.name,
@@ -105,7 +108,7 @@ export function usePublicMenuOrder({
         lineNote: line.note,
       })),
     })
-  }, [restaurant, branchId, cartLines, details, itemCount, total])
+  }, [restaurant, branchId, branchLinks.menuUrl, cartLines, details, itemCount, total])
 
   function addItem(itemId: string) {
     setCart((current: unknown) => {

@@ -19,8 +19,8 @@ import {
 } from './trackingUi'
 
 export function OrderTrackingPage() {
-  const { orderId = '' } = useParams()
-  const { branchId } = getSupabaseConfig()
+  const { branchId: routeBranchId, orderId = '' } = useParams()
+  const branchId = routeBranchId ?? getSupabaseConfig().branchId
   const [order, setOrder] = useState<OrderWithItems | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
@@ -78,7 +78,7 @@ export function OrderTrackingPage() {
             Revisa el enlace de rastreo o pide al local que te comparta nuevamente el estado del pedido.
           </p>
           <Link
-            to="/"
+            to={routeBranchId ? `/s/${routeBranchId}` : '/'}
             className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-red-900 px-4 py-2 text-sm font-black text-white"
           >
             <ArrowLeft size={16} />
@@ -112,7 +112,7 @@ export function OrderTrackingPage() {
                 </p>
               </div>
               <Link
-                to="/"
+                to={routeBranchId ? `/s/${routeBranchId}` : '/'}
                 className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/15 active:translate-y-0"
               >
                 <ArrowLeft size={16} />

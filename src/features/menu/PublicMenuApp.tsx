@@ -1,8 +1,9 @@
 import { Helmet } from 'react-helmet-async'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'react-router'
 import { BrandMark } from '../../components/BrandMark'
 import { useLocalStorage } from '../../lib/useLocalStorage'
-import { fetchPublicMenu, getSeedMenuData, type MenuData } from '../../services/menuRepository'
+import { fetchPublicMenu, getSeedMenuData, getSupabaseConfig, type MenuData } from '../../services/menuRepository'
 import { CartSummary } from './components/CartSummary'
 import { CategoryNav } from './components/CategoryNav'
 import { MenuHero } from './components/MenuHero'
@@ -11,17 +12,23 @@ import { ProductGrid } from './components/ProductGrid'
 import { usePublicMenuOrder } from './hooks/usePublicMenuOrder'
 
 export function PublicMenuApp() {
-  const seedMenuData = getSeedMenuData()
-  const [storedMenuData, setMenuData] = useLocalStorage<unknown>('menu-data', seedMenuData)
+  const { branchId: routeBranchId } = useParams()
+  const requestedBranchId = routeBranchId ?? getSupabaseConfig().branchId
+  const seedMenuData = useMemo(() => getSeedMenuData(requestedBranchId), [requestedBranchId])
+  const [storedMenuData, setMenuData] = useLocalStorage<unknown>(`branch:${requestedBranchId}:menu-data`, seedMenuData)
   const menuData = normalizeMenuData(storedMenuData, seedMenuData)
   const [activeCategory, setActiveCategory] = useState(menuData.categories[0]?.id ?? '')
 
   useEffect(() => {
-    fetchPublicMenu().then((nextMenuData) => {
+    fetchPublicMenu(requestedBranchId).then((nextMenuData) => {
       setMenuData(nextMenuData)
-      setActiveCategory((current) => current || nextMenuData.categories[0]?.id || '')
+      setActiveCategory((current) =>
+        nextMenuData.categories.some((category) => category.id === current)
+          ? current
+          : nextMenuData.categories[0]?.id || '',
+      )
     })
-  }, [setMenuData])
+  }, [requestedBranchId, setMenuData])
 
   const { categories, menuItems, restaurant } = menuData
   const branchId = menuData.branchId ?? 'brasas-sazon'

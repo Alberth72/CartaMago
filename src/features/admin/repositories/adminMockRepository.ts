@@ -328,6 +328,7 @@ export async function signOutMockAdmin() {
 
 export async function fetchMockAdminMenu(): Promise<AdminMenuData> {
   return {
+    branchId: defaultSeed.id,
     restaurantForm: { ...restaurantForm },
     categories: categories.map((category) => ({ ...category })),
     products: products.map((product) => ({ ...product })),

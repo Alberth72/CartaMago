@@ -340,6 +340,7 @@ export function AdminApp() {
         ) : (
           <div className="grid gap-5">
             <RestaurantPanel
+              branchId={menu.branchId}
               form={menu.restaurantForm}
               isSaving={menu.isSaving}
               onChange={menu.updateRestaurantForm}

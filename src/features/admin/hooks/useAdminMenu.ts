@@ -43,6 +43,7 @@ export type ConfirmAction =
 export function useAdminMenu() {
   const [categories, setCategories] = useState<MenuCategory[]>([])
   const [products, setProducts] = useState<MenuItem[]>([])
+  const [branchId, setBranchId] = useState('')
   const [restaurantForm, setRestaurantForm] = useState<AdminRestaurantForm>(emptyRestaurant)
   const [productForm, setProductForm] = useState<AdminProductForm>(emptyProduct)
   const [categoryName, setCategoryName] = useState('')
@@ -65,6 +66,7 @@ export function useAdminMenu() {
 
     try {
       const nextMenu = await fetchAdminMenu()
+      setBranchId(nextMenu.branchId)
       setRestaurantForm(nextMenu.restaurantForm)
       setCategories(nextMenu.categories)
       setProducts(nextMenu.products)
@@ -79,6 +81,7 @@ export function useAdminMenu() {
   }, [])
 
   function clearMenu() {
+    setBranchId('')
     setProducts([])
     setCategories([])
   }
@@ -242,6 +245,7 @@ export function useAdminMenu() {
 
   return {
     categories,
+    branchId,
     products,
     selectedCategoryProducts,
     restaurantForm,

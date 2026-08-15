@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { CheckCircle2, Clock, Flame, PackageCheck, RefreshCw, ScreenShare } from 'lucide-react'
+import { useParams } from 'react-router'
 import { getSupabaseConfig } from '../../services/menuRepository'
 import { fulfillmentIcons, fulfillmentLabels, statusLabels } from '../admin/orderUi'
 import type { OrderStatus, OrderWithItems } from '../order/types'
@@ -10,7 +11,8 @@ import { formatLiveTime, formatShortOrderId, isActiveKitchenOrder } from './trac
 const roomStatuses: OrderStatus[] = ['confirmed', 'preparing', 'ready']
 
 export function LiveRoomDisplayPage() {
-  const { branchId } = getSupabaseConfig()
+  const { branchId: routeBranchId } = useParams()
+  const branchId = routeBranchId ?? getSupabaseConfig().branchId
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)

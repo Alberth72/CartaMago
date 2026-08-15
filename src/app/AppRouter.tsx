@@ -50,7 +50,23 @@ export function AppRouter() {
         }
       />
       <Route
+        path="/s/:branchId/tracking/:orderId"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <OrderTrackingPage />
+          </Suspense>
+        }
+      />
+      <Route
         path="/kitchen"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <KitchenDisplayPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/s/:branchId/kitchen"
         element={
           <Suspense fallback={<AdminFallback />}>
             <KitchenDisplayPage />
@@ -65,6 +81,15 @@ export function AppRouter() {
           </Suspense>
         }
       />
+      <Route
+        path="/s/:branchId/salon"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <LiveRoomDisplayPage />
+          </Suspense>
+        }
+      />
+      <Route path="/s/:branchId" element={<PublicMenuApp />} />
       <Route path="*" element={<PublicMenuApp />} />
     </Routes>
   )

@@ -114,12 +114,19 @@ Núcleo operativo pesado; requiere arquitectura SaaS y decisión de negocio.
 | Panel Admin `Compras` para bodega: proveedores, ordenes de compra y recepcion a stock central | Hecho local |
 | Relacion proveedor -> insumos ofrecidos para filtrar compras y costos | Hecho local |
 | Crear insumo maestro desde bodega y asociarlo a proveedor | Hecho local |
+| Rutas operativas por sede: menu QR, cocina, sala y tracking por `branch_id` | Hecho local |
+| Kit operativo visible en admin de sede: enlace QR, cocina y sala | Hecho local |
 | E2E mock del ciclo solicitud -> despacho -> recepcion | Hecho: `npm.cmd run test:e2e:admin` |
 | Smoke local bodega: crear compra, recibir proveedor y subir stock central | Hecho |
 | Aplicar `202608150001` en Supabase cloud | Pendiente |
 | Smoke cloud con usuario real: compra a proveedor, crear solicitud, despachar, recibir, registrar venta | Pendiente |
 
 ## Reglas de avance
+
+### Registro de sedes
+
+- Registrar sedes pertenece al panel central/superadmin, no a bodega ni a la sede.
+- Al registrar una sede se debe generar su kit operativo: URL del menu/QR, cocina, sala en vivo, admin asignado, bodega conectada, inventario inicial y catalogo base.
 
 - No se inicia una fase nueva sin cerrar la salida de la anterior.
 - Prioridad del usuario final: leer y ordenar rápido (móvil). Nada debe bloquear el pedido.

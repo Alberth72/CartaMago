@@ -63,6 +63,7 @@ export async function fetchAdminMenu(): Promise<AdminMenuData> {
   const restaurantRow = restaurantResult.data as RestaurantRow
 
   return {
+    branchId,
     restaurantForm: {
       name: restaurantRow.name,
       shortName: restaurantRow.short_name ?? '',

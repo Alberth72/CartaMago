@@ -1,8 +1,10 @@
-import { LogOut, MessageCircle, Save, Store } from 'lucide-react'
+import { ChefHat, ExternalLink, LogOut, MessageCircle, QrCode, Save, ScreenShare, Store } from 'lucide-react'
 import type { FormEvent } from 'react'
+import { makeBranchLinks } from '../../../lib/branchLinks'
 import type { AdminRestaurantForm } from '../types'
 
 type RestaurantPanelProps = {
+  branchId: string
   form: AdminRestaurantForm
   isSaving: boolean
   onChange: (partial: Partial<AdminRestaurantForm>) => void
@@ -10,7 +12,15 @@ type RestaurantPanelProps = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }
 
-export function RestaurantPanel({ form, isSaving, onChange, onLogout, onSubmit }: RestaurantPanelProps) {
+const operationalLinks = [
+  { key: 'menuUrl', label: 'Menu QR', description: 'Link que debe codificar el QR', icon: QrCode },
+  { key: 'kitchenUrl', label: 'Cocina', description: 'Pantalla interna de preparacion', icon: ChefHat },
+  { key: 'liveRoomUrl', label: 'Sala en vivo', description: 'Pantalla visible para clientes', icon: ScreenShare },
+] as const
+
+export function RestaurantPanel({ branchId, form, isSaving, onChange, onLogout, onSubmit }: RestaurantPanelProps) {
+  const branchLinks = branchId ? makeBranchLinks(branchId) : null
+
   return (
     <section className="overflow-hidden rounded-xl border border-amber-200 bg-white shadow-lg shadow-amber-900/10">
       <div className="border-b border-amber-100 bg-amber-50/70 px-4 py-4">
@@ -83,6 +93,50 @@ export function RestaurantPanel({ form, isSaving, onChange, onLogout, onSubmit }
           </button>
         </div>
       </form>
+
+      {branchLinks ? (
+        <div className="border-t border-amber-100 bg-stone-50/70 p-4">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-black text-stone-950">Kit operativo de sede</h3>
+              <p className="text-xs font-bold text-stone-500">
+                Estos son los enlaces que se entregan al activar o registrar una sede.
+              </p>
+            </div>
+            <span className="rounded-full bg-white px-2 py-1 text-xs font-black text-stone-600">
+              {branchId}
+            </span>
+          </div>
+          <div className="grid gap-2 lg:grid-cols-3">
+            {operationalLinks.map((item) => {
+              const ItemIcon = item.icon
+              const href = branchLinks[item.key]
+
+              return (
+                <a
+                  key={item.key}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group rounded-lg border border-stone-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md active:translate-y-0"
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-md bg-amber-50 text-red-900">
+                      <ItemIcon size={17} />
+                    </span>
+                    <ExternalLink size={15} className="text-stone-300 transition group-hover:text-red-900" />
+                  </span>
+                  <span className="mt-3 block text-sm font-black text-stone-950">{item.label}</span>
+                  <span className="mt-1 block text-xs font-bold leading-5 text-stone-500">{item.description}</span>
+                  <span className="mt-2 block truncate rounded-md bg-stone-50 px-2 py-1 text-xs font-bold text-stone-500">
+                    {href}
+                  </span>
+                </a>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

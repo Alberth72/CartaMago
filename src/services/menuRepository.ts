@@ -72,14 +72,13 @@ function normalizeFulfillmentModes(modes: string[] | null | undefined): Fulfillm
   return normalized.length > 0 ? normalized : defaultFulfillmentModes
 }
 
-export function getSeedMenuData(): MenuData {
-  const { branchId } = getSupabaseConfig()
-  const seed = getSeedById(branchId)
+export function getSeedMenuData(branchId = getSupabaseConfig().branchId): MenuData {
+  const seed = getSeedById(branchId) ?? getSeedById(getSupabaseConfig().branchId)
   if (!seed) {
     throw new Error(`No seed data for restaurant: ${branchId}`)
   }
   return {
-    branchId,
+    branchId: seed.id,
     restaurant: seed.restaurant,
     categories: seed.categories,
     menuItems: seed.menuItems,
@@ -88,14 +87,13 @@ export function getSeedMenuData(): MenuData {
   }
 }
 
-export async function fetchPublicMenu(): Promise<MenuData> {
+export async function fetchPublicMenu(branchId = getSupabaseConfig().branchId): Promise<MenuData> {
   if (isE2EAdminMockEnabled() || !isSupabaseConfigured()) {
-    return getSeedMenuData()
+    return getSeedMenuData(branchId)
   }
 
   try {
     const supabase = getSupabaseClient()
-    const { branchId } = getSupabaseConfig()
     const [restaurantResult, categoriesResult, productsResult, photosResult] = await Promise.all([
       supabase.from('branches').select('*').eq('id', branchId).single(),
       supabase.from('categories').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),
@@ -150,7 +148,7 @@ export async function fetchPublicMenu(): Promise<MenuData> {
     }
   } catch (error) {
     console.warn('Falling back to seed menu data', error)
-    return getSeedMenuData()
+    return getSeedMenuData(branchId)
   }
 }
 

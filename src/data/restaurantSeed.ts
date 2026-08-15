@@ -137,8 +137,77 @@ export const defaultSeed: RestaurantSeed = {
   menuPhotos: [],
 }
 
+export const northSeed: RestaurantSeed = {
+  id: 'brasas-sazon-norte',
+  restaurant: {
+    name: 'Brasas & Sazon Norte',
+    shortName: 'Sede Norte',
+    whatsappNumber: '573104217941',
+    location: 'Sede Norte',
+    headline: 'El sabor de Brasas tambien al norte',
+    description: 'Menu digital de la sede norte para pedidos por WhatsApp, mesa, recogida o domicilio.',
+    fulfillmentModes: ['pickup', 'local_delivery', 'table'],
+    heroImage: '/client-assets/brasas-sazon/processed/product-placeholder-preparing.png',
+    socialHandle: '@brasasysazon1',
+  },
+  categories: [
+    {
+      id: 'pollos-norte',
+      name: 'Pollo',
+      description: 'Pollo asado al carbon o apanado.',
+    },
+    {
+      id: 'asados-norte',
+      name: 'Asados',
+      description: 'Carnes y platos rapidos de la sede norte.',
+    },
+    {
+      id: 'bebidas-norte',
+      name: 'Bebidas',
+      description: 'Jugos, limonadas y gaseosas.',
+    },
+  ],
+  menuItems: [
+    {
+      id: 'pollo-entero-norte',
+      categoryId: 'pollos-norte',
+      name: '1 Pollo asado al carbon',
+      description: 'Incluye arepas, papas y maduro.',
+      price: 26000,
+      badge: 'Especialidad',
+      available: true,
+    },
+    {
+      id: 'medio-asado-norte',
+      categoryId: 'pollos-norte',
+      name: '1/2 asado',
+      description: 'Media porcion de pollo asado al carbon.',
+      price: 16000,
+      available: true,
+    },
+    {
+      id: 'churrasco-norte',
+      categoryId: 'asados-norte',
+      name: 'Churrasco 300 gr',
+      description: 'Con papa a la francesa, arepa y ensalada.',
+      price: 28000,
+      available: true,
+    },
+    {
+      id: 'limonada-natural-norte',
+      categoryId: 'bebidas-norte',
+      name: 'Limonada natural',
+      description: 'Limonada de la casa.',
+      price: 7000,
+      available: true,
+    },
+  ],
+  menuPhotos: [],
+}
+
 const seedRegistry = new Map<string, RestaurantSeed>([
   ['brasas-sazon', defaultSeed],
+  ['brasas-sazon-norte', northSeed],
 ])
 
 export function getSeedById(id: string): RestaurantSeed | undefined {

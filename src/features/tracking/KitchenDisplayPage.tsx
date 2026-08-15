@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { ClipboardList, Clock, ExternalLink, Flame, MapPin, Package, RefreshCw, StickyNote, Timer, Wallet } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { formatCurrency } from '../../lib/format'
 import { getSupabaseConfig } from '../../services/menuRepository'
 import { fulfillmentIcons, fulfillmentLabels, statusColors, statusLabels } from '../admin/orderUi'
@@ -18,7 +18,8 @@ const displayColumns: Array<{ status: OrderStatus; title: string; tone: string }
 ]
 
 export function KitchenDisplayPage() {
-  const { branchId } = getSupabaseConfig()
+  const { branchId: routeBranchId } = useParams()
+  const branchId = routeBranchId ?? getSupabaseConfig().branchId
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)

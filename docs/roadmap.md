@@ -56,8 +56,8 @@ Frente: activar el eje brands -> warehouses -> branches
 | Actualizar `supabase/seed.sql` al modelo `branches` | ✅ hecho |
 | Reescribir `adminInventoryRepository` (`branch_stock`) y consultas de menú/pedidos | ✅ hecho |
 | RLS por tenant verificada | `supabase/tests/security_rls_check.sql` |
-| Rollout: aplicar migraciones + seed a staging/producción JUNTOS con el deploy de código | Pendiente de coordinar |
-| **Salida:** multi-tenant operativo. | En rama; falta rollout coordinado |
+| Rollout: aplicar migraciones + seed a staging/producción JUNTOS con el deploy de código | Hecho en Supabase cloud + Netlify production |
+| **Salida:** multi-tenant operativo. | Cloud migrado; falta ciclo real de edición/upload con dueño |
 
 > ⚠️ **Lección de estabilidad (validada en staging local, 08-ago-2026):**
 > La migración multi-marca y la app son **dos mitades de un mismo cambio**.
@@ -65,6 +65,10 @@ Frente: activar el eje brands -> warehouses -> branches
 > `restaurant_id`→`branch_id`. El árbol local ya está alineado al modelo
 > `branches/branch_id`, pero producción solo debe recibirlo junto con las
 > migraciones, seed y variables `VITE_BRANCH_ID` coordinadas.
+> Rollout cloud ejecutado: se reparó historial remoto hasta `202607290002`, se
+> aplicaron migraciones `202607300001`→`202608080002`, se desplegó
+> `create-order`, y Netlify production quedó en deploy `6a7fbf1709294fda6d2c916f`.
+> Backup previo: schema `pre_rollout_202608_branch`.
 > Fixes necesarios de la cadena `202608080002` (hallados en staging):
 > 1. Orden de DROPs por dependencias (`dispatch_items` antes que `dispatches`,
 >    `dispatch_request_items` antes que `dispatch_requests`).

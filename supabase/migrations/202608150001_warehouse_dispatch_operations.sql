@@ -105,7 +105,15 @@ with check (public.can_operate_branch(branch_id));
 drop policy if exists "members can read warehouse stock" on public.warehouse_stock;
 create policy "members can read warehouse stock"
 on public.warehouse_stock for select to authenticated
-using (public.can_manage_warehouse(warehouse_id));
+using (
+  public.can_manage_warehouse(warehouse_id)
+  or exists (
+    select 1
+    from public.branches b
+    where b.warehouse_id = warehouse_stock.warehouse_id
+      and public.can_manage_branch(b.id)
+  )
+);
 
 drop policy if exists "members can manage warehouse stock" on public.warehouse_stock;
 create policy "members can manage warehouse stock"

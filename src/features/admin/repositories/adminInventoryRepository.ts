@@ -16,8 +16,7 @@ export async function fetchAdminInventory(): Promise<InventoryData> {
   const scope = await fetchAdminScope()
   const branchId = scope.primaryBranchId ?? getSupabaseConfig().branchId
 
-  const [itemsResult, stockResult, movementsResult] = await Promise.all([
-    supabase.from('inventory_items').select('*').eq('branch_id', branchId).order('name', { ascending: true }),
+  const [stockResult, movementsResult] = await Promise.all([
     supabase.from('branch_stock').select('*').eq('branch_id', branchId),
     supabase
       .from('inventory_movements')
@@ -28,13 +27,21 @@ export async function fetchAdminInventory(): Promise<InventoryData> {
       .limit(50),
   ])
 
-  if (itemsResult.error || stockResult.error || movementsResult.error) {
+  if (stockResult.error || movementsResult.error) {
     throw new Error(
-      itemsResult.error?.message ??
-        stockResult.error?.message ??
-        movementsResult.error?.message ??
-        'No se pudo cargar el inventario.',
+      stockResult.error?.message ?? movementsResult.error?.message ?? 'No se pudo cargar el inventario.',
     )
+  }
+
+  const stockRows = stockResult.data ?? []
+  const itemIds = stockRows.map((row) => row.item_id)
+  const itemsResult =
+    itemIds.length > 0
+      ? await supabase.from('inventory_items').select('*').in('id', itemIds).order('name', { ascending: true })
+      : await supabase.from('inventory_items').select('*').order('name', { ascending: true })
+
+  if (itemsResult.error) {
+    throw new Error(itemsResult.error.message)
   }
 
   return {
@@ -44,7 +51,7 @@ export async function fetchAdminInventory(): Promise<InventoryData> {
       unit: row.unit,
       category: row.category,
     })),
-    stock: (stockResult.data ?? []).map((row) => ({
+    stock: stockRows.map((row) => ({
       id: row.id,
       itemId: row.item_id,
       quantity: Number(row.quantity),

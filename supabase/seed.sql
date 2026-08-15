@@ -101,12 +101,87 @@ on conflict (formula_id, item_id) do update set
   quantity_per_unit = excluded.quantity_per_unit,
   merma_percent = excluded.merma_percent;
 
+insert into public.categories (id, branch_id, name, description, image_url, sort_order) values
+  ('pollos-norte', 'brasas-sazon-norte', 'Pollo', 'Pollo asado al carbon o apanado.', null, 10),
+  ('asados-norte', 'brasas-sazon-norte', 'Asados', 'Carnes y platos rapidos de la sede norte.', null, 20),
+  ('bebidas-norte', 'brasas-sazon-norte', 'Bebidas', 'Jugos, limonadas y gaseosas.', null, 30)
+on conflict (id) do update set
+  branch_id = excluded.branch_id,
+  name = excluded.name,
+  description = excluded.description,
+  image_url = excluded.image_url,
+  sort_order = excluded.sort_order;
+
+insert into public.products (id, branch_id, category_id, name, description, price_cop, badge, available, sort_order) values
+  ('pollo-entero-norte', 'brasas-sazon-norte', 'pollos-norte', '1 Pollo asado al carbon', 'Incluye arepas, papas y maduro.', 26000, 'Especialidad', true, 10),
+  ('medio-asado-norte', 'brasas-sazon-norte', 'pollos-norte', '1/2 asado', 'Media porcion de pollo asado al carbon.', 16000, null, true, 20),
+  ('churrasco-norte', 'brasas-sazon-norte', 'asados-norte', 'Churrasco 300 gr', 'Con papa a la francesa, arepa y ensalada.', 28000, null, true, 30),
+  ('limonada-natural-norte', 'brasas-sazon-norte', 'bebidas-norte', 'Limonada natural', 'Limonada de la casa.', 7000, null, true, 40)
+on conflict (id) do update set
+  branch_id = excluded.branch_id,
+  category_id = excluded.category_id,
+  name = excluded.name,
+  description = excluded.description,
+  price_cop = excluded.price_cop,
+  badge = excluded.badge,
+  available = excluded.available,
+  sort_order = excluded.sort_order;
+
+insert into public.formulas (id, branch_id, product_id, active)
+values ('formula_norte_pollo_entero', 'brasas-sazon-norte', 'pollo-entero-norte', true)
+on conflict (branch_id, product_id) do update set
+  active = true,
+  updated_at = now();
+
+insert into public.formula_ingredients (id, formula_id, item_id, quantity_per_unit, merma_percent)
+values ('fing_norte_pollo_entero', 'formula_norte_pollo_entero', 'pollo-entero', 1, 0)
+on conflict (formula_id, item_id) do update set
+  quantity_per_unit = excluded.quantity_per_unit,
+  merma_percent = excluded.merma_percent;
+
 delete from public.menu_photos where branch_id = 'brasas-sazon';
 
 insert into public.orders (id, branch_id, status, payment_status, payment_method, payment_provider, customer_name, customer_note, fulfillment_mode, delivery_address, table_number, total_items, total_cop, whatsapp_message, whatsapp_link, created_at) values
   ('ord_demo_001', 'brasas-sazon', 'pending', 'pending', 'cash', 'manual', 'Carlos Mendez', 'Sin cebolla en las papas', 'delivery', 'Calle 10 #5-20, Barrio Centro', '', 3, 78000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x 1 Pollo asado al carbon: $26.000\n- 2 x Churrasco 300 gr: $52.000\n\nTotal aproximado: $78.000\nEntrega: Domicilio\nPago: Efectivo\nDireccion: Calle 10 #5-20, Barrio Centro\nNombre: Carlos Mendez\nNotas: Sin cebolla en las papas\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '2 hours'),
   ('ord_demo_002', 'brasas-sazon', 'confirmed', 'paid', 'bank_transfer', 'manual', 'Maria Gutierrez', '', 'pickup', '', '', 2, 52000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 1 x Bandeja paisa: $26.000\n- 1 x Limonada natural: $26.000\n\nTotal aproximado: $52.000\nEntrega: Recoger en el local\nPago: Transferencia\nNombre: Maria Gutierrez\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '1 hour'),
   ('ord_demo_003', 'brasas-sazon', 'preparing', 'pending', 'card_at_table', 'manual', 'Pedro Ramirez', 'Bien asada la carne', 'table', '', '5', 4, 104000, 'Hola, quiero hacer este pedido en Brasas & Sazón:\n\n- 2 x Punta de anca 300 gr: $52.000\n- 1 x Sopa de pollo: $26.000\n- 1 x Jugo en agua: $26.000\n\nTotal aproximado: $104.000\nEntrega: Mesa\nMesa: 5\nPago: Tarjeta en mesa\nNombre: Pedro Ramirez\nNotas: Bien asada la carne\n\nQuedo atento a confirmacion de disponibilidad y tiempo de entrega.', 'https://wa.me/573104217941?text=...', now() - interval '30 minutes')
+on conflict (id) do nothing;
+
+insert into public.orders (
+  id,
+  branch_id,
+  status,
+  payment_status,
+  payment_method,
+  payment_provider,
+  customer_name,
+  customer_note,
+  fulfillment_mode,
+  delivery_address,
+  table_number,
+  total_items,
+  total_cop,
+  whatsapp_message,
+  whatsapp_link,
+  created_at
+) values (
+  'ord_demo_norte_001',
+  'brasas-sazon-norte',
+  'pending',
+  'pending',
+  'cash',
+  'manual',
+  'Andrea Ruiz',
+  'Enviar a porteria',
+  'local_delivery',
+  'Carrera 40 #12-18, Zona Norte',
+  '',
+  2,
+  33000,
+  'Hola, quiero hacer este pedido en Brasas & Sazon Norte: 1 pollo asado y 1 limonada natural.',
+  'https://wa.me/573000000000?text=...',
+  now() - interval '15 minutes'
+)
 on conflict (id) do nothing;
 
 insert into public.order_items (id, order_id, product_id, product_name, quantity, unit_price_cop, line_note, sort_order) values
@@ -117,4 +192,9 @@ insert into public.order_items (id, order_id, product_id, product_name, quantity
   ('itm_demo_005', 'ord_demo_003', 'punta-anca', 'Punta de anca 300 gr', 2, 26000, 'Bien asada', 10),
   ('itm_demo_006', 'ord_demo_003', 'sopa-pollo', 'Sopa de pollo', 1, 26000, '', 20),
   ('itm_demo_007', 'ord_demo_003', 'jugo-agua', 'Jugo en agua', 1, 26000, 'Mora', 30)
+on conflict (id) do nothing;
+
+insert into public.order_items (id, order_id, product_id, product_name, quantity, unit_price_cop, line_note, sort_order) values
+  ('itm_demo_norte_001', 'ord_demo_norte_001', 'pollo-entero-norte', '1 Pollo asado al carbon', 1, 26000, '', 10),
+  ('itm_demo_norte_002', 'ord_demo_norte_001', 'limonada-natural-norte', 'Limonada natural', 1, 7000, '', 20)
 on conflict (id) do nothing;

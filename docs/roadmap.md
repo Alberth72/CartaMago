@@ -22,6 +22,9 @@ Hacer que el repositorio y el build vuelvan a ser reproducibles y verdes.
 | Acción | Estado |
 |---|---|
 | Build `npm run build` y lint `npm run lint` en verde | Hecho |
+| Reparar extracción incompleta de Supabase/slug (`supabaseClient.ts`, `slug.ts`) | Hecho |
+| Alinear tests/docs/scripts a `VITE_BRANCH_ID` y `branch_id` | Hecho |
+| E2E público y admin mock en verde | Hecho |
 | Silenciar falso warning de chunk (PowerShell) en `vite.config.ts` | Hecho |
 | Commit del trabajo pendiente coherente (inventario/merma + docs + migraciones) | Pendiente |
 | Documentar el roadmap y actualizar `progress-dashboard.md` | Hecho |
@@ -49,7 +52,7 @@ Frente: activar el eje brands -> warehouses -> branches
 | Acción | Gate |
 |---|---|
 | Aplicar en orden y en staging (local): `202608080001` y `202608080002` | ✅ migraciones + seed aplican (validado en staging local) |
-| Alinear el código a `branch_id` (hoy usa `restaurant_id`) | ✅ build verde en rama `phase2/multibrand-branch-id` |
+| Alinear el código a `branch_id` | Hecho en el árbol local; requiere deploy coordinado con migraciones |
 | Actualizar `supabase/seed.sql` al modelo `branches` | ✅ hecho |
 | Reescribir `adminInventoryRepository` (`branch_stock`) y consultas de menú/pedidos | ✅ hecho |
 | RLS por tenant verificada | `supabase/tests/security_rls_check.sql` |
@@ -59,9 +62,9 @@ Frente: activar el eje brands -> warehouses -> branches
 > ⚠️ **Lección de estabilidad (validada en staging local, 08-ago-2026):**
 > La migración multi-marca y la app son **dos mitades de un mismo cambio**.
 > La cadena `202608080001+002` convierte `restaurants`→`branches` y
-> `restaurant_id`→`branch_id`, pero `seed.sql` y todo el código siguen en el
-> modelo `restaurants`. Forzar la migración sin migrar app+seed **rompe la base
-> estable actual**. NO aplicar a producción hasta alinear código y seed juntos.
+> `restaurant_id`→`branch_id`. El árbol local ya está alineado al modelo
+> `branches/branch_id`, pero producción solo debe recibirlo junto con las
+> migraciones, seed y variables `VITE_BRANCH_ID` coordinadas.
 > Fixes necesarios de la cadena `202608080002` (hallados en staging):
 > 1. Orden de DROPs por dependencias (`dispatch_items` antes que `dispatches`,
 >    `dispatch_request_items` antes que `dispatch_requests`).

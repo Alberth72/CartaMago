@@ -4,7 +4,7 @@
 
 Enable the restaurant owner to edit the public QR menu from `/admin`.
 
-The public menu keeps working with the local MVP seed when Supabase is not configured. Once Supabase variables are present, the public menu reads live restaurant, category, product, and image data.
+The public menu keeps working with the local MVP seed when Supabase is not configured. Once Supabase variables are present, the public menu reads live branch, category, product, and image data.
 
 ## Current Repo Setup
 
@@ -19,7 +19,7 @@ scripts/create-supabase-admin.mjs
 
 What they do:
 
-- Create restaurant, category, product, and menu photo tables.
+- Create branch, category, product, and menu photo tables.
 - Create the public `menu-assets` storage bucket.
 - Allow public read access for the QR menu.
 - Allow only authenticated users to create/update/delete menu data and upload images.
@@ -32,7 +32,7 @@ Create these variables locally and in Netlify:
 ```text
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=ey...
-VITE_RESTAURANT_ID=brasas-sazon
+VITE_BRANCH_ID=brasas-sazon
 VITE_MENU_STORAGE_BUCKET=menu-assets
 ```
 
@@ -54,7 +54,7 @@ Use the API keys output to set Netlify variables:
 ```powershell
 npx.cmd netlify env:set VITE_SUPABASE_URL "https://<project-ref>.supabase.co" --context production
 npx.cmd netlify env:set VITE_SUPABASE_ANON_KEY "<anon-key>" --context production --secret
-npx.cmd netlify env:set VITE_RESTAURANT_ID "brasas-sazon" --context production
+npx.cmd netlify env:set VITE_BRANCH_ID "brasas-sazon" --context production
 npx.cmd netlify env:set VITE_MENU_STORAGE_BUCKET "menu-assets" --context production
 npm.cmd run build
 npx.cmd netlify deploy --prod --dir=dist
@@ -103,7 +103,7 @@ This first admin assumes a single trusted owner. The migration includes public r
 
 Minimum next security slice before multi-restaurant sales:
 
-- Create a restaurant membership table.
-- Restrict authenticated writes by owner/restaurant membership.
+- Use `branch_members` for owner access.
+- Restrict authenticated writes by owner/branch membership.
 - Add audit fields for who changed a product.
 - Add image moderation and size optimization before upload.

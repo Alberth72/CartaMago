@@ -1,5 +1,5 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { isE2EAdminMockEnabled } from '../lib/runtimeFlags'
+import { getSupabaseClient, getSupabaseConfig, isSupabaseConfigured } from './supabaseClient'
 import {
   getSeedById,
   type FulfillmentMode,
@@ -8,6 +8,9 @@ import {
   type MenuPhoto,
   type RestaurantProfile,
 } from '../data/restaurantSeed'
+
+export { slugify } from '../lib/slug'
+export { getSupabaseClient, getSupabaseConfig, isSupabaseConfigured } from './supabaseClient'
 
 export type MenuData = {
   branchId: string
@@ -67,34 +70,6 @@ function normalizeFulfillmentModes(modes: string[] | null | undefined): Fulfillm
     .filter((mode): mode is FulfillmentMode => Boolean(mode))
 
   return normalized.length > 0 ? normalized : defaultFulfillmentModes
-}
-
-const env = import.meta.env as Record<string, string | undefined>
-
-let supabaseClient: SupabaseClient | null = null
-
-export function getSupabaseConfig() {
-  return {
-    url: env.VITE_SUPABASE_URL,
-    anonKey: env.VITE_SUPABASE_ANON_KEY,
-    branchId: env.VITE_BRANCH_ID ?? 'brasas-sazon',
-    storageBucket: env.VITE_MENU_STORAGE_BUCKET ?? 'menu-assets',
-  }
-}
-
-export function isSupabaseConfigured() {
-  const { url, anonKey } = getSupabaseConfig()
-  return Boolean(url && anonKey)
-}
-
-export function getSupabaseClient() {
-  const { url, anonKey } = getSupabaseConfig()
-  if (!url || !anonKey) {
-    throw new Error('Supabase is not configured')
-  }
-
-  supabaseClient ??= createClient(url, anonKey)
-  return supabaseClient
 }
 
 export function getSeedMenuData(): MenuData {
@@ -192,13 +167,4 @@ export function toProductRow(product: MenuItem, branchId: string, sortOrder = 0)
     available: product.available,
     sort_order: sortOrder,
   }
-}
-
-export function slugify(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
 }

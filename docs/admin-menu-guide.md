@@ -157,7 +157,7 @@ Create `.env.local` from `.env.example` and set:
 ```text
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
-VITE_RESTAURANT_ID
+VITE_BRANCH_ID
 VITE_MENU_STORAGE_BUCKET
 ```
 
@@ -230,14 +230,14 @@ Current admin shortcut:
 /admin -> Restaurante -> WhatsApp / Frase principal / Texto del encabezado -> Guardar datos
 ```
 
-Those fields update `public.restaurants`. The public QR menu uses them for the hero copy and for the WhatsApp number used when the customer taps `Pedir por WhatsApp`.
+Those fields update `public.branches`. The public QR menu uses them for the hero copy and for the WhatsApp number used when the customer taps `Pedir por WhatsApp`.
 
 ## Data Model For Admin
 
 Minimum tables:
 
 ```text
-restaurants
+branches
 categories
 products
 menu_photos
@@ -246,7 +246,7 @@ menu_photos
 Suggested fields:
 
 ```text
-restaurants
+branches
 - id
 - name
 - whatsapp_number
@@ -257,14 +257,14 @@ restaurants
 
 categories
 - id
-- restaurant_id
+- branch_id
 - name
 - description
 - sort_order
 
 products
 - id
-- restaurant_id
+- branch_id
 - category_id
 - name
 - description
@@ -275,7 +275,7 @@ products
 
 menu_photos
 - id
-- restaurant_id
+- branch_id
 - title
 - image_url
 - sort_order

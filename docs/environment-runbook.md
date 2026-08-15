@@ -86,7 +86,7 @@ Requiere `.env.local` apuntando al proyecto cloud:
 ```text
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<cloud-anon-or-publishable-key>
-VITE_RESTAURANT_ID=brasas-sazon
+VITE_BRANCH_ID=brasas-sazon
 VITE_MENU_STORAGE_BUCKET=menu-assets
 ```
 
@@ -301,7 +301,7 @@ Crear `.env.local`:
 ```text
 VITE_SUPABASE_URL=http://127.0.0.1:54321
 VITE_SUPABASE_ANON_KEY=<ANON_KEY del status>
-VITE_RESTAURANT_ID=brasas-sazon
+VITE_BRANCH_ID=brasas-sazon
 VITE_MENU_STORAGE_BUCKET=menu-assets
 ```
 
@@ -319,13 +319,13 @@ $env:ADMIN_PASSWORD="Cambiar-esta-clave-123"
 npm.cmd run supabase:create-admin
 ```
 
-### 8. Asignar membresia al restaurante
+### 8. Asignar membresia a la sede
 
 Ejecutar este SQL cambiando el email si usaste otro:
 
 ```powershell
 @"
-insert into public.restaurant_members (id, restaurant_id, user_id, role)
+insert into public.branch_members (id, branch_id, user_id, role)
 select
   'brasas-sazon-owner-' || id,
   'brasas-sazon',
@@ -333,7 +333,7 @@ select
   'owner'
 from auth.users
 where email = 'owner@cartamago.local'
-on conflict (restaurant_id, user_id) do update set role = excluded.role;
+on conflict (branch_id, user_id) do update set role = excluded.role;
 "@ | docker exec -i supabase_db_CartaMago psql -U postgres -d postgres
 ```
 

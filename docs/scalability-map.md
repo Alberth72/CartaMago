@@ -27,8 +27,8 @@ src/
     order/          Cart-to-WhatsApp message composition
   lib/              Small shared helpers
   services/
-    menuRepository.ts   Public menu + Supabase config (uses VITE_RESTAURANT_ID)
-    orderRepository.ts  Save/fetch/update orders
+    menuRepository.ts   Public menu repository + seed fallback
+    supabaseClient.ts   Shared Supabase config (uses VITE_BRANCH_ID)
 ```
 
 This is the right shape for the current project because it separates product domains without adding framework complexity.
@@ -74,8 +74,8 @@ restaurantSeed.ts -> menuRepository -> UI models
 
 Next scalable data decisions:
 
-- Add `restaurant.slug` before adding a second public menu URL.
-- Keep `restaurant_id` on every business table.
+- Add a branch/public slug before adding a second public menu URL.
+- Keep `branch_id` on branch-scoped business tables.
 - Enforce Supabase RLS before onboarding a second owner.
 - Keep image paths business-scoped, for example `brasas-sazon/products/...`.
 - Preserve the seed fallback as a demo and emergency mode.

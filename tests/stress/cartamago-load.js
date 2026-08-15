@@ -4,7 +4,7 @@ import { check, group, sleep } from 'k6'
 const baseUrl = (__ENV.BASE_URL || 'http://127.0.0.1:4175').replace(/\/$/, '')
 const supabaseUrl = (__ENV.SUPABASE_URL || 'http://127.0.0.1:54321').replace(/\/$/, '')
 const supabaseAnonKey = __ENV.SUPABASE_ANON_KEY || ''
-const restaurantId = __ENV.RESTAURANT_ID || 'brasas-sazon'
+const branchId = __ENV.BRANCH_ID || __ENV.RESTAURANT_ID || 'brasas-sazon'
 const writeOrders = __ENV.K6_WRITE_ORDERS === 'true'
 const cloudRun = __ENV.K6_TARGET_ENV === 'cloud'
 
@@ -73,22 +73,22 @@ export function readMenu() {
   }
 
   group('public menu api', () => {
-    const restaurant = http.get(
-      `${supabaseUrl}/rest/v1/restaurants?id=eq.${restaurantId}&select=id,name,fulfillment_modes`,
+    const branch = http.get(
+      `${supabaseUrl}/rest/v1/branches?id=eq.${branchId}&select=id,name,fulfillment_modes`,
       { headers: supabaseHeaders },
     )
     const categories = http.get(
-      `${supabaseUrl}/rest/v1/categories?restaurant_id=eq.${restaurantId}&select=id,name,sort_order&order=sort_order.asc`,
+      `${supabaseUrl}/rest/v1/categories?branch_id=eq.${branchId}&select=id,name,sort_order&order=sort_order.asc`,
       { headers: supabaseHeaders },
     )
     const products = http.get(
-      `${supabaseUrl}/rest/v1/products?restaurant_id=eq.${restaurantId}&select=id,name,price_cop,available&order=sort_order.asc`,
+      `${supabaseUrl}/rest/v1/products?branch_id=eq.${branchId}&select=id,name,price_cop,available&order=sort_order.asc`,
       { headers: supabaseHeaders },
     )
 
-    check(restaurant, {
-      'restaurant api ok': (res) => res.status === 200,
-      'restaurant data returned': (res) => Array.isArray(res.json()) && res.json().length === 1,
+    check(branch, {
+      'branch api ok': (res) => res.status === 200,
+      'branch data returned': (res) => Array.isArray(res.json()) && res.json().length === 1,
     })
     check(categories, {
       'categories api ok': (res) => res.status === 200,
@@ -123,8 +123,8 @@ export function createOrder() {
     const orderResponse = http.post(
       `${supabaseUrl}/functions/v1/create-order`,
       JSON.stringify({
-        restaurant_id: restaurantId,
-        restaurantId,
+        branch_id: branchId,
+        branchId,
         status: 'pending',
         order_channel: 'cartamago',
         orderChannel: 'cartamago',

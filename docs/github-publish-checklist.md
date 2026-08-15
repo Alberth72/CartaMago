@@ -79,7 +79,7 @@ Netlify needs these environment variables:
 ```text
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
-VITE_RESTAURANT_ID
+VITE_BRANCH_ID
 VITE_MENU_STORAGE_BUCKET
 ```
 

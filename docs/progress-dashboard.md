@@ -3,7 +3,7 @@
 ## Current Focus
 
 ```text
-Build CartaMago as a reusable QR menu and WhatsApp ordering product.
+Stabilize CartaMago: keep build/tests/docs aligned before the next client-facing slice.
 ```
 
 > La ruta de ejecución (fases, salidas y gates) está definida en `docs/roadmap.md`.
@@ -24,12 +24,15 @@ Build CartaMago as a reusable QR menu and WhatsApp ordering product.
 | Admin Workflow | Owner admin route tested by user with Supabase login, product form, category form and image upload support; UI split into components, hooks, and repositories | `src/features/admin/AdminApp.tsx`, `src/features/admin/components/`, `src/features/admin/hooks/`, `src/features/admin/repositories/`, `docs/supabase-admin-setup.md`, user confirmation | Needs real product edit/image validation | Run visual owner workflow in `/admin` |
 | Supabase Setup | Remote project linked, migration applied, seed loaded, public bucket policy created, Netlify env connected, admin user created, login fixed, and upload policy tested | Supabase ref `utoifeenoqhddsrubsxy`, `supabase/migrations/202607220001_admin_menu_schema.sql`, `supabase/seed.sql`, Netlify deploy `6a6040817b6133755b93f3cd`, admin `aramirez.red@gmail.com` | Owner must change temporary password before handing to client | Add owner/restaurant membership policies |
 | Public MVP Preview | Stable Netlify URL, production QR, and WhatsApp handoff verified | `docs/public-mvp-preview.md`, `public/client-assets/brasas-sazon/processed/qr-netlify-production.png`, user confirmation | None for MVP sharing | Move to owner admin planning |
-| Repository Readiness | Architecture, scalability, diagrams, README, and agent guidance synchronized for first GitHub push | `README.md`, `AGENTS.md`, `docs/architecture.md`, `docs/scalability-map.md`, `docs/diagrams.md`, `npm.cmd run build`, `npm.cmd run lint` | Remote repository not created yet | Create empty GitHub repo and push `main` |
+| Repository Readiness | Build/lint restored after incomplete Supabase/slug extraction; E2E public/admin mock green; docs/scripts aligned to `VITE_BRANCH_ID` | `src/services/menuRepository.ts`, `src/services/supabaseClient.ts`, `src/lib/slug.ts`, `tests/e2e/admin.spec.ts`, `tests/stress/cartamago-load.js`, `docs/roadmap.md`, `npm.cmd run build`, `npm.cmd run lint`, `npm.cmd run test:e2e`, `npm.cmd run test:e2e:admin` | Tree still has uncommitted stabilization changes | Review diff and commit a coherent stabilization checkpoint |
+| Client Cycle | Blocked against Supabase cloud because the remote schema still exposes `restaurant_id`; `branches`/`branch_id` are not deployed there yet | Direct REST smoke test against configured cloud returned missing `branches`, `categories.branch_id`, and `products.branch_id` | Need coordinated DB migration/deploy before real `/admin` product edit | Decide rollout: migrate cloud to `branches/branch_id` with app deploy, or temporarily restore app compatibility with old `restaurants/restaurant_id` |
 
 ## Next Slice
 
 ```text
-Create the GitHub repository, push `main`, then run Cycle 1 from `docs/work-cycles.md`: edit one real product in `/admin`, upload a real image, verify the public QR menu updates, test WhatsApp again, and replace temporary prices with confirmed prices.
+Commit the stabilization checkpoint, then unblock the client cycle by aligning Supabase cloud with the app schema (`branches/branch_id`) or by restoring temporary compatibility with the old cloud schema.
+
+After the schema is aligned: edit one real product in `/admin`, upload a real image, verify the public QR menu updates, test WhatsApp again, and replace temporary prices with confirmed prices.
 
 For the official WhatsApp test, use `docs/whatsapp-launch-checklist.md` and save the restaurant number from `/admin`.
 ```

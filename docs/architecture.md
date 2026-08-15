@@ -85,7 +85,7 @@ src/data/restaurantSeed.ts
 Supabase tables used by the app:
 
 ```text
-restaurants
+branches
 categories
 products
 menu_photos
@@ -102,14 +102,14 @@ Runtime environment variables:
 ```text
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
-VITE_RESTAURANT_ID
+VITE_BRANCH_ID
 VITE_MENU_STORAGE_BUCKET
 ```
 
 Defaults:
 
 ```text
-VITE_RESTAURANT_ID=brasas-sazon
+VITE_BRANCH_ID=brasas-sazon
 VITE_MENU_STORAGE_BUCKET=menu-assets
 ```
 
@@ -277,7 +277,7 @@ When changing architecture, keep these checks in mind:
 
 - The public menu must remain fast and mobile-first.
 - The WhatsApp message must remain clear enough for staff to act on immediately.
-- Business-specific data should stay isolated behind restaurant records, env config, or seed files.
+- Business-specific data should stay isolated behind branch records, env config, or seed files.
 - Supabase failures should not break the QR menu.
 - UI components should not call Supabase directly.
 - Public ordering and admin ordering should use separate repositories.

@@ -12,7 +12,7 @@ QR -> Web menu -> Cart -> WhatsApp order -> Restaurant confirms
 
 - Public URL: `https://brasas-sazon-menu.netlify.app/`
 - Admin URL: `https://brasas-sazon-menu.netlify.app/admin`
-- Restaurant ID: `brasas-sazon`
+- Branch ID: `brasas-sazon`
 - Current WhatsApp in Supabase: `573104217941`
 
 ## What Changes The Live QR
@@ -20,7 +20,7 @@ QR -> Web menu -> Cart -> WhatsApp order -> Restaurant confirms
 The live menu reads the WhatsApp number from Supabase:
 
 ```text
-public.restaurants.whatsapp_number
+public.branches.whatsapp_number
 ```
 
 Changing that value updates the QR menu without changing the QR image or URL.
@@ -55,7 +55,7 @@ These files do not drive live production while Supabase is healthy, but they sho
 Use this only when the admin panel is unavailable:
 
 ```sql
-update public.restaurants
+update public.branches
 set whatsapp_number = '57XXXXXXXXXX'
 where id = 'brasas-sazon';
 ```
@@ -64,7 +64,7 @@ Then verify:
 
 ```sql
 select id, name, whatsapp_number
-from public.restaurants
+from public.branches
 where id = 'brasas-sazon';
 ```
 
@@ -73,7 +73,7 @@ where id = 'brasas-sazon';
 If the official test must return to the previous test number:
 
 ```sql
-update public.restaurants
+update public.branches
 set whatsapp_number = '573104217941'
 where id = 'brasas-sazon';
 ```

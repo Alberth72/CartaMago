@@ -10,7 +10,7 @@ test('shows setup guidance when Supabase is not configured', async ({ page }) =>
   await expect(page.getByRole('heading', { name: /admin listo para configurar/i })).toBeVisible()
   await expect(page.getByText('VITE_SUPABASE_URL=https://xxxxx.supabase.co')).toBeVisible()
   await expect(page.getByText('VITE_SUPABASE_ANON_KEY=ey...')).toBeVisible()
-  await expect(page.getByText('VITE_RESTAURANT_ID=brasas-sazon')).toBeVisible()
+  await expect(page.getByText('VITE_BRANCH_ID=brasas-sazon')).toBeVisible()
 })
 
 test('links back to the public menu from the admin shell', async ({ page }) => {

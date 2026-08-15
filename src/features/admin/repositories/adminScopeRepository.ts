@@ -63,3 +63,35 @@ export async function fetchAdminScope(): Promise<OperationsProfile> {
     canManageWarehouse,
   }
 }
+
+export async function fetchAdminScopeSummary() {
+  const profile = await fetchAdminScope()
+
+  if (isE2EAdminMockEnabled()) {
+    return {
+      profile,
+      branchName: 'Brasas & Sazon Principal',
+      warehouseName: 'Bodega Central Brasas',
+    }
+  }
+
+  const supabase = getSupabaseClient()
+  const [branchResult, warehouseResult] = await Promise.all([
+    profile.primaryBranchId
+      ? supabase.from('branches').select('name').eq('id', profile.primaryBranchId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    profile.primaryWarehouseId
+      ? supabase.from('warehouses').select('name').eq('id', profile.primaryWarehouseId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ])
+
+  if (branchResult.error || warehouseResult.error) {
+    throw new Error(branchResult.error?.message ?? warehouseResult.error?.message ?? 'No se pudo cargar el perfil.')
+  }
+
+  return {
+    profile,
+    branchName: branchResult.data?.name ?? profile.primaryBranchId,
+    warehouseName: warehouseResult.data?.name ?? profile.primaryWarehouseId,
+  }
+}

@@ -19,17 +19,31 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
   const [refreshing, setRefreshing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
+  const [statusMessage, setStatusMessage] = useState('')
   const selectedOrderId = selectedOrder?.id
 
   const loadOrders = useCallback(async (showInitialLoading = false) => {
     if (showInitialLoading) setLoading(true)
     setRefreshing(true)
-    const scope = await fetchAdminScope()
-    const data = scope.primaryBranchId ? await fetchOrders(scope.primaryBranchId) : []
-    setOrders(data)
-    setLastSyncedAt(new Date().toISOString())
-    setLoading(false)
-    setRefreshing(false)
+    setStatusMessage('')
+    try {
+      const scope = await fetchAdminScope()
+      if (!scope.primaryBranchId) {
+        setOrders([])
+        setStatusMessage('Este usuario gestiona bodega y no tiene una sede asignada para pedidos.')
+        return
+      }
+
+      const data = await fetchOrders(scope.primaryBranchId)
+      setOrders(data)
+      setLastSyncedAt(new Date().toISOString())
+    } catch (error) {
+      setOrders([])
+      setStatusMessage(error instanceof Error ? error.message : 'No se pudieron cargar los pedidos.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -54,10 +68,15 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
     let unsubscribe: (() => void) | null = null
     let cancelled = false
 
-    fetchAdminScope().then((scope) => {
-      if (cancelled || !scope.primaryBranchId) return
-      unsubscribe = subscribeToOrderChanges(scope.primaryBranchId, () => void loadOrders())
-    })
+    fetchAdminScope()
+      .then((scope) => {
+        if (cancelled || !scope.primaryBranchId) return
+        unsubscribe = subscribeToOrderChanges(scope.primaryBranchId, () => void loadOrders())
+      })
+      .catch((error) => {
+        if (cancelled) return
+        setStatusMessage(error instanceof Error ? error.message : 'No se pudo activar la sincronizacion de pedidos.')
+      })
 
     return () => {
       cancelled = true
@@ -87,6 +106,12 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
 
   return (
     <div>
+      {statusMessage ? (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+          {statusMessage}
+        </p>
+      ) : null}
+
       <OrdersList
         orders={visibleOrders}
         loading={loading}

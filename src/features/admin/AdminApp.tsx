@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Boxes, Package, PlugZap, ReceiptText, Warehouse, type LucideIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Boxes, LogOut, Package, PlugZap, ReceiptText, Warehouse, type LucideIcon } from 'lucide-react'
 import { isSupabaseConfigured } from '../../services/menuRepository'
 import { AdminSetupNotice } from './components/AdminSetupNotice'
 import { AdminShell } from './components/AdminShell'
@@ -15,6 +15,8 @@ import { ProductGrid } from './components/ProductGrid'
 import { RestaurantPanel } from './components/RestaurantPanel'
 import { useAdminAuth } from './hooks/useAdminAuth'
 import { useAdminMenu } from './hooks/useAdminMenu'
+import { fetchAdminScopeSummary } from './repositories/adminScopeRepository'
+import type { OperationsRole } from './operationsTypes'
 
 type AdminTab = 'orders' | 'menu' | 'operations' | 'inventory' | 'integrations'
 
@@ -62,8 +64,22 @@ const adminTabs: Array<{
   },
 ]
 
+const roleLabels: Record<OperationsRole, string> = {
+  superadmin: 'Superadmin',
+  warehouse_admin: 'Admin de bodega',
+  branch_admin: 'Admin de sede',
+  cashier: 'Cajero',
+}
+
 export function AdminApp() {
   const [activeTab, setActiveTab] = useState<AdminTab>('orders')
+  const [adminSummary, setAdminSummary] = useState<{
+    role: OperationsRole
+    email: string
+    branchName: string | null
+    warehouseName: string | null
+  } | null>(null)
+  const [adminSummaryStatus, setAdminSummaryStatus] = useState('')
   const configured = isSupabaseConfigured()
   const menu = useAdminMenu()
   const auth = useAdminAuth({
@@ -72,6 +88,36 @@ export function AdminApp() {
     onSignedOut: menu.clearMenu,
     setStatus: menu.setStatus,
   })
+
+  useEffect(() => {
+    if (!auth.isLoggedIn) {
+      setAdminSummary(null)
+      setAdminSummaryStatus('')
+      return
+    }
+
+    let cancelled = false
+    fetchAdminScopeSummary()
+      .then((summary) => {
+        if (cancelled) return
+        setAdminSummary({
+          role: summary.profile.role,
+          email: summary.profile.email,
+          branchName: summary.branchName,
+          warehouseName: summary.warehouseName,
+        })
+        setAdminSummaryStatus('')
+      })
+      .catch((error) => {
+        if (cancelled) return
+        setAdminSummary(null)
+        setAdminSummaryStatus(error instanceof Error ? error.message : 'No se pudo cargar el perfil del admin.')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [auth.isLoggedIn])
 
   if (!configured) {
     return <AdminSetupNotice />
@@ -100,6 +146,16 @@ export function AdminApp() {
     <AdminShell
       title="Admin"
       documentTitle={`${adminTabs.find((tab) => tab.id === activeTab)?.label ?? 'Admin'} | Admin CartaMago`}
+      actions={
+        <button
+          type="button"
+          onClick={() => void auth.logout()}
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white px-3 py-2 text-sm font-black text-stone-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-50 active:translate-y-0"
+        >
+          <LogOut size={16} aria-hidden="true" />
+          Cerrar sesion
+        </button>
+      }
       subtitle={
         activeTab === 'orders'
           ? 'Gestion de pedidos recibidos'
@@ -113,6 +169,32 @@ export function AdminApp() {
       }
     >
       <div className="mx-auto max-w-7xl px-4 py-4">
+        <section className="mb-4 rounded-xl border border-stone-200 bg-white p-4 shadow-lg shadow-amber-900/10">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-stone-500">Sesion activa</p>
+              <h2 className="mt-1 text-lg font-black text-stone-950">
+                {adminSummary ? roleLabels[adminSummary.role] : 'Cargando perfil'}
+              </h2>
+              <p className="text-sm font-bold text-stone-500">
+                {adminSummary?.email ?? adminSummaryStatus ?? 'Validando permisos del usuario'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs font-black text-stone-700">
+              {adminSummary?.branchName ? (
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">
+                  Sede: {adminSummary.branchName}
+                </span>
+              ) : null}
+              {adminSummary?.warehouseName ? (
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-sky-800">
+                  Bodega: {adminSummary.warehouseName}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
         <nav className="mb-4 grid gap-2 rounded-xl border border-amber-200 bg-white/80 p-2 shadow-lg shadow-amber-900/10 sm:grid-cols-2 lg:grid-cols-5">
           {adminTabs.map((tab) => {
             const TabIcon = tab.icon

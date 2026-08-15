@@ -6,10 +6,11 @@ type AdminShellProps = {
   title: string
   subtitle: string
   documentTitle?: string
+  actions?: ReactNode
   children?: ReactNode
 }
 
-export function AdminShell({ title, subtitle, documentTitle, children }: AdminShellProps) {
+export function AdminShell({ title, subtitle, documentTitle, actions, children }: AdminShellProps) {
   return (
     <main className="min-h-screen bg-[#fff8ed] text-stone-950">
       <Helmet>
@@ -26,13 +27,16 @@ export function AdminShell({ title, subtitle, documentTitle, children }: AdminSh
               <p className="text-sm font-bold leading-5 text-amber-100">{subtitle}</p>
             </div>
           </div>
-          <a
-            href="/"
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-white/15 active:translate-y-0"
-          >
-            <ExternalLink size={16} aria-hidden="true" />
-            Ver menu
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-white/15 active:translate-y-0"
+            >
+              <ExternalLink size={16} aria-hidden="true" />
+              Ver menu
+            </a>
+            {actions}
+          </div>
         </div>
       </header>
       {children}

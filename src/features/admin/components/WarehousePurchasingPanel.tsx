@@ -450,7 +450,11 @@ export function WarehousePurchasingPanel() {
         </div>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)_340px]">
-          <div className="grid h-fit gap-2">
+          <div className="grid h-fit gap-2 rounded-lg border border-stone-200 bg-stone-50 p-2">
+            <div className="px-1 pb-1">
+              <h3 className="text-xs font-black uppercase tracking-wide text-stone-500">Lista de proveedores</h3>
+              <p className="text-xs font-bold text-stone-500">Elige uno para abrir su ficha</p>
+            </div>
             {suppliers.map((supplier) => {
               const offers = supplierItems.filter((entry) => entry.supplierId === supplier.id)
               const selected = selectedSupplierDetail?.id === supplier.id
@@ -460,15 +464,29 @@ export function WarehousePurchasingPanel() {
                   type="button"
                   onClick={() => setSelectedSupplierDetailId(supplier.id)}
                   aria-pressed={selected}
-                  className={`rounded-md border p-3 text-left transition-colors ${
-                    selected ? 'border-red-900 bg-red-50' : 'border-stone-200 bg-white hover:bg-stone-50'
+                  className={`relative overflow-hidden rounded-md border p-3 text-left transition-colors ${
+                    selected
+                      ? 'border-red-900 bg-white shadow-sm ring-2 ring-red-900/10'
+                      : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50'
                   }`}
                 >
-                  <span className="block text-sm font-black text-stone-950">{supplier.name}</span>
-                  <span className="mt-1 block text-xs font-bold text-stone-500">
-                    {supplier.contactName ?? 'Contacto pendiente'}
+                  {selected ? <span className="absolute inset-y-0 left-0 w-1 bg-red-900" /> : null}
+                  <span className="flex items-start justify-between gap-2 pl-1">
+                    <span>
+                      <span className="block text-sm font-black text-stone-950">{supplier.name}</span>
+                      <span className="mt-1 block text-xs font-bold text-stone-500">
+                        {supplier.contactName ?? 'Contacto pendiente'}
+                      </span>
+                    </span>
+                    {selected ? (
+                      <span className="rounded-full bg-red-900 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">
+                        Activo
+                      </span>
+                    ) : null}
                   </span>
-                  <span className="mt-2 inline-flex rounded-full bg-stone-100 px-2 py-1 text-xs font-black text-stone-700">
+                  <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs font-black ${
+                    selected ? 'bg-red-50 text-red-950' : 'bg-stone-100 text-stone-700'
+                  }`}>
                     {offers.length} insumos asociados
                   </span>
                 </button>
@@ -476,31 +494,61 @@ export function WarehousePurchasingPanel() {
             })}
           </div>
 
-          <div className="rounded-md border border-stone-200 p-3">
+          <div className="relative overflow-hidden rounded-lg border border-red-900/20 bg-red-50/40 p-4 shadow-sm">
+            <span className="absolute inset-x-0 top-0 h-1 bg-red-900" />
             {selectedSupplierDetail ? (
               <>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-black text-stone-950">{selectedSupplierDetail.name}</h3>
-                    <p className="text-sm font-bold text-stone-500">
-                      {selectedSupplierDetail.contactName ?? 'Contacto pendiente'}
-                    </p>
-                    {selectedSupplierDetail.phone ? (
-                      <a
-                        href={`tel:${selectedSupplierDetail.phone}`}
-                        className="mt-2 inline-flex items-center gap-2 text-xs font-black text-sky-700"
-                      >
-                        <Phone size={14} />
-                        {selectedSupplierDetail.phone}
-                      </a>
-                    ) : null}
+                <div className="rounded-md border border-red-900/10 bg-white p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-wide text-red-900">
+                        Proveedor seleccionado
+                      </p>
+                      <h3 className="mt-1 text-xl font-black text-stone-950">{selectedSupplierDetail.name}</h3>
+                    </div>
+                    <span className="rounded-full bg-red-900 px-2 py-1 text-xs font-black text-white">
+                      Ficha activa
+                    </span>
                   </div>
-                  <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-black text-stone-700">
-                    {selectedSupplierOffers.length} insumos
-                  </span>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-md bg-stone-50 px-3 py-2">
+                      <p className="text-[11px] font-black uppercase tracking-wide text-stone-500">Contacto</p>
+                      <p className="mt-1 text-sm font-black text-stone-950">
+                        {selectedSupplierDetail.contactName ?? 'Pendiente'}
+                      </p>
+                    </div>
+                    <div className="rounded-md bg-stone-50 px-3 py-2">
+                      <p className="text-[11px] font-black uppercase tracking-wide text-stone-500">Telefono</p>
+                      {selectedSupplierDetail.phone ? (
+                        <a
+                          href={`tel:${selectedSupplierDetail.phone}`}
+                          className="mt-1 inline-flex items-center gap-2 text-sm font-black text-sky-700"
+                        >
+                          <Phone size={14} />
+                          {selectedSupplierDetail.phone}
+                        </a>
+                      ) : (
+                        <p className="mt-1 text-sm font-black text-stone-950">Pendiente</p>
+                      )}
+                    </div>
+                    <div className="rounded-md bg-stone-50 px-3 py-2">
+                      <p className="text-[11px] font-black uppercase tracking-wide text-stone-500">Insumos</p>
+                      <p className="mt-1 text-sm font-black text-stone-950">
+                        {selectedSupplierOffers.length} asociados
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-4 overflow-x-auto">
+                <div className="mt-4 rounded-md border border-stone-200 bg-white p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <h4 className="text-sm font-black text-stone-950">Insumos que ofrece</h4>
+                    <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-black text-stone-600">
+                      Lista de precios
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
                   <table className="w-full min-w-[520px] text-left text-sm">
                     <thead>
                       <tr className="border-b border-stone-200 text-xs font-black uppercase tracking-wide text-stone-500">
@@ -533,6 +581,7 @@ export function WarehousePurchasingPanel() {
                       )}
                     </tbody>
                   </table>
+                  </div>
                 </div>
 
                 <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3">

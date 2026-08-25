@@ -1,3 +1,4 @@
+
 # CartaMago Multi-Agent Operating Model
 
 ## Purpose

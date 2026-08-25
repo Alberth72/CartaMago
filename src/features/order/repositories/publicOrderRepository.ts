@@ -7,7 +7,12 @@ function makeId(prefix = 'ord') {
   return `${prefix}_${ts}_${rand}`
 }
 
-export async function saveOrder(input: SaveOrderInput): Promise<string | null> {
+export type SaveOrderResult = {
+  orderId: string
+  trackingToken: string
+}
+
+export async function saveOrder(input: SaveOrderInput): Promise<SaveOrderResult | null> {
   if (!isSupabaseConfigured()) {
     console.warn('Supabase not configured, order not saved')
     return null
@@ -15,7 +20,7 @@ export async function saveOrder(input: SaveOrderInput): Promise<string | null> {
 
   try {
     const supabase = getSupabaseClient()
-    const { data, error } = await supabase.functions.invoke<{ orderId: string }>('create-order', {
+    const { data, error } = await supabase.functions.invoke<{ orderId: string; trackingToken?: string }>('create-order', {
       body: input,
       headers: {
         'x-idempotency-key': makeId('idem'),
@@ -27,7 +32,12 @@ export async function saveOrder(input: SaveOrderInput): Promise<string | null> {
       return null
     }
 
-    return data?.orderId ?? null
+    if (!data?.orderId) return null
+
+    return {
+      orderId: data.orderId,
+      trackingToken: data.trackingToken ?? data.orderId,
+    }
   } catch (error) {
     console.error('create-order function failed:', error)
     return null

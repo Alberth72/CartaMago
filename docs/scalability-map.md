@@ -14,17 +14,19 @@ Customer scans -> reads fast -> orders by WhatsApp -> seller confirms
 
 ```text
 src/
-  app/              App shell and route selection
+  app/              App shell and route selection (AppRouter)
   components/       Reusable UI shared across features
   data/
     restaurantSeed.ts  Seed registry (multi-restaurant via registerSeed/getSeedById)
   features/
-    admin/          Owner editing experience
-      components/   Admin panels, forms, orders management
+    admin/          Owner + operations experience
+      components/   Admin panels: orders, menu, inventory, operations, purchasing, integrations
       hooks/        Admin state and workflow commands
-      repositories/ Supabase adapters for admin operations
+      repositories/ Supabase/mock adapters per domain
     menu/           Public QR menu experience
     order/          Cart-to-WhatsApp message composition
+    tracking/       Customer, kitchen, and room displays
+    integrations/   External channel contracts (didiFood)
   lib/              Small shared helpers
   services/
     menuRepository.ts   Public menu repository + seed fallback
@@ -32,6 +34,8 @@ src/
 ```
 
 This is the right shape for the current project because it separates product domains without adding framework complexity.
+
+The admin now spans four operational roles (`superadmin`, `warehouse_admin`, `branch_admin`, `cashier`) resolved through `adminScopeRepository`. Separate repositories keep Supabase and the mock provider out of JSX.
 
 ## Scaling Stages
 
@@ -50,7 +54,9 @@ Use these rules when adding code:
 - `src/app`: route shell, providers, app-level configuration.
 - `src/features/menu`: public customer menu browsing and menu-specific UI.
 - `src/features/order`: cart models, totals, WhatsApp message composition, future order capture.
-- `src/features/admin`: owner/admin workflows.
+- `src/features/tracking`: customer tracking, kitchen, and room displays.
+- `src/features/admin`: owner/admin workflows across orders, menu, inventory, operations, and purchasing.
+- `src/features/integrations`: external channel contracts (e.g. didiFood).
 - `src/services`: Supabase access, storage adapters, remote repositories.
 - `src/data`: fallback seeds and business-specific local data only.
 - `src/components`: reusable UI primitives that are not owned by one feature.
@@ -130,26 +136,31 @@ Must stay in source control:
 
 ## Next Refactor Decision
 
-The admin UI has been split into focused components:
+The admin UI has grown into several focused panels, each owned by a hook + repository:
 
 ```text
 features/admin/
   AdminApp.tsx
   types.ts
+  operationsTypes.ts
+  inventoryTypes.ts
+  warehousePurchasingTypes.ts
   components/
     AdminShell.tsx
-    AdminSetupNotice.tsx
-    LoginForm.tsx
-    RestaurantPanel.tsx
-    CategoryPanel.tsx
-    ProductGrid.tsx
-    ProductEditor.tsx
+    OrdersPanel.tsx / OrdersList.tsx / OrderDetailModal.tsx
+    RestaurantPanel.tsx / CategoryPanel.tsx / ProductGrid.tsx / ProductEditor.tsx
+    InventoryPanel.tsx
+    OperationsPanel.tsx
+    WarehousePurchasingPanel.tsx
+    IntegrationsPanel.tsx
   hooks/
-    useAdminAuth.ts
-    useAdminMenu.ts
+    useAdminAuth.ts / useAdminMenu.ts / useAdminOperations.ts
+    useAdminInventory.ts / useWarehousePurchasing.ts / useAdminIntegrations.ts
   repositories/
-    adminAuthRepository.ts
-    adminMenuRepository.ts
+    adminAuthRepository.ts / adminMenuRepository.ts / adminOrderRepository.ts
+    adminScopeRepository.ts / adminOperationsRepository.ts
+    adminInventoryRepository.ts / adminWarehousePurchasingRepository.ts
+    adminIntegrationRepository.ts / adminMockRepository.ts
 ```
 
-The next admin refactor should add tests around repository behavior once loading, saving, image upload, or auth rules become more complex.
+The next refactor should add tests around repository behavior (loading, saving, image upload, dispatch/purchase RPCs, and auth/scoping) once those rules become more complex, and secure tracking behind a `tracking_token` before public launch.

@@ -6,8 +6,9 @@ import { formatCurrency } from '../../lib/format'
 import { getSupabaseConfig } from '../../services/menuRepository'
 import { fulfillmentIcons, fulfillmentLabels } from '../admin/orderUi'
 import { paymentMethodLabels, paymentStatusLabels, type PaymentMethod, type PaymentStatus } from '../order/payment'
-import type { OrderWithItems } from '../order/types'
-import { fetchTrackableOrder, subscribeToTrackableOrderChanges } from './orderTrackingRepository'
+import type { OrderStatus, OrderWithItems } from '../order/types'
+import { fetchOrderTracking, fetchTrackableOrder, subscribeToTrackableOrderChanges } from './orderTrackingRepository'
+import type { CustomerTrackingView } from './trackingTypes'
 import {
   formatLiveTime,
   formatShortOrderId,
@@ -18,38 +19,112 @@ import {
   trackingSteps,
 } from './trackingUi'
 
+type TrackingDisplayOrder = {
+  id: string
+  status: OrderStatus
+  fulfillment_mode: string
+  payment_method: string | null
+  payment_status: string | null
+  total_cop: number
+  whatsapp_link: string
+  created_at: string
+  updated_at: string
+  customer_name: string | null
+  items: Array<{
+    id?: string
+    quantity: number
+    product_name: string
+    unit_price_cop: number | null
+    line_note: string
+  }>
+}
+
+function normalizeOrderForDisplay(order: OrderWithItems): TrackingDisplayOrder {
+  return {
+    id: order.id,
+    status: order.status,
+    fulfillment_mode: order.fulfillment_mode,
+    payment_method: order.payment_method ?? 'cash',
+    payment_status: order.payment_status ?? 'pending',
+    total_cop: order.total_cop,
+    whatsapp_link: order.whatsapp_link,
+    created_at: order.created_at,
+    updated_at: order.updated_at,
+    customer_name: order.customer_name ?? null,
+    items: order.items.map((item) => ({
+      id: item.id,
+      quantity: item.quantity,
+      product_name: item.product_name,
+      unit_price_cop: item.unit_price_cop,
+      line_note: item.line_note ?? '',
+    })),
+  }
+}
+
+function normalizeTrackingViewForDisplay(view: CustomerTrackingView): TrackingDisplayOrder {
+  return {
+    id: view.orderId,
+    status: view.status,
+    fulfillment_mode: view.fulfillmentMode,
+    payment_method: view.paymentMethod,
+    payment_status: 'pending',
+    total_cop: view.totalCop,
+    whatsapp_link: view.whatsappLink,
+    created_at: view.createdAt,
+    updated_at: view.updatedAt,
+    customer_name: null,
+    items: view.items.map((item, index) => ({
+      id: `tracking-item-${index}`,
+      quantity: item.quantity,
+      product_name: item.product_name,
+      unit_price_cop: item.unit_price_cop,
+      line_note: item.line_note ?? '',
+    })),
+  }
+}
+
 export function OrderTrackingPage() {
-  const { branchId: routeBranchId, orderId = '' } = useParams()
+  const { branchId: routeBranchId, orderId = '', trackingToken = '' } = useParams()
   const branchId = routeBranchId ?? getSupabaseConfig().branchId
-  const [order, setOrder] = useState<OrderWithItems | null>(null)
+  const [order, setOrder] = useState<TrackingDisplayOrder | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
 
   const loadOrder = useCallback(async () => {
-    if (!orderId) {
+    if (orderId) {
+      const nextOrder = await fetchTrackableOrder(branchId, orderId)
+      setOrder(nextOrder ? normalizeOrderForDisplay(nextOrder) : null)
+      setLastSyncedAt(new Date().toISOString())
       setLoading(false)
       return
     }
 
-    const nextOrder = await fetchTrackableOrder(branchId, orderId)
-    setOrder(nextOrder)
-    setLastSyncedAt(new Date().toISOString())
+    if (trackingToken) {
+      const nextOrder = await fetchOrderTracking(trackingToken)
+      setOrder(nextOrder ? normalizeTrackingViewForDisplay(nextOrder) : null)
+      setLastSyncedAt(new Date().toISOString())
+      setLoading(false)
+      return
+    }
+
     setLoading(false)
-  }, [orderId, branchId])
+  }, [orderId, trackingToken, branchId])
 
   useEffect(() => {
     void loadOrder()
   }, [loadOrder])
 
   useEffect(() => {
+    if (!orderId && !trackingToken) return
+
     const intervalId = window.setInterval(() => void loadOrder(), 10000)
-    const unsubscribe = subscribeToTrackableOrderChanges(branchId, () => void loadOrder())
+    const unsubscribe = orderId ? subscribeToTrackableOrderChanges(branchId, () => void loadOrder()) : null
 
     return () => {
       window.clearInterval(intervalId)
       unsubscribe?.()
     }
-  }, [loadOrder, branchId])
+  }, [loadOrder, branchId, orderId, trackingToken])
 
   if (loading) {
     return (

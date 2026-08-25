@@ -14,15 +14,24 @@ Asadero de pollos
 - React
 - TypeScript
 - Tailwind CSS
+- react-router (client routing)
 - Supabase Auth, Database, and Storage
 - WhatsApp `wa.me` order handoff
 - Netlify static hosting
+- Oxlint (lint) · Vitest (unit) · Playwright (e2e)
 
 ## Documentation
 
 - [Framework map](./docs/framework-map.md)
 - [Architecture](./docs/architecture.md)
 - [Scalability map](./docs/scalability-map.md)
+- [Roadmap](./docs/roadmap.md)
+- [Progress dashboard](./docs/progress-dashboard.md)
+- [Multi-branch transition (40+ sedes)](./docs/multi-branch-transition.md)
+- [Environment runbook](./docs/environment-runbook.md)
+- [Live order tracking plan](./docs/live-order-tracking-plan.md)
+- [Order fulfillment flows](./docs/order-fulfillment-flows.md)
+- [App structure multi-brand](./docs/app-structure-multibrand.md)
 - [Admin menu guide](./docs/admin-menu-guide.md)
 - [WhatsApp launch checklist](./docs/whatsapp-launch-checklist.md)
 - [Public MVP preview](./docs/public-mvp-preview.md)
@@ -36,7 +45,6 @@ Asadero de pollos
 - [Agent operating model](./docs/agent-operating-model.md)
 - [Work cycles](./docs/work-cycles.md)
 - [Quality gates](./docs/quality-gates.md)
-- [Environment runbook](./docs/environment-runbook.md)
 - [Admin orders operations](./docs/admin-orders-operations.md)
 - [E2E testing plan](./docs/e2e-testing-plan.md)
 - [Load testing with k6](./docs/load-testing-k6.md)
@@ -51,9 +59,13 @@ Use Windows PowerShell from `D:\Github\CartaMago`:
 
 ```powershell
 npm.cmd install
-npm.cmd run dev
+npm.cmd run dev          # Supabase cloud (usa .env.local)
+npm.cmd run dev:mock     # sin DB, datos en memoria
+npm.cmd run local:setup  # Docker + Supabase local con datos de prueba + 4 usuarios por rol
+npm.cmd run dev:localdb  # contra Supabase local (usa .env.localdb.local)
 npm.cmd run lint
 npm.cmd run build
+npm.cmd run test:unit
 npm.cmd run test:e2e
 npm.cmd run test:e2e:admin
 ```
@@ -64,11 +76,13 @@ npm.cmd run test:e2e:admin
 src/
   app/              App shell and route selection
   components/       Shared UI
-  data/             Local fallback seed
+  data/             Local fallback seed (restaurantSeed.ts)
   features/
-    admin/          Owner admin UI, hooks, and Supabase repositories
+    admin/          Owner + operations admin (orders, menu, inventory, ops, reports)
     menu/           Public QR menu
     order/          WhatsApp order message composition
+    tracking/       Customer, kitchen, and room displays
+    integrations/   External channel contracts (didiFood)
   lib/              Shared helpers
   services/         Shared Supabase config and public menu repository
 supabase/
@@ -97,7 +111,7 @@ Production restaurant and menu data is managed from:
 The fallback seed lives in:
 
 ```text
-src/data/brasasSazonMenu.ts
+src/data/restaurantSeed.ts
 ```
 
 Current Brasas & Sazon fallback number:
@@ -121,7 +135,9 @@ VITE_BRANCH_ID=brasas-sazon
 VITE_MENU_STORAGE_BUCKET=menu-assets
 ```
 
-If these variables are missing, the public menu still works with `src/data/brasasSazonMenu.ts`. The `/admin` route requires Supabase.
+If these variables are missing, the public menu still works with `src/data/restaurantSeed.ts`. The `/admin` route requires Supabase.
+
+For the local Docker environment (Supabase local con datos de prueba), run `npm.cmd run local:setup` once; it writes `.env.localdb.local`, which `npm.cmd run dev:localdb` uses and which overrides `.env.local` (no production writes).
 
 ## Netlify
 

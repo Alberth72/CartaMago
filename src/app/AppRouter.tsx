@@ -50,7 +50,23 @@ export function AppRouter() {
         }
       />
       <Route
+        path="/tracking/t/:trackingToken"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <OrderTrackingPage />
+          </Suspense>
+        }
+      />
+      <Route
         path="/s/:branchId/tracking/:orderId"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <OrderTrackingPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/s/:branchId/tracking/t/:trackingToken"
         element={
           <Suspense fallback={<AdminFallback />}>
             <OrderTrackingPage />

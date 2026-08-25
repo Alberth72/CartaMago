@@ -76,6 +76,7 @@ type OrderPanelProps = {
   hasUnknownPrices: boolean
   itemCount: number
   whatsappUrl: string
+  trackingUrl?: string | null
   orderPanelRef: RefObject<HTMLElement | null>
   onUpdateDetails: (partial: Partial<CustomerDetails>) => void
   onAddItem: (itemId: string) => void
@@ -93,6 +94,7 @@ export function OrderPanel({
   hasUnknownPrices,
   itemCount,
   whatsappUrl,
+  trackingUrl,
   orderPanelRef,
   onUpdateDetails,
   onAddItem,
@@ -345,6 +347,14 @@ export function OrderPanel({
             {submitLabel}
           </button>
         )}
+{trackingUrl ? (
+          <p className="mt-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-bold leading-5 text-sky-900">
+            <a href={trackingUrl} target="_blank" rel="noreferrer" data-testid="tracking-link" className="underline">
+              Sigue tu pedido en esta pagina
+            </a>{' '}
+            (se actualiza al cambiar el estado).
+          </p>
+        ) : null}
       </div>
     </aside>
   )

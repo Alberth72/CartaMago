@@ -25,6 +25,8 @@ That means the stack optimizes for speed, mobile readability, low cost, and easy
 | WhatsApp `wa.me` | Ordering handoff | Sends a structured order to the restaurant without building order infrastructure |
 | Netlify | Static hosting | Publishes the QR menu quickly with a public URL |
 | Oxlint | Code linting | Catches common code issues quickly |
+| react-router | Client routing | Scopes public menu, admin, and tracking/kitchen/room displays by branch |
+| react-helmet-async | Per-page titles | Keeps each screen's `<title>` correct for kitchen/salon/tracking/admin |
 
 ## Vite
 
@@ -156,11 +158,12 @@ Supabase provides the editable data layer for the MVP.
 
 In CartaMago, Supabase influences:
 
-- Public menu reads from `restaurants`, `categories`, `products`, and `menu_photos`.
+- Public menu reads from `branches`, `categories`, `products`, `menu_photos`, and `branch_products`.
 - Public menu falls back to `src/data/restaurantSeed.ts` if Supabase is unavailable.
 - `/admin` login uses Supabase Auth.
 - Product image upload uses Supabase Storage bucket `menu-assets`.
-- Admin operations are isolated in feature repositories and hooks.
+- Operations, inventory, and purchasing use Supabase RPCs (dispatch, merma, sales, purchase orders).
+- Admin operations are isolated in feature repositories and hooks, with a mock provider for local/e2e.
 
 Important files:
 

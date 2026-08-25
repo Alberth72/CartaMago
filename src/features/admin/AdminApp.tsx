@@ -1,69 +1,39 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Boxes, LogOut, Package, PlugZap, ReceiptText, Truck, Warehouse, type LucideIcon } from 'lucide-react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { BarChart3, Boxes, LogOut, Package, PlugZap, ReceiptText, Truck, Warehouse, type LucideIcon } from 'lucide-react'
 import { isSupabaseConfigured } from '../../services/menuRepository'
+import { isE2EAdminMockEnabled } from '../../lib/runtimeFlags'
 import { AdminSetupNotice } from './components/AdminSetupNotice'
 import { AdminShell } from './components/AdminShell'
-import { CategoryPanel } from './components/CategoryPanel'
 import { ConfirmDialog } from './components/ConfirmDialog'
-import { IntegrationsPanel } from './components/IntegrationsPanel'
-import { InventoryPanel } from './components/InventoryPanel'
 import { LoginForm } from './components/LoginForm'
-import { OperationsPanel } from './components/OperationsPanel'
-import { OrdersPanel } from './components/OrdersPanel'
-import { ProductEditor } from './components/ProductEditor'
-import { ProductGrid } from './components/ProductGrid'
-import { RestaurantPanel } from './components/RestaurantPanel'
-import { WarehousePurchasingPanel } from './components/WarehousePurchasingPanel'
 import { useAdminAuth } from './hooks/useAdminAuth'
 import { useAdminMenu } from './hooks/useAdminMenu'
 import { fetchAdminScopeSummary } from './repositories/adminScopeRepository'
+import { getAdminTabs, type AdminTabId } from './roleAccess'
 import type { OperationsRole } from './operationsTypes'
 
-type AdminTab = 'orders' | 'menu' | 'operations' | 'inventory' | 'integrations'
+// Paneles pesados: se cargan bajo demanda por rol (code-split del admin).
+const CategoryPanel = lazy(() => import('./components/CategoryPanel').then((module) => ({ default: module.CategoryPanel })))
+const IntegrationsPanel = lazy(() => import('./components/IntegrationsPanel').then((module) => ({ default: module.IntegrationsPanel })))
+const InventoryPanel = lazy(() => import('./components/InventoryPanel').then((module) => ({ default: module.InventoryPanel })))
+const OperationsPanel = lazy(() => import('./components/OperationsPanel').then((module) => ({ default: module.OperationsPanel })))
+const OrdersPanel = lazy(() => import('./components/OrdersPanel').then((module) => ({ default: module.OrdersPanel })))
+const ProductEditor = lazy(() => import('./components/ProductEditor').then((module) => ({ default: module.ProductEditor })))
+const ProductGrid = lazy(() => import('./components/ProductGrid').then((module) => ({ default: module.ProductGrid })))
+const ReportsPanel = lazy(() => import('./components/ReportsPanel').then((module) => ({ default: module.ReportsPanel })))
+const RestaurantPanel = lazy(() => import('./components/RestaurantPanel').then((module) => ({ default: module.RestaurantPanel })))
+const WarehousePurchasingPanel = lazy(() =>
+  import('./components/WarehousePurchasingPanel').then((module) => ({ default: module.WarehousePurchasingPanel })),
+)
 
-const adminTabs: Array<{
-  id: AdminTab
-  label: string
-  description: string
-  badge: string
-  icon: LucideIcon
-}> = [
-  {
-    id: 'orders',
-    label: 'Pedidos',
-    description: 'Bandeja, pagos y estados',
-    badge: 'Operativo',
-    icon: ReceiptText,
-  },
-  {
-    id: 'menu',
-    label: 'Menu',
-    description: 'Productos, categorias y precios',
-    badge: 'Carta',
-    icon: Boxes,
-  },
-  {
-    id: 'inventory',
-    label: 'Inventario',
-    description: 'Stock, insumos y mermas',
-    badge: 'Merma',
-    icon: Package,
-  },
-  {
-    id: 'operations',
-    label: 'Operacion',
-    description: 'Bodega, sedes y despachos',
-    badge: 'Bodega',
-    icon: Warehouse,
-  },
-  {
-    id: 'integrations',
-    label: 'Integraciones',
-    description: 'DiDiFood, pagos y canales',
-    badge: 'Setup',
-    icon: PlugZap,
-  },
-]
+const tabIcons: Record<AdminTabId, LucideIcon> = {
+  orders: ReceiptText,
+  menu: Boxes,
+  inventory: Package,
+  operations: Warehouse,
+  integrations: PlugZap,
+  reports: BarChart3,
+}
 
 const roleLabels: Record<OperationsRole, string> = {
   superadmin: 'Superadmin',
@@ -92,8 +62,16 @@ const scopeCardStyles: Record<ScopeCardTone, { box: string; label: string; value
   },
 }
 
+function PanelFallback() {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-lg shadow-amber-900/10">
+      <p className="text-sm font-black text-stone-500">Cargando panel...</p>
+    </div>
+  )
+}
+
 export function AdminApp() {
-  const [activeTab, setActiveTab] = useState<AdminTab>('orders')
+  const [activeTab, setActiveTab] = useState<AdminTabId>('orders')
   const [adminSummary, setAdminSummary] = useState<{
     role: OperationsRole
     email: string
@@ -110,24 +88,16 @@ export function AdminApp() {
     setStatus: menu.setStatus,
   })
   const isWarehouseAdmin = adminSummary?.role === 'warehouse_admin'
+  // En produccion/localdb, superadmin es SOLO REPORTES. El mock (dev:mock/e2e)
+  // conserva el CRUD para poder probar el resto de los paneles con la e2e.
+  const isReportOnly = adminSummary?.role === 'superadmin' && !isE2EAdminMockEnabled()
   const visibleTabs = useMemo(
     () =>
-      isWarehouseAdmin
-        ? adminTabs
-            .filter((tab) => tab.id !== 'menu' && tab.id !== 'inventory' && tab.id !== 'integrations')
-            .map((tab) =>
-              tab.id === 'orders'
-                ? {
-                    ...tab,
-                    label: 'Compras',
-                    description: 'Proveedores y ordenes',
-                    badge: 'Proveedor',
-                    icon: Truck,
-                  }
-                : tab,
-            )
-        : adminTabs,
-    [isWarehouseAdmin],
+      getAdminTabs(adminSummary?.role ?? 'cashier', isReportOnly).map((tab) => ({
+        ...tab,
+        icon: tab.id === 'orders' && isWarehouseAdmin ? Truck : tabIcons[tab.id],
+      })),
+    [adminSummary?.role, isReportOnly, isWarehouseAdmin],
   )
   const activeTabMeta = visibleTabs.find((tab) => tab.id === activeTab)
   const scopeCards = useMemo(() => {
@@ -135,6 +105,21 @@ export function AdminApp() {
       return [
         { label: 'Perfil operativo', value: 'Validando permisos', tone: 'stone' as const },
         { label: 'Alcance', value: 'Cargando acceso', tone: 'sky' as const },
+      ]
+    }
+
+    if (adminSummary.role === 'superadmin') {
+      return [
+        {
+          label: 'Acceso',
+          value: isE2EAdminMockEnabled() ? 'Panel completo (mock/test)' : 'Reportes consolidados',
+          tone: 'sky' as const,
+        },
+        {
+          label: 'Permisos',
+          value: isE2EAdminMockEnabled() ? 'CRUD completo' : 'Solo lectura / informes',
+          tone: 'stone' as const,
+        },
       ]
     }
 
@@ -290,7 +275,7 @@ export function AdminApp() {
 
         <nav
           className={`mb-4 grid gap-2 rounded-xl border border-amber-200 bg-white/80 p-2 shadow-lg shadow-amber-900/10 sm:grid-cols-2 ${
-            isWarehouseAdmin ? 'lg:grid-cols-2' : 'lg:grid-cols-5'
+            isReportOnly ? 'lg:grid-cols-1' : isWarehouseAdmin ? 'lg:grid-cols-2' : 'lg:grid-cols-5'
           }`}
         >
           {visibleTabs.map((tab) => {
@@ -329,62 +314,66 @@ export function AdminApp() {
           })}
         </nav>
 
-        {activeTab === 'orders' ? (
-          isWarehouseAdmin ? <WarehousePurchasingPanel /> : <OrdersPanel />
-        ) : activeTab === 'operations' ? (
-          <OperationsPanel />
-        ) : activeTab === 'inventory' ? (
-          <InventoryPanel />
-        ) : activeTab === 'integrations' ? (
-          <IntegrationsPanel />
-        ) : (
-          <div className="grid gap-5">
-            <RestaurantPanel
-              branchId={menu.branchId}
-              form={menu.restaurantForm}
-              isSaving={menu.isSaving}
-              onChange={menu.updateRestaurantForm}
-              onLogout={auth.logout}
-              onSubmit={menu.saveRestaurant}
-            />
-
-            <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
-              <CategoryPanel
-                categories={menu.categories}
-                selectedCategoryId={menu.productForm.categoryId}
-                categoryName={menu.categoryName}
-                categoryDescription={menu.categoryDescription}
-                onNameChange={menu.setCategoryName}
-                onDescriptionChange={menu.setCategoryDescription}
-                onSelectCategory={(categoryId) => menu.updateProductForm({ categoryId })}
-                onSubmit={menu.createCategory}
+        <Suspense fallback={<PanelFallback />}>
+          {activeTab === 'orders' ? (
+            isWarehouseAdmin ? <WarehousePurchasingPanel /> : <OrdersPanel />
+          ) : activeTab === 'reports' ? (
+            <ReportsPanel />
+          ) : activeTab === 'operations' ? (
+            <OperationsPanel />
+          ) : activeTab === 'inventory' ? (
+            <InventoryPanel />
+          ) : activeTab === 'integrations' ? (
+            <IntegrationsPanel />
+          ) : (
+            <div className="grid gap-5">
+              <RestaurantPanel
+                branchId={menu.branchId}
+                form={menu.restaurantForm}
+                isSaving={menu.isSaving}
+                onChange={menu.updateRestaurantForm}
+                onLogout={auth.logout}
+                onSubmit={menu.saveRestaurant}
               />
 
-              <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
-                <ProductGrid
-                  products={menu.selectedCategoryProducts}
-                  selectedCategoryName={menu.selectedCategory?.name ?? 'Sin categoria'}
-                  getProductImage={menu.getProductAdminImage}
-                  getProductImageLabel={menu.getProductImageLabel}
-                  onEditProduct={menu.editProduct}
-                  onDeleteProduct={menu.requestDeleteProduct}
-                  onNewProduct={menu.newProduct}
+              <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
+                <CategoryPanel
+                  categories={menu.categories}
+                  selectedCategoryId={menu.productForm.categoryId}
+                  categoryName={menu.categoryName}
+                  categoryDescription={menu.categoryDescription}
+                  onNameChange={menu.setCategoryName}
+                  onDescriptionChange={menu.setCategoryDescription}
+                  onSelectCategory={(categoryId) => menu.updateProductForm({ categoryId })}
+                  onSubmit={menu.createCategory}
                 />
 
-                <ProductEditor
-                  categories={menu.categories}
-                  form={menu.productForm}
-                  isSaving={menu.isSaving}
-                  selectedCategory={menu.selectedCategory}
-                  status={menu.status}
-                  onChange={menu.updateProductForm}
-                  onSubmit={menu.saveProduct}
-                  onUploadImage={(file) => void menu.uploadImage(file)}
-                />
+                <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
+                  <ProductGrid
+                    products={menu.selectedCategoryProducts}
+                    selectedCategoryName={menu.selectedCategory?.name ?? 'Sin categoria'}
+                    getProductImage={menu.getProductAdminImage}
+                    getProductImageLabel={menu.getProductImageLabel}
+                    onEditProduct={menu.editProduct}
+                    onDeleteProduct={menu.requestDeleteProduct}
+                    onNewProduct={menu.newProduct}
+                  />
+
+                  <ProductEditor
+                    categories={menu.categories}
+                    form={menu.productForm}
+                    isSaving={menu.isSaving}
+                    selectedCategory={menu.selectedCategory}
+                    status={menu.status}
+                    onChange={menu.updateProductForm}
+                    onSubmit={menu.saveProduct}
+                    onUploadImage={(file) => void menu.uploadImage(file)}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </Suspense>
         {menu.confirm ? (
           <ConfirmDialog
             message={

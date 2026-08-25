@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 const STORAGE_KEY_PREFIX = 'cartamago'
 
@@ -13,6 +13,7 @@ function readStorageValue<T>(storageKey: string, initialValue: T) {
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   const storageKey = `${STORAGE_KEY_PREFIX}:${key}`
+  const initialValueRef = useRef(initialValue)
   const [storedValue, setStoredValue] = useState<T>(() => readStorageValue(storageKey, initialValue))
   const setValue = useCallback(
     (value: T | ((prev: T) => T)) => {
@@ -46,8 +47,12 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   }, [storageKey])
 
   useEffect(() => {
-    setStoredValue(readStorageValue(storageKey, initialValue))
-  }, [initialValue, storageKey])
+    initialValueRef.current = initialValue
+  }, [initialValue])
+
+  useEffect(() => {
+    setStoredValue(readStorageValue(storageKey, initialValueRef.current))
+  }, [storageKey])
 
   return [storedValue, setValue] as const
 }

@@ -2,7 +2,8 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { isE2EAdminMockEnabled } from '../../lib/runtimeFlags'
 import { getSupabaseClient, isSupabaseConfigured } from '../../services/menuRepository'
 import { fetchMockOrders } from '../admin/repositories/adminMockRepository'
-import type { OrderItemRow, OrderRow, OrderWithItems } from '../order/types'
+import type { OrderItemRow, OrderRow, OrderWithItems, OrderStatus } from '../order/types'
+import type { CustomerTrackingView } from './trackingTypes'
 
 export async function fetchTrackableOrders(branchId: string): Promise<OrderWithItems[]> {
   if (isE2EAdminMockEnabled()) {
@@ -131,4 +132,67 @@ async function hydrateOrders(orders: OrderRow[]): Promise<OrderWithItems[]> {
     ...order,
     items: itemsByOrderId.get(order.id) ?? [],
   }))
+}
+
+function toCustomerTrackingView(order: OrderWithItems): CustomerTrackingView {
+  return {
+    orderId: order.id,
+    status: order.status,
+    fulfillmentMode: order.fulfillment_mode,
+    paymentMethod: order.payment_method ?? 'cash',
+    totalCop: order.total_cop,
+    whatsappLink: order.whatsapp_link,
+    createdAt: order.created_at,
+    updatedAt: order.updated_at,
+    items: order.items.map((item) => ({
+      product_name: item.product_name,
+      quantity: item.quantity,
+      unit_price_cop: item.unit_price_cop,
+      line_note: item.line_note,
+    })),
+  }
+}
+
+/**
+ * Rastreo publico del cliente SOLO por `tracking_token` (no adivinable).
+ * Devuelve unicamente campos seguros via la RPC `get_order_tracking`
+ * (security definer). Nunca expone telefono, direccion, notas ni payloads.
+ */
+export async function fetchOrderTracking(trackingToken: string): Promise<CustomerTrackingView | null> {
+  if (!trackingToken) return null
+
+  if (isE2EAdminMockEnabled()) {
+    const orders = await fetchMockOrders()
+    const order = orders.find((entry) => entry.tracking_token === trackingToken)
+    return order ? toCustomerTrackingView(order) : null
+  }
+
+  if (!isSupabaseConfigured()) return null
+
+  try {
+    const { data, error } = await getSupabaseClient().rpc('get_order_tracking', { p_token: trackingToken })
+    if (error) throw error
+
+    const first = Array.isArray(data) ? data[0] : data
+    const value =
+      (first as { get_order_tracking?: unknown } | null | undefined)?.get_order_tracking ?? first
+    const row = (value ?? {}) as { error?: string } & Partial<CustomerTrackingView>
+
+    if (row.error === 'not_found' || !row.orderId) return null
+
+    return {
+      orderId: String(row.orderId),
+      status: row.status as OrderStatus,
+      fulfillmentMode: String(row.fulfillmentMode ?? ''),
+      paymentMethod: String(row.paymentMethod ?? 'cash'),
+      totalCop: Number(row.totalCop ?? 0),
+      whatsappLink: String(row.whatsappLink ?? ''),
+      createdAt: String(row.createdAt ?? new Date().toISOString()),
+      updatedAt: String(row.updatedAt ?? new Date().toISOString()),
+      items: Array.isArray(row.items) ? row.items : [],
+    }
+  } catch (error) {
+    console.error('Failed to fetch order tracking:', error)
+    return null
+  }
 }

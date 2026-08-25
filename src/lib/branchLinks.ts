@@ -9,8 +9,8 @@ export type BranchLinkSet = {
   liveRoomUrl: string
   adminPath: string
   adminUrl: string
-  trackingPath: (orderId: string) => string
-  trackingUrl: (orderId: string) => string
+  trackingPath: (trackingToken: string) => string
+  trackingUrl: (trackingToken: string) => string
 }
 
 function trimTrailingSlash(value: string) {
@@ -39,7 +39,7 @@ export function makeBranchLinks(branchId: string, origin = globalThis.location?.
     liveRoomUrl: makeUrl(origin, liveRoomPath),
     adminPath,
     adminUrl: makeUrl(origin, adminPath),
-    trackingPath: (orderId: string) => `/s/${encodedBranchId}/tracking/${encodeURIComponent(orderId)}`,
-    trackingUrl: (orderId: string) => makeUrl(origin, `/s/${encodedBranchId}/tracking/${encodeURIComponent(orderId)}`),
+    trackingPath: (trackingToken: string) => `/s/${encodedBranchId}/tracking/t/${encodeURIComponent(trackingToken)}`,
+    trackingUrl: (trackingToken: string) => makeUrl(origin, `/s/${encodedBranchId}/tracking/t/${encodeURIComponent(trackingToken)}`),
   }
 }

@@ -3,6 +3,7 @@ import { defaultSeed } from '../../../data/restaurantSeed'
 import { slugify } from '../../../services/menuRepository'
 import type { OrderStatus, OrderWithItems } from '../../order/types'
 import type { InventoryData, MermaReason } from '../inventoryTypes'
+import type { BrandReports } from '../reportsTypes'
 import type { AdminMenuData, AdminRestaurantForm } from '../types'
 
 const adminEmail = 'owner@cartamago.test'
@@ -366,6 +367,7 @@ export async function uploadMockAdminProductImage(_file: File, productName: stri
 export async function fetchMockOrders() {
   return orders.map((order) => ({
     ...order,
+    tracking_token: order.tracking_token ?? `tk_${order.id}`,
     items: order.items.map((item) => ({ ...item })),
   }))
 }
@@ -439,4 +441,26 @@ export async function registerMockMerma(itemId: string, quantity: number, reason
     },
     ...inventoryData.movements,
   ]
+}
+
+// --- Reports mock (resumen consolidado de marca para superadmin) ---
+
+export async function fetchMockBrandReports(): Promise<BrandReports> {
+  return {
+    branchCount: 2,
+    totalOrders: 8,
+    totalDeliveredCop: 182000,
+    ordersByStatus: [
+      { status: 'pending', count: 1 },
+      { status: 'confirmed', count: 2 },
+      { status: 'preparing', count: 2 },
+      { status: 'ready', count: 1 },
+      { status: 'delivered', count: 3 },
+      { status: 'cancelled', count: 1 },
+    ],
+    criticalStockCount: 3,
+    purchasesTotal: 1250000,
+    dispatchesOpen: 2,
+    generatedAt: new Date().toISOString(),
+  }
 }

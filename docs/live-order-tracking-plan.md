@@ -10,7 +10,8 @@ CartaMago debe mostrar el avance del pedido fuera del panel admin:
 
 ## Rutas
 
-- `/tracking/:orderId`: vista de rastreo para un pedido.
+- `/tracking/:orderId`: vista demo/legacy por ID interno (solo mock).
+- `/tracking/t/:trackingToken`: vista publica segura por token no adivinable (produccion).
 - `/kitchen`: pantalla operativa para cocina.
 - `/salon`: pantalla publica para clientes presentes en el local.
 

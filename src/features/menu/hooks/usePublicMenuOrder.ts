@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { MenuItem, RestaurantProfile } from '../../../data/restaurantSeed'
 import { makeBranchLinks } from '../../../lib/branchLinks'
 import { useLocalStorage } from '../../../lib/useLocalStorage'
@@ -41,6 +41,7 @@ export function usePublicMenuOrder({
   const [storedItemNotes, setItemNotes] = useLocalStorage<unknown>(`${storagePrefix}:item-notes`, {})
   const [storedDetails, setDetails] = useLocalStorage<unknown>(`${storagePrefix}:order-details`, defaultCustomerDetails)
   const orderPanelRef = useRef<HTMLElement | null>(null)
+  const [lastTrackingToken, setLastTrackingToken] = useState<string | null>(null)
   const orderStartedAtRef = useRef(Date.now())
   const cart = normalizeCart(storedCart)
   const itemNotes = normalizeCartNotes(storedItemNotes)
@@ -63,6 +64,7 @@ export function usePublicMenuOrder({
   const itemCount = cartLines.reduce((sum, line) => sum + line.quantity, 0)
   const branchLinks = useMemo(() => makeBranchLinks(branchId), [branchId])
   const whatsappUrl = buildWhatsAppUrl(restaurant, cartLines, details)
+const trackingUrl = lastTrackingToken ? branchLinks.trackingUrl(lastTrackingToken) : null
 
   const handleWhatsAppClick = useCallback(() => {
     const message = buildWhatsAppUrl(restaurant, cartLines, details)
@@ -107,6 +109,10 @@ export function usePublicMenuOrder({
         unitPriceCop: line.item.price,
         lineNote: line.note,
       })),
+    }).then((result) => {
+      if (result?.trackingToken) {
+        setLastTrackingToken(result.trackingToken)
+      }
     })
   }, [restaurant, branchId, branchLinks.menuUrl, cartLines, details, itemCount, total])
 
@@ -185,6 +191,7 @@ export function usePublicMenuOrder({
     hasUnknownPrices,
     itemCount,
     whatsappUrl,
+    trackingUrl,
     orderPanelRef,
     addItem,
     removeItem,

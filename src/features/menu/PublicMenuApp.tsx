@@ -116,6 +116,7 @@ export function PublicMenuApp() {
           hasUnknownPrices={order.hasUnknownPrices}
           itemCount={order.itemCount}
           whatsappUrl={order.whatsappUrl}
+          trackingUrl={order.trackingUrl}
           orderPanelRef={order.orderPanelRef}
           onUpdateDetails={order.updateDetails}
           onAddItem={order.addItem}

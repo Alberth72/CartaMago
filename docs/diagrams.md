@@ -295,3 +295,127 @@ flowchart TD
   sends --> owner
   owner --> value
 ```
+
+## App Routing
+
+```mermaid
+flowchart LR
+  root["/ (public menu)"]
+  scoped["/s/:branchId"]
+  admin["/admin"]
+  track["/tracking/:orderId"]
+  kitchen["/kitchen"]
+  salon["/salon"]
+  app["AppRouter"]
+  publicMenu["PublicMenuApp"]
+  adminApp["AdminApp"]
+  tracking["OrderTrackingPage"]
+  kitchenPage["KitchenDisplayPage"]
+  salonPage["LiveRoomDisplayPage"]
+
+  app --> root
+  app --> scoped
+  app --> admin
+  app --> track
+  app --> kitchen
+  app --> salon
+  root --> publicMenu
+  scoped --> publicMenu
+  admin --> adminApp
+  track --> tracking
+  kitchen --> kitchenPage
+  salon --> salonPage
+```
+
+## Operational Distribution Cycle (Warehouse -> Branch)
+
+```mermaid
+flowchart LR
+  brand["brand"]
+  warehouse["warehouse (stock central)"]
+  branch["branch (stock de sede)"]
+  supplier["proveedor"]
+  so["Solicitud de despacho"]
+  dispatch["Despacho"]
+  receive["Recepcion en sede"]
+  sale["Venta (formula)"]
+  merma["Merma"]
+
+  brand --> warehouse
+  warehouse --> branch
+  supplier --> warehouse
+  branch --> so
+  so --> dispatch
+  dispatch --> receive
+  receive --> branch
+  branch --> sale
+  branch --> merma
+```
+
+## Warehouse Purchasing
+
+```mermaid
+flowchart LR
+  supl["Registrar proveedor"]
+  item["Crear insumo maestro"]
+  offer["Ofrecer insumo (costo / lead time)"]
+  po["Orden de compra"]
+  receivePo["Recibir a stock central"]
+
+  supl --> offer
+  item --> offer
+  offer --> po
+  po --> receivePo
+```
+
+## Live Tracking Views
+
+```mermaid
+flowchart LR
+  order["Pedido"]
+  ordersT["orders + order_items"]
+  realtime["Supabase Realtime / polling"]
+  customer["/tracking/:orderId Cliente"]
+  kitchen["/kitchen Cocina"]
+  salon["/salon Sala"]
+
+  order --> ordersT
+  ordersT --> realtime
+  realtime --> customer
+  realtime --> kitchen
+  realtime --> salon
+```
+
+## Admin Architecture (Role-Scoped)
+
+```mermaid
+flowchart TD
+  owner["Usuario autenticado"]
+  role["Rol: superadmin / warehouse_admin / branch_admin / cashier"]
+  tabs["Tabs: Reportes · Pedidos · Menu · Inventario · Operacion · Integraciones"]
+  orders["OrdersPanel / WarehousePurchasingPanel"]
+  menu["RestaurantPanel · CategoryPanel · ProductGrid · ProductEditor"]
+  inventory["InventoryPanel"]
+  operations["OperationsPanel"]
+  integrations["IntegrationsPanel"]
+  scope["adminScopeRepository"]
+  repos["repositories/*"]
+  supabase["Supabase DB / Auth / Storage"]
+  tracking["Kitchen / Salon / Tracking"]
+
+  owner --> role
+  role --> scope
+  role --> tabs
+  tabs --> orders
+  tabs --> menu
+  tabs --> inventory
+  tabs --> operations
+  tabs --> integrations
+  orders --> repos
+  menu --> repos
+  inventory --> repos
+  operations --> repos
+  integrations --> repos
+  repos --> supabase
+  orders --> tracking
+```

@@ -3,7 +3,7 @@
 
 insert into public.orders (
   id,
-  restaurant_id,
+  branch_id,
   status,
   order_channel,
   delivery_provider,

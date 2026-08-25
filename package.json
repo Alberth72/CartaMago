@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "vite",
     "dev:mock": "vite --mode mock",
-    "dev:localdb": "vite --mode localdb",
+    "dev:localdb": "node scripts/check-localdb-env.mjs && vite --mode localdb",
     "build": "tsc -b && vite build",
-    "build:localdb": "tsc -b && vite build --mode localdb",
+    "build:localdb": "node scripts/check-localdb-env.mjs && tsc -b && vite build --mode localdb",
     "lint": "oxlint",
     "preview": "vite preview",
     "preview:local": "vite preview --host 127.0.0.1 --port 4175",
@@ -16,9 +16,15 @@
     "test:e2e:admin": "playwright test --config playwright.admin.config.ts",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test": "vitest run",
     "test:stress": "node scripts/run-k6.mjs",
     "test:stress:cloud": "node scripts/run-k6.mjs cloud",
-    "supabase:create-admin": "node scripts/create-supabase-admin.mjs"
+    "supabase:create-admin": "node scripts/create-supabase-admin.mjs",
+    "local:setup": "node scripts/setup-local.mjs",
+    "local:reset": "node scripts/setup-local.mjs --skip-start",
+    "local:down": "npx.cmd supabase stop"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
@@ -39,6 +45,7 @@
     "oxlint": "^1.71.0",
     "qrcode": "^1.5.4",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^3.2.4"
   }
 }

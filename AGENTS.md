@@ -90,19 +90,23 @@ Create or edit multiple related files in one tool call when there's no dependenc
 
 ## Current MVP State
 
+Core validated flow:
+
 ```text
 QR -> Public web menu -> Cart -> WhatsApp order -> Restaurant confirms
 ```
 
-Validated:
+Validated in production:
 
 - Netlify production URL is active.
 - QR opens the public menu.
 - WhatsApp order handoff works.
-- Supabase project is linked.
+- Supabase project is linked; `create-order` redeployed.
 - Public menu reads Supabase data with local seed fallback.
 - `/admin` login works.
 - Admin can edit menu data and upload images to `menu-assets`.
+- Order is persisted and appears in the admin order tray.
+- Operations (bodega/sedes/purchasing/tracking) validated locally.
 
 Current production URL:
 
@@ -115,6 +119,8 @@ Current admin URL:
 ```text
 https://brasas-sazon-menu.netlify.app/admin
 ```
+
+Deploy/build: `npm.cmd run build` (tsc -b + vite build) -> `dist/` on Netlify. Modes: `dev`, `dev:mock`, `dev:localdb`, `build:localdb`.
 
 ## Hard Rules
 
@@ -135,23 +141,25 @@ src/
   components/       Reusable UI
   data/             Local restaurant/menu data
   features/
-    admin/          Owner admin UI, hooks, and Supabase repositories
+    admin/          Owner admin UI, hooks, and Supabase/mock repositories
     menu/           Menu browsing
     order/          Cart and WhatsApp message composition
+    tracking/       Customer, kitchen, and room displays
+    integrations/   External channel contracts (e.g. didiFood)
   lib/              Shared helpers
   services/         Shared Supabase config and public menu repository
 docs/
   architecture.md
+  diagrams.md
+  framework-map.md
   scalability-map.md
+  roadmap.md
+  progress-dashboard.md
   agent-operating-model.md
   multi-agent-operating-model.md
   adr-template.md
-  sales-report-multibrand.md
-  work-cycles.md
-  technical-specialists.md
   quality-gates.md
   product-identity.md
-  progress-dashboard.md
 public/
   client-assets/    Restaurant source/processed assets and QR outputs
 supabase/

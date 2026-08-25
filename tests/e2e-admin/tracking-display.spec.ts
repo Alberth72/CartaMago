@@ -34,3 +34,14 @@ test('shows public tracking for a mock order', async ({ page }) => {
   await expect(page.getByText('Progreso del pedido')).toBeVisible()
   await expect(page.getByText(/1 x 1 pollo asado al carbon/i)).toBeVisible()
 })
+
+test('shows public tracking by tracking token without exposing customer data', async ({ page }) => {
+  await page.goto('/tracking/t/tk_ord_demo_pending_pickup')
+
+  await expect(page).toHaveTitle(/rastreo g_pickup/i)
+  await expect(page.getByText('Rastreo en vivo')).toBeVisible()
+  await expect(page.getByText('Progreso del pedido')).toBeVisible()
+  await expect(page.getByText(/1 x 1 pollo asado al carbon/i)).toBeVisible()
+  // La vista por token no expone nombre, telefono, direccion ni notas.
+  await expect(page.getByText('Laura Torres')).toHaveCount(0)
+})

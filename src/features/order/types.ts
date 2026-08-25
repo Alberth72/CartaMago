@@ -3,6 +3,7 @@ export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'del
 export type OrderRow = {
   id: string
   branch_id: string
+  tracking_token?: string | null
   status: OrderStatus
   order_channel?: string
   delivery_provider?: string

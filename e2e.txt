@@ -1,0 +1,40 @@
+﻿
+> cartamago@0.0.0 test:e2e:admin
+> playwright test --config playwright.admin.config.ts
+
+
+Running 26 tests using 4 workers
+
+  Ô£ô   3 [admin-mobile] ÔÇ║ tests\e2e-admin\admin-auth.spec.ts:7:1 ÔÇ║ rejects invalid credentials without opening the admin panel (3.4s)
+  Ô£ô   1 [admin-mobile] ÔÇ║ tests\e2e-admin\admin-auth.spec.ts:16:1 ÔÇ║ logs in with mock admin credentials and logs out from menu tab (4.2s)
+  Ô£ô   4 [admin-mobile] ÔÇ║ tests\e2e-admin\admin-integrations.spec.ts:11:1 ÔÇ║ prepares the DiDi Food integration draft in the mock admin panel (4.3s)
+  Ô£ô   2 [admin-mobile] ÔÇ║ tests\e2e-admin\admin-menu.spec.ts:11:1 ÔÇ║ validates and saves restaurant data in the mock admin panel (4.7s)
+  Ô£ô   6 [admin-mobile] ÔÇ║ tests\e2e-admin\admin-menu.spec.ts:55:1 ÔÇ║ filters products by the selected category in the admin panel (2.8s)
+  Ô£ô   8 [admin-mobile] ÔÇ║ tests\e2e-admin\admin-orders.spec.ts:11:1 ÔÇ║ loads mock orders and updates an order status (2.6s)
+  Ô£ô   5 [admin-mobile] ÔÇ║ tests\e2e-admin\admin-menu.spec.ts:25:1 ÔÇ║ creates a category and product in the mock admin panel (3.9s)
+  Ô£ô   7 [admin-mobile] ÔÇ║ tests\e2e-admin\admin-operations.spec.ts:11:1 ÔÇ║ runs the warehouse replenishment cycle in the mock admin panel (4.0s)
+  Ô£ô   9 [admin-mobile] ÔÇ║ tests\e2e-admin\reports.spec.ts:10:1 ÔÇ║ shows consolidated brand reports in the mock admin panel (1.9s)
+  Ô£ô  10 [admin-mobile] ÔÇ║ tests\e2e-admin\tracking-display.spec.ts:3:1 ÔÇ║ shows the live kitchen display with active mock orders (1.7s)
+  Ô£ô  11 [admin-mobile] ÔÇ║ tests\e2e-admin\tracking-display.spec.ts:15:1 ÔÇ║ shows the public live room display without kitchen notes (1.8s)
+  Ô£ô  12 [admin-mobile] ÔÇ║ tests\e2e-admin\tracking-display.spec.ts:27:1 ÔÇ║ shows public tracking for a mock order (1.3s)
+  Ô£ô  13 [admin-mobile] ÔÇ║ tests\e2e-admin\tracking-display.spec.ts:38:1 ÔÇ║ shows public tracking by tracking token without exposing customer data (1.3s)
+  Ô£ô  14 [admin-desktop] ÔÇ║ tests\e2e-admin\admin-auth.spec.ts:7:1 ÔÇ║ rejects invalid credentials without opening the admin panel (1.9s)
+  Ô£ô  15 [admin-desktop] ÔÇ║ tests\e2e-admin\admin-auth.spec.ts:16:1 ÔÇ║ logs in with mock admin credentials and logs out from menu tab (3.2s)
+  Ô£ô  16 [admin-desktop] ÔÇ║ tests\e2e-admin\admin-integrations.spec.ts:11:1 ÔÇ║ prepares the DiDi Food integration draft in the mock admin panel (2.4s)
+  Ô£ô  17 [admin-desktop] ÔÇ║ tests\e2e-admin\admin-menu.spec.ts:11:1 ÔÇ║ validates and saves restaurant data in the mock admin panel (3.2s)
+  Ô£ô  19 [admin-desktop] ÔÇ║ tests\e2e-admin\admin-menu.spec.ts:55:1 ÔÇ║ filters products by the selected category in the admin panel (3.0s)
+  Ô£ô  18 [admin-desktop] ÔÇ║ tests\e2e-admin\admin-menu.spec.ts:25:1 ÔÇ║ creates a category and product in the mock admin panel (4.7s)
+  Ô£ô  20 [admin-desktop] ÔÇ║ tests\e2e-admin\admin-operations.spec.ts:11:1 ÔÇ║ runs the warehouse replenishment cycle in the mock admin panel (3.5s)
+  Ô£ô  23 [admin-desktop] ÔÇ║ tests\e2e-admin\tracking-display.spec.ts:3:1 ÔÇ║ shows the live kitchen display with active mock orders (1.7s)
+  Ô£ô  22 [admin-desktop] ÔÇ║ tests\e2e-admin\reports.spec.ts:10:1 ÔÇ║ shows consolidated brand reports in the mock admin panel (2.0s)
+  Ô£ô  24 [admin-desktop] ÔÇ║ tests\e2e-admin\tracking-display.spec.ts:15:1 ÔÇ║ shows the public live room display without kitchen notes (1.6s)
+  Ô£ô  21 [admin-desktop] ÔÇ║ tests\e2e-admin\admin-orders.spec.ts:11:1 ÔÇ║ loads mock orders and updates an order status (2.5s)
+  Ô£ô  25 [admin-desktop] ÔÇ║ tests\e2e-admin\tracking-display.spec.ts:27:1 ÔÇ║ shows public tracking for a mock order (1.2s)
+  Ô£ô  26 [admin-desktop] ÔÇ║ tests\e2e-admin\tracking-display.spec.ts:38:1 ÔÇ║ shows public tracking by tracking token without exposing customer data (1.3s)
+
+  26 passed (27.1s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m

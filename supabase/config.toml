@@ -386,7 +386,12 @@ deno_version = 2
 # secret_key = "env(SECRET_VALUE)"
 
 [analytics]
-enabled = true
+enabled = false
+# Habilita `false` en Windows: Analytics (Logflare) exige el daemon de Docker
+# expuesto en tcp://localhost:2375 y deja contenedores unhealthy que rompen
+# `supabase start`. No usamos Analytics en CartaMago, se puede re-habilitar en
+# Linux/macOS si hace falta. Referencia:
+# https://supabase.com/docs/guides/local-development/cli/getting-started?queryGroups=platform&platform=windows
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"

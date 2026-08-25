@@ -43,40 +43,31 @@ Esta ruta trae en memoria:
 
 ## Ruta Completa Con Supabase Local
 
-Usar si se quiere mostrar persistencia real local:
+Usar si se quiere mostrar persistencia real local. Un solo comando deja Docker +
+Supabase local con datos de prueba y los 4 usuarios por rol:
+
+```powershell
+npm.cmd run local:setup
+npm.cmd run dev:localdb
+```
+
+El setup crea: migraciones + seed + pedidos simulados + 4 usuarios
+(`superadmin@`, `warehouse@`, `branch@`, `cashier@`) con sus roles en
+`multibrand_members`, y escribe `.env.localdb.local`.
+
+Si prefieres manual, equivale a:
 
 ```powershell
 npx.cmd supabase start
 npx.cmd supabase db reset
 Get-Content supabase\dev\production-orders-simulation.sql | docker exec -i supabase_db_CartaMago psql -U postgres -d postgres
+# crear usuarios por rol (scripts/create-supabase-admin.mjs por email)
+# y asignar roles en multibrand_members (ver docs/environment-runbook.md)
 npm.cmd run dev:localdb
 ```
 
-Luego crear admin local si no existe:
-
-```powershell
-$env:SUPABASE_URL="http://127.0.0.1:54321"
-$env:SUPABASE_SERVICE_ROLE_KEY="<SERVICE_ROLE_KEY del status>"
-$env:ADMIN_EMAIL="owner@cartamago.local"
-$env:ADMIN_PASSWORD="Cambiar-esta-clave-123"
-npm.cmd run supabase:create-admin
-```
-
-Asignar membresia:
-
-```powershell
-@"
-insert into public.restaurant_members (id, restaurant_id, user_id, role)
-select
-  'brasas-sazon-owner-' || id,
-  'brasas-sazon',
-  id,
-  'owner'
-from auth.users
-where email = 'owner@cartamago.local'
-on conflict (restaurant_id, user_id) do update set role = excluded.role;
-"@ | docker exec -i supabase_db_CartaMago psql -U postgres -d postgres
-```
+Login demo (contrasena `Cambiar-esta-clave-123`): `superadmin@cartamago.local`,
+`warehouse@cartamago.local`, `branch@cartamago.local`, `cashier@cartamago.local`.
 
 ## Guion De Demo
 

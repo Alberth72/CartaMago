@@ -54,7 +54,7 @@ export const trackingStatusTone: Record<OrderStatus, string> = {
   cancelled: 'border-red-200 bg-red-50 text-red-900',
 }
 
-export function getStepState(order: OrderWithItems, stepStatus: OrderStatus) {
+export function getStepState(order: Pick<OrderWithItems, 'status'>, stepStatus: OrderStatus) {
   if (order.status === 'cancelled') return 'muted'
 
   const currentIndex = trackingSteps.findIndex((step) => step.status === order.status)

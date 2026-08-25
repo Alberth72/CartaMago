@@ -362,9 +362,11 @@ Deno.serve(async (request) => {
   }
 
   const orderId = makeId('ord')
+  const trackingToken = makeId('tk')
   const order = {
     id: orderId,
     branch_id: payload.branchId,
+    tracking_token: trackingToken,
     status: 'pending',
     order_channel: payload.orderChannel ?? 'cartamago',
     delivery_provider: payload.deliveryProvider ?? 'none',
@@ -402,7 +404,7 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: 'order_items_insert_failed', message: itemsError.message }, 500)
   }
 
-  const response = { orderId }
+  const response = { orderId, trackingToken }
   const { error: idempotencyError } = await supabase.from('order_idempotency_keys').insert({
     id: makeId('idem'),
     branch_id: payload.branchId,

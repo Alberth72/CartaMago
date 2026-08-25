@@ -1,3 +1,5 @@
+import type { InventoryItem, InventoryStock } from './inventoryTypes'
+
 export type OperationsWarehouse = {
   id: string
   name: string
@@ -9,19 +11,13 @@ export type OperationsBranch = {
   warehouseId: string | null
 }
 
-export type OperationsItem = {
-  id: string
-  name: string
-  unit: string
-  category: string
-}
+// Insumo maestro (fuente unica en inventoryTypes).
+export type OperationsItem = InventoryItem
 
-export type OperationsStock = {
-  id: string
-  itemId: string
+// Stock de bodega o sede: base de inventoryTypes + scope opcional.
+export type OperationsStock = InventoryStock & {
   warehouseId?: string
   branchId?: string
-  quantity: number
 }
 
 export type OperationsProduct = {

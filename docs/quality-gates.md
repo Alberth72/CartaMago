@@ -55,6 +55,15 @@ Required for admin-panel changes:
 - Image upload succeeds to `menu-assets`.
 - Public QR menu reflects the saved change.
 
+## Unit Gate (TDD)
+
+Required for logic or data-access changes:
+
+- Pure helpers (currency, slug, branch links, WhatsApp message composition, payments) have unit tests.
+- Repository Supabase calls are mocked and asserted (inputs, error propagation, return values).
+- Run with `npm run test:unit`.
+- The unit suite stays fast and does not require Supabase credentials or a browser.
+
 ## Supabase Gate
 
 Required for database, auth, storage, or env changes:

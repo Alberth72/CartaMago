@@ -2,15 +2,20 @@
 
 ## Purpose
 
-This document is the technical map for CartaMago's current MVP.
+This document maps the current CartaMago implementation. It covers:
 
-The product stays intentionally lightweight:
+- The public QR menu with WhatsApp ordering (the validated core).
+- The admin panel with orders, menu editing, inventory, and operations.
+- Live tracking displays for customers, kitchen, and the room.
+- The multi-brand distribution model (`brands -> warehouses -> branches`).
+
+The ordering path stays intentional and lightweight:
 
 ```text
 QR -> Public menu -> Cart -> WhatsApp order -> Restaurant confirms
 ```
 
-Supabase is used for editable menu data, but the public menu keeps a local TypeScript seed fallback so the QR experience still works if the database is not configured or a request fails.
+Orders are also persisted and surfaced in the admin orders tray so kitchen and staff can move them through fulfillment states. The public menu keeps a local TypeScript seed fallback so the QR experience works even if Supabase is not configured or a request fails.
 
 ## Current Runtime Shape
 
@@ -18,11 +23,25 @@ Supabase is used for editable menu data, but the public menu keeps a local TypeS
 Customer phone
   -> QR / production URL
   -> Netlify static site
-  -> Vite + React app
+  -> Vite + React app (BrowserRouter)
   -> Supabase menu data, with seed fallback
   -> Cart state in browser
   -> wa.me link with encoded order message
   -> Restaurant WhatsApp
+```
+
+Routes (defined in `src/app/AppRouter.tsx`):
+
+```text
+/                              public menu (current branch)
+/s/:branchId                   scoped public menu
+/tracking/:orderId             customer order tracking
+/s/:branchId/tracking/:orderId scoped tracking
+/kitchen                       kitchen display
+/s/:branchId/kitchen           scoped kitchen
+/salon                         room/lobby display
+/s/:branchId/salon             scoped room display
+/admin                         owner panel
 ```
 
 Key URLs:
@@ -40,6 +59,7 @@ Important files:
 
 ```text
 src/app/App.tsx
+src/app/AppRouter.tsx
 src/main.tsx
 src/features/menu/PublicMenuApp.tsx
 src/features/menu/hooks/usePublicMenuOrder.ts
@@ -48,12 +68,12 @@ src/index.css
 
 Responsibilities:
 
-- Route between the public menu and `/admin` in the app shell.
+- Route between the public menu, `/admin`, and tracking/kitchen/room displays in `AppRouter.tsx`.
 - Render restaurant profile, hero, categories, products, physical menu photos, and cart.
 - Keep cart and customer details in client state.
 - Generate the WhatsApp order URL from the current cart.
 
-There is no custom backend in phase 1. Netlify serves the built `dist/` output.
+The frontend is Vite + React + TypeScript + Tailwind. There is no custom backend in phase 1; Netlify serves the built `dist/` output.
 
 ## Menu Data
 
@@ -82,13 +102,38 @@ Local fallback seed:
 src/data/restaurantSeed.ts
 ```
 
-Supabase tables used by the app:
+Supabase tables used by the public menu:
 
 ```text
 branches
 categories
 products
 menu_photos
+branch_products    (per-branch prices/catalog)
+```
+
+Operational tables (multi-brand distribution):
+
+```text
+brands
+warehouses
+warehouse_stock
+branch_stock
+inventory_items
+inventory_movements
+formulas
+suppliers
+supplier_items
+purchase_orders
+purchase_order_items
+dispatch_requests
+dispatch_request_items
+dispatches
+dispatch_items
+orders
+order_items
+order_status_events
+integration_events
 ```
 
 Storage bucket used for product images:
@@ -170,6 +215,109 @@ The message includes:
 - Delivery address, table number, or pickup note.
 - Customer name and optional notes.
 
+## Operations Core (Warehouse -> Branch)
+
+CartaMago now models distribution for multi-brand operations. The tenancy chain is:
+
+```text
+brands -> warehouses -> branches
+```
+
+- A brand owns one or more warehouses.
+- A warehouse owns one or more branches (each with its own menu/QR).
+- Inventory lives at two levels: `warehouse_stock` (central) and `branch_stock` (per branch).
+- Branches do not buy directly; they request dispatch from their warehouse.
+
+The fulfillment lifecycle (RPCs on `warehouse_dispatch_operations`):
+
+```text
+Branch requests stock (create_dispatch_request)
+  -> Warehouse approves/dispatches (dispatch_request)
+  -> Branch receives (receive_dispatch)
+  -> Branch sells and decrements branch stock by formula (sell_product)
+  -> Losses are recorded as merma (register_merma)
+```
+
+Implementation files:
+
+```text
+src/features/admin/components/OperationsPanel.tsx
+src/features/admin/hooks/useAdminOperations.ts
+src/features/admin/repositories/adminOperationsRepository.ts
+```
+
+## Warehouse Purchasing
+
+Procurement is centralized at the warehouse:
+
+```text
+create_inventory_item_for_warehouse -> create_purchase_order -> receive_purchase_order
+```
+
+- Suppliers are registered per warehouse/brand.
+- `supplier_items` store the unit cost and lead time a supplier offers for an item.
+- Reception of a purchase order moves stock into `warehouse_stock`.
+
+Implementation files:
+
+```text
+src/features/admin/components/WarehousePurchasingPanel.tsx
+src/features/admin/hooks/useWarehousePurchasing.ts
+src/features/admin/repositories/adminWarehousePurchasingRepository.ts
+```
+
+## Inventory & Merma
+
+```text
+src/features/admin/components/InventoryPanel.tsx
+src/features/admin/hooks/useAdminInventory.ts
+src/features/admin/repositories/adminInventoryRepository.ts (register_merma)
+```
+
+## Tracking & Operational Displays
+
+Public/operational views outside the admin, read from `orders` + `order_items` with Realtime plus polling fallback:
+
+- `/tracking/t/:trackingToken` — customer progress via secure RPC by token (no customer PII in payload).
+- `/kitchen` — kitchen tray grouped by status, full item/note detail.
+- `/salon` — public room screen with clean statuses and no internal data.
+- `/tracking/:orderId` — demo/legacy by internal ID (mock only; not for public production links).
+
+```text
+src/features/tracking/OrderTrackingPage.tsx
+src/features/tracking/KitchenDisplayPage.tsx
+src/features/tracking/LiveRoomDisplayPage.tsx
+src/features/tracking/orderTrackingRepository.ts
+src/features/tracking/trackingUi.ts
+```
+
+Progress is tracked via a non-guessable `tracking_token` per order: created by the `create-order` Edge Function, returned to the guest as a `trackingUrl`, and consumed by a security-definer RPC (`get_order_tracking`) that exposes only safe fields (no phone, address, notes, or integration payloads).
+
+## Integrations
+
+A setup panel maps future channels and their expected contract:
+
+```text
+src/features/admin/components/IntegrationsPanel.tsx
+src/features/admin/hooks/useAdminIntegrations.ts
+src/features/integrations/didiFood/types.ts
+```
+
+DiDiFood is documented but disabled until an official store integration is enabled (`docs/didi-food-integration-plan.md`).
+
+## Admin Roles
+
+The profile role scopes which panels the user operates:
+
+- `superadmin` — **report-only**: consolidated brand reports. In production/localdb the CRUD panels are hidden (see `AdminApp.tsx`); the mock (dev:mock/e2e) keeps full access for testing.
+- `warehouse_admin` — central stock, suppliers, purchasing, dispatches.
+- `branch_admin` — own catalog, branch stock, dispatch requests, orders.
+- `cashier` — POS/order handling.
+
+Scope resolution lives in `src/features/admin/repositories/adminScopeRepository.ts`.
+
+Consolidated reports: `reportsTypes.ts`, `repositories/adminReportsRepository.ts`, `hooks/useAdminReports.ts`, `components/ReportsPanel.tsx`, backed by the RPC `report_brand_overview` (migration `202608160001`), gated to brand superadmins.
+
 ## Admin Flow
 
 Main file:
@@ -202,19 +350,29 @@ Responsibilities:
 
 - Sign in through Supabase Auth.
 - Edit restaurant profile fields used by the public QR.
-- Create categories.
-- Create and update products.
-- Toggle product availability.
-- Upload product images to Supabase Storage.
+- Create categories; create/update products; toggle availability; upload images.
+- Run the order tray (status changes, customer WhatsApp link).
+- Manage inventory/merma, operations (dispatch lifecycle), and warehouse purchasing.
+- Manage integration settings.
+
+Admin tabs (see `AdminApp.tsx`):
+
+```text
+Pedidos       order tray, payments, and status
+Menu          products, categories, prices
+Inventario    stock, items, and merma
+Operacion     warehouse, branches, and dispatches
+Integraciones DiDiFood, payments, and channels
+```
+
+The `Pedidos` tab renders the warehouse purchasing panel for `warehouse_admin` users and the order tray otherwise.
 
 Current split:
 
-- `AdminApp.tsx` composes the admin screen.
-- `hooks/useAdminAuth.ts` owns session state, login, and logout.
-- `hooks/useAdminMenu.ts` owns editable menu state and UI commands.
-- `repositories/adminAuthRepository.ts` wraps Supabase Auth calls.
-- `repositories/adminMenuRepository.ts` wraps menu queries, saves, and image uploads.
-- `repositories/adminOrderRepository.ts` wraps order inbox reads, status updates, and Realtime subscriptions.
+- `AdminApp.tsx` composes the admin screen and selects panels by role.
+- `hooks/*` own session, menu, orders, inventory, operations, purchasing, and integrations.
+- `repositories/*` wrap Supabase Auth, menu, order inbox, scope, inventory, operations, purchasing, and integrations.
+- `adminMockRepository.ts` provides the local/e2e mock provider.
 
 This keeps Supabase calls out of JSX and makes the next testing step clearer.
 
@@ -250,26 +408,24 @@ The QR should point to the production public menu URL, not to a temporary previe
 
 ## Boundaries
 
-Current MVP includes:
+Currently implemented:
 
-- Public QR menu.
-- Browser cart.
-- WhatsApp order handoff.
-- Supabase-backed editable menu.
-- Local seed fallback.
-- Admin login and product/image editing.
-- Order inbox with Realtime subscription and polling fallback.
-- Order status event log for auditable transitions.
+- Public QR menu with WhatsApp handoff and seed fallback.
+- Admin panel: order tray, menu editing, inventory/merma, operations, integrations.
+- Superadmin report-only: consolidated brand reports via RLS-gated RPC (menu/inventory/ops hidden in production).
+- Live tracking: customer, kitchen, and room displays (local/demo flow).
+- Multi-brand distribution: `brands -> warehouses -> branches`, two-level stock, dispatch lifecycle.
+- Warehouse purchasing: suppliers, offers, purchase orders, central stock reception.
+- Order persistence, status event log, Realtime + polling.
 - Edge Function for idempotent order creation, cart validation, and rate limiting.
 
-Current MVP intentionally excludes:
+Intentional exclusions for now:
 
-- Payment processing.
-- Custom ecommerce backend.
-- Multi-tenant owner dashboard.
-- Fully automated DiDiFood/payment webhooks.
+- Payment processing stays out of the core; Wompi is earmarked and confirmed only by backend/webhook.
+- DiDiFood stays documented/disabled until an official store integration exists.
+- POS and DIAN invoicing are a later phase, not part of the public menu.
 
-These should only be added after the WhatsApp ordering flow is validated with real sellers.
+These are only added after the WhatsApp ordering flow is validated with real sellers.
 
 ## Change Guidelines
 
@@ -290,6 +446,11 @@ Related docs:
 docs/framework-map.md
 docs/diagrams.md
 docs/scalability-map.md
+docs/roadmap.md
+docs/app-structure-multibrand.md
+docs/live-order-tracking-plan.md
+docs/admin-orders-operations.md
+docs/order-fulfillment-flows.md
 docs/supabase-admin-setup.md
 docs/quality-gates.md
 ```

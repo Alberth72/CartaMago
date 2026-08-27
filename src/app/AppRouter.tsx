@@ -14,6 +14,9 @@ const KitchenDisplayPage = lazy(() =>
 const LiveRoomDisplayPage = lazy(() =>
   import('../features/tracking/LiveRoomDisplayPage').then((module) => ({ default: module.LiveRoomDisplayPage })),
 )
+const CashTerminalPage = lazy(() =>
+  import('../features/cash-terminal/CashTerminalPage').then((module) => ({ default: module.CashTerminalPage })),
+)
 
 function AdminFallback() {
   return (
@@ -90,6 +93,14 @@ export function AppRouter() {
         }
       />
       <Route
+        path="/s/:branchId/kitchen/t/:displayToken"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <KitchenDisplayPage />
+          </Suspense>
+        }
+      />
+      <Route
         path="/salon"
         element={
           <Suspense fallback={<AdminFallback />}>
@@ -102,6 +113,22 @@ export function AppRouter() {
         element={
           <Suspense fallback={<AdminFallback />}>
             <LiveRoomDisplayPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/s/:branchId/salon/t/:displayToken"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <LiveRoomDisplayPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/s/:branchId/caja/:cashSessionId/t/:accessToken"
+        element={
+          <Suspense fallback={<AdminFallback />}>
+            <CashTerminalPage />
           </Suspense>
         }
       />

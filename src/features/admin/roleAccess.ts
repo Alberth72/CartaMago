@@ -1,6 +1,6 @@
 import type { OperationsRole } from './operationsTypes'
 
-export type AdminTabId = 'orders' | 'menu' | 'operations' | 'inventory' | 'integrations' | 'reports'
+export type AdminTabId = 'orders' | 'menu' | 'operations' | 'cash' | 'inventory' | 'integrations' | 'reports'
 
 export type AdminTabInfo = {
   id: AdminTabId
@@ -14,6 +14,7 @@ export const adminTabInfo: AdminTabInfo[] = [
   { id: 'menu', label: 'Menu', description: 'Productos, categorias y precios', badge: 'Carta' },
   { id: 'inventory', label: 'Inventario', description: 'Stock, insumos y mermas', badge: 'Merma' },
   { id: 'operations', label: 'Operacion', description: 'Bodega, sedes y despachos', badge: 'Bodega' },
+  { id: 'cash', label: 'Caja', description: 'Apertura, venta y cuadre', badge: 'POS' },
   { id: 'integrations', label: 'Integraciones', description: 'DiDiFood, pagos y canales', badge: 'Setup' },
   { id: 'reports', label: 'Reportes', description: 'Informes consolidados de marca', badge: 'Info' },
 ]
@@ -23,7 +24,8 @@ export const adminTabInfo: AdminTabInfo[] = [
  * - `isReportOnlySuperadmin` (produccion/localdb): superadmin ve SOLO reportes.
  * - `warehouse_admin`: Compras (orders renombrado) + Operacion.
  * - `superadmin` en mock (dev:mock/e2e): ve todo incluido Reportes (testing).
- * - `branch_admin` / `cashier`: todo excepto Reportes.
+ * - `branch_admin`: todo excepto Reportes.
+ * - `cashier`: pedidos y caja.
  */
 export function getAdminTabs(role: OperationsRole, isReportOnlySuperadmin: boolean): AdminTabInfo[] {
   if (isReportOnlySuperadmin) {
@@ -39,5 +41,6 @@ export function getAdminTabs(role: OperationsRole, isReportOnlySuperadmin: boole
       )
   }
   if (role === 'superadmin') return adminTabInfo
+  if (role === 'cashier') return adminTabInfo.filter((tab) => tab.id === 'orders' || tab.id === 'cash')
   return adminTabInfo.filter((tab) => tab.id !== 'reports')
 }

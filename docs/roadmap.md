@@ -33,7 +33,7 @@ Hacer que el repositorio y el build vuelvan a ser reproducibles y verdes.
 | Alinear tests/docs/scripts a `VITE_BRANCH_ID` y `branch_id` | Hecho |
 | E2E público y admin mock en verde | Hecho |
 | Silenciar falso warning de chunk (PowerShell) en `vite.config.ts` | Hecho |
-| Commit del trabajo pendiente coherente (inventario/merma + docs + migraciones) | Pendiente |
+| Commit del trabajo pendiente coherente (inventario/merma + docs + migraciones) | Hecho: `master` empujado |
 | Documentar el roadmap y actualizar `progress-dashboard.md` | Hecho |
 | **Salida:** árbol limpio, build verde, historial reproducible. | — |
 
@@ -118,6 +118,10 @@ Núcleo operativo pesado; requiere arquitectura SaaS y decisión de negocio.
 | Kit operativo visible en admin de sede: enlace QR, cocina y sala | Hecho local |
 | E2E mock del ciclo solicitud -> despacho -> recepcion | Hecho: `npm.cmd run test:e2e:admin` |
 | Smoke local bodega: crear compra, recibir proveedor y subir stock central | Hecho |
+| Tracking seguro por token: default/backfill, RPC segura y bloqueo de lectura anon directa | Hecho local; pendiente cloud |
+| Tokens operativos por sede para cocina/sala y RPCs separadas por payload | Hecho local; pendiente cloud |
+| Venta operativa: `create_sale`, pago manual, comprobante interno y descuento de stock por formula | Hecho local; pendiente cloud |
+| Reportes por sede con ventas POS, comprobantes y cajas abiertas | Hecho local; pendiente cloud |
 | Aplicar `202608150001` en Supabase cloud | Pendiente |
 | Smoke cloud con usuario real: compra a proveedor, crear solicitud, despachar, recibir, registrar venta | Pendiente |
 

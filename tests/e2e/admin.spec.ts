@@ -13,9 +13,7 @@ test('shows setup guidance when Supabase is not configured', async ({ page }) =>
   await expect(page.getByText('VITE_BRANCH_ID=brasas-sazon')).toBeVisible()
 })
 
-test('links back to the public menu from the admin shell', async ({ page }) => {
-  await page.getByRole('link', { name: /ver menu/i }).click()
-
-  await expect(page).toHaveURL('/')
-  await expect(page.getByRole('heading', { name: /tenemos el mejor sabor/i })).toBeVisible()
+test('does not expose the public menu shortcut from the admin shell', async ({ page }) => {
+  await expect(page.getByRole('link', { name: /ver menu/i })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: /admin listo para configurar/i })).toBeVisible()
 })

@@ -10,9 +10,11 @@ vi.mock('../../../src/services/supabaseClient', () => ({
 vi.mock('../../../src/lib/runtimeFlags', () => ({ isE2EAdminMockEnabled: () => false }))
 
 import {
+  closeAdminCashSession,
+  createAdminSale,
   dispatchAdminRequest,
+  openAdminCashSession,
   receiveAdminDispatch,
-  sellAdminProduct,
 } from '../../../src/features/admin/repositories/adminOperationsRepository'
 
 function makeRpcClient(rpc: ReturnType<typeof vi.fn>) {
@@ -49,17 +51,68 @@ describe('receiveAdminDispatch', () => {
   })
 })
 
-describe('sellAdminProduct', () => {
-  it('sells a product and sends option ids', async () => {
+describe('cash sessions', () => {
+  it('opens a cash session with branch and opening amount', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: 'cash_1', error: null })
+    h.client = makeRpcClient(rpc)
+
+    await expect(openAdminCashSession({
+      branchId: 'brasas-sazon',
+      name: 'Caja 1',
+      openingCashCop: 100000,
+      notes: 'Turno manana',
+    })).resolves.toBe('cash_1')
+
+    expect(rpc).toHaveBeenCalledWith('open_cash_session', {
+      p_branch_id: 'brasas-sazon',
+      p_opening_cash_cop: 100000,
+      p_notes: 'Turno manana',
+      p_name: 'Caja 1',
+    })
+  })
+
+  it('closes a cash session with closing amount', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
     h.client = makeRpcClient(rpc)
 
-    await expect(sellAdminProduct('brasas-sazon', 'pollo-entero', 1)).resolves.toBeUndefined()
-    expect(rpc).toHaveBeenCalledWith('sell_product', {
+    await expect(closeAdminCashSession({
+      cashSessionId: 'cash_1',
+      closingCashCop: 126000,
+      notes: 'Cuadre ok',
+    })).resolves.toBeUndefined()
+
+    expect(rpc).toHaveBeenCalledWith('close_cash_session', {
+      p_cash_session_id: 'cash_1',
+      p_closing_cash_cop: 126000,
+      p_notes: 'Cuadre ok',
+    })
+  })
+})
+
+describe('createAdminSale', () => {
+  it('creates a sale with payment data', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
+    h.client = makeRpcClient(rpc)
+
+    await expect(createAdminSale({
+      branchId: 'brasas-sazon',
+      items: [
+        { productId: 'pollo-entero', quantity: 1 },
+        { productId: 'limonada-natural', quantity: 2 },
+      ],
+      paymentMethod: 'cash',
+      paymentReference: '',
+      cashSessionId: 'cash_1',
+    })).resolves.toBeUndefined()
+    expect(rpc).toHaveBeenCalledWith('create_sale', {
       p_branch_id: 'brasas-sazon',
-      p_product_id: 'pollo-entero',
-      p_quantity: 1,
-      p_option_ids: [],
+      p_items: [
+        { product_id: 'pollo-entero', quantity: 1 },
+        { product_id: 'limonada-natural', quantity: 2 },
+      ],
+      p_payment_method: 'cash',
+      p_payment_reference: '',
+      p_cash_session_id: 'cash_1',
     })
   })
 })

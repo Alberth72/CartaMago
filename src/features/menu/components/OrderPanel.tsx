@@ -350,9 +350,9 @@ export function OrderPanel({
 {trackingUrl ? (
           <p className="mt-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-bold leading-5 text-sky-900">
             <a href={trackingUrl} target="_blank" rel="noreferrer" data-testid="tracking-link" className="underline">
-              Sigue tu pedido en esta pagina
+              Ver ticket y seguir pedido
             </a>{' '}
-            (se actualiza al cambiar el estado).
+            (puedes imprimir el recibo desde esa pagina).
           </p>
         ) : null}
       </div>

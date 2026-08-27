@@ -27,4 +27,20 @@ describe('makeBranchLinks', () => {
     expect(links.trackingPath('tk/abc-123')).toBe('/s/a%20b/tracking/t/tk%2Fabc-123')
     expect(links.trackingUrl('tk/abc-123')).toBe('https://app.test/s/a%20b/tracking/t/tk%2Fabc-123')
   })
+
+  it('encodes operational display tokens for kitchen and room screens', () => {
+    const links = makeBranchLinks('a b', 'https://app.test')
+
+    expect(links.kitchenTokenPath('kd/abc-123')).toBe('/s/a%20b/kitchen/t/kd%2Fabc-123')
+    expect(links.kitchenTokenUrl('kd/abc-123')).toBe('https://app.test/s/a%20b/kitchen/t/kd%2Fabc-123')
+    expect(links.liveRoomTokenPath('rd/abc-123')).toBe('/s/a%20b/salon/t/rd%2Fabc-123')
+    expect(links.liveRoomTokenUrl('rd/abc-123')).toBe('https://app.test/s/a%20b/salon/t/rd%2Fabc-123')
+  })
+
+  it('encodes cash terminal links by session token', () => {
+    const links = makeBranchLinks('a b', 'https://app.test')
+
+    expect(links.cashTerminalPath('cash/1', 'cs/abc-123')).toBe('/s/a%20b/caja/cash%2F1/t/cs%2Fabc-123')
+    expect(links.cashTerminalUrl('cash/1', 'cs/abc-123')).toBe('https://app.test/s/a%20b/caja/cash%2F1/t/cs%2Fabc-123')
+  })
 })

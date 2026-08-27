@@ -330,6 +330,8 @@ export async function signOutMockAdmin() {
 export async function fetchMockAdminMenu(): Promise<AdminMenuData> {
   return {
     branchId: defaultSeed.id,
+    kitchenDisplayToken: 'kd_mock_brasas_sazon',
+    roomDisplayToken: 'rd_mock_brasas_sazon',
     restaurantForm: { ...restaurantForm },
     categories: categories.map((category) => ({ ...category })),
     products: products.map((product) => ({ ...product })),
@@ -450,6 +452,13 @@ export async function fetchMockBrandReports(): Promise<BrandReports> {
     branchCount: 2,
     totalOrders: 8,
     totalDeliveredCop: 182000,
+    salesCount: 3,
+    salesTotalCop: 156000,
+    openCashSessions: 1,
+    branchSales: [
+      { branchId: 'brasas-sazon', branchName: 'Brasas & Sazon Principal', salesCount: 2, salesTotalCop: 104000 },
+      { branchId: 'brasas-sazon-norte', branchName: 'Brasas & Sazon Norte', salesCount: 1, salesTotalCop: 52000 },
+    ],
     ordersByStatus: [
       { status: 'pending', count: 1 },
       { status: 'confirmed', count: 2 },

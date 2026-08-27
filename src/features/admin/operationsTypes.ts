@@ -24,11 +24,14 @@ export type OperationsProduct = {
   id: string
   branchId: string
   name: string
+  priceCop: number | null
 }
 
 export type DispatchRequestStatus = 'pending' | 'approved' | 'dispatched' | 'received' | 'rejected'
 export type DispatchStatus = 'preparing' | 'shipped' | 'received' | 'cancelled'
 export type OperationsRole = 'superadmin' | 'warehouse_admin' | 'branch_admin' | 'cashier'
+export type SalePaymentMethod = 'cash' | 'card_at_counter' | 'card_at_table' | 'bank_transfer' | 'wompi' | 'didi_food'
+export type SalePaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded'
 
 export type OperationsProfile = {
   userId: string
@@ -66,6 +69,31 @@ export type Dispatch = {
   createdAt: string
 }
 
+export type CashSession = {
+  id: string
+  branchId: string
+  name: string
+  accessToken: string | null
+  status: 'open' | 'closed'
+  openingCashCop: number
+  closingCashCop: number | null
+  expectedCashCop: number | null
+  openedAt: string
+  closedAt: string | null
+}
+
+export type SaleSummary = {
+  id: string
+  branchId: string
+  cashSessionId: string | null
+  receiptNumber: string
+  totalCop: number
+  paymentMethod: SalePaymentMethod
+  paymentStatus: SalePaymentStatus
+  soldAt: string
+  itemNames: string[]
+}
+
 export type OperationsData = {
   profile: OperationsProfile
   warehouses: OperationsWarehouse[]
@@ -76,6 +104,8 @@ export type OperationsData = {
   products: OperationsProduct[]
   requests: DispatchRequest[]
   dispatches: Dispatch[]
+  cashSessions: CashSession[]
+  sales: SaleSummary[]
 }
 
 export type CreateDispatchRequestInput = {
@@ -83,5 +113,31 @@ export type CreateDispatchRequestInput = {
   warehouseId: string
   itemId: string
   quantity: number
+  notes: string
+}
+
+export type SaleCartItemInput = {
+  productId: string
+  quantity: number
+}
+
+export type CreateSaleInput = {
+  branchId: string
+  items: SaleCartItemInput[]
+  paymentMethod: SalePaymentMethod
+  paymentReference: string
+  cashSessionId?: string | null
+}
+
+export type OpenCashSessionInput = {
+  branchId: string
+  name: string
+  openingCashCop: number
+  notes: string
+}
+
+export type CloseCashSessionInput = {
+  cashSessionId: string
+  closingCashCop: number
   notes: string
 }

@@ -23,6 +23,8 @@ export type AdminRestaurantForm = {
 
 export type AdminMenuData = {
   branchId: string
+  kitchenDisplayToken?: string | null
+  roomDisplayToken?: string | null
   restaurantForm: AdminRestaurantForm
   categories: MenuCategory[]
   products: MenuItem[]

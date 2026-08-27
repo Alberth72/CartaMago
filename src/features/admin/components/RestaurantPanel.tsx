@@ -5,6 +5,8 @@ import type { AdminRestaurantForm } from '../types'
 
 type RestaurantPanelProps = {
   branchId: string
+  kitchenDisplayToken?: string | null
+  roomDisplayToken?: string | null
   form: AdminRestaurantForm
   isSaving: boolean
   onChange: (partial: Partial<AdminRestaurantForm>) => void
@@ -18,8 +20,24 @@ const operationalLinks = [
   { key: 'liveRoomUrl', label: 'Sala en vivo', description: 'Pantalla visible para clientes', icon: ScreenShare },
 ] as const
 
-export function RestaurantPanel({ branchId, form, isSaving, onChange, onLogout, onSubmit }: RestaurantPanelProps) {
+export function RestaurantPanel({
+  branchId,
+  kitchenDisplayToken,
+  roomDisplayToken,
+  form,
+  isSaving,
+  onChange,
+  onLogout,
+  onSubmit,
+}: RestaurantPanelProps) {
   const branchLinks = branchId ? makeBranchLinks(branchId) : null
+  const linkSet = branchLinks
+    ? {
+        menuUrl: branchLinks.menuUrl,
+        kitchenUrl: kitchenDisplayToken ? branchLinks.kitchenTokenUrl(kitchenDisplayToken) : branchLinks.kitchenUrl,
+        liveRoomUrl: roomDisplayToken ? branchLinks.liveRoomTokenUrl(roomDisplayToken) : branchLinks.liveRoomUrl,
+      }
+    : null
 
   return (
     <section className="overflow-hidden rounded-xl border border-amber-200 bg-white shadow-lg shadow-amber-900/10">
@@ -110,7 +128,7 @@ export function RestaurantPanel({ branchId, form, isSaving, onChange, onLogout, 
           <div className="grid gap-2 lg:grid-cols-3">
             {operationalLinks.map((item) => {
               const ItemIcon = item.icon
-              const href = branchLinks[item.key]
+              const href = linkSet?.[item.key] ?? branchLinks[item.key]
 
               return (
                 <a

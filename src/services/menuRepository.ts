@@ -54,6 +54,8 @@ export type RestaurantRow = {
   fulfillment_modes: string[] | null
   hero_image_url: string | null
   social_handle: string | null
+  kitchen_display_token?: string | null
+  room_display_token?: string | null
 }
 
 const defaultFulfillmentModes: FulfillmentMode[] = ['pickup', 'local_delivery', 'didi_food', 'table']
@@ -95,7 +97,11 @@ export async function fetchPublicMenu(branchId = getSupabaseConfig().branchId): 
   try {
     const supabase = getSupabaseClient()
     const [restaurantResult, categoriesResult, productsResult, photosResult] = await Promise.all([
-      supabase.from('branches').select('*').eq('id', branchId).single(),
+      supabase
+        .from('branches')
+        .select('id,name,short_name,whatsapp_number,location,headline,description,fulfillment_modes,hero_image_url,social_handle')
+        .eq('id', branchId)
+        .single(),
       supabase.from('categories').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),
       supabase.from('products').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),
       supabase.from('menu_photos').select('*').eq('branch_id', branchId).order('sort_order', { ascending: true }),

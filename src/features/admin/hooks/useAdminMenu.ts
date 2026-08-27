@@ -44,6 +44,8 @@ export function useAdminMenu() {
   const [categories, setCategories] = useState<MenuCategory[]>([])
   const [products, setProducts] = useState<MenuItem[]>([])
   const [branchId, setBranchId] = useState('')
+  const [kitchenDisplayToken, setKitchenDisplayToken] = useState<string | null>(null)
+  const [roomDisplayToken, setRoomDisplayToken] = useState<string | null>(null)
   const [restaurantForm, setRestaurantForm] = useState<AdminRestaurantForm>(emptyRestaurant)
   const [productForm, setProductForm] = useState<AdminProductForm>(emptyProduct)
   const [categoryName, setCategoryName] = useState('')
@@ -67,6 +69,8 @@ export function useAdminMenu() {
     try {
       const nextMenu = await fetchAdminMenu()
       setBranchId(nextMenu.branchId)
+      setKitchenDisplayToken(nextMenu.kitchenDisplayToken ?? null)
+      setRoomDisplayToken(nextMenu.roomDisplayToken ?? null)
       setRestaurantForm(nextMenu.restaurantForm)
       setCategories(nextMenu.categories)
       setProducts(nextMenu.products)
@@ -82,6 +86,8 @@ export function useAdminMenu() {
 
   function clearMenu() {
     setBranchId('')
+    setKitchenDisplayToken(null)
+    setRoomDisplayToken(null)
     setProducts([])
     setCategories([])
   }
@@ -246,6 +252,8 @@ export function useAdminMenu() {
   return {
     categories,
     branchId,
+    kitchenDisplayToken,
+    roomDisplayToken,
     products,
     selectedCategoryProducts,
     restaurantForm,

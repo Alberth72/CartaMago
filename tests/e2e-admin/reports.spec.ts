@@ -4,7 +4,7 @@ async function login(page: Page) {
   await page.goto('/admin')
   await page.getByPlaceholder('Correo del administrador').fill('owner@cartamago.test')
   await page.getByPlaceholder('Contrasena').fill('cartamago-e2e')
-  await page.getByRole('button', { name: 'Entrar' }).click()
+  await page.getByRole('button', { name: 'Ingresar al panel' }).click()
 }
 
 test('shows consolidated brand reports in the mock admin panel', async ({ page }) => {

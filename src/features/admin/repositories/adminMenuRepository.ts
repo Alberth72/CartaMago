@@ -64,6 +64,8 @@ export async function fetchAdminMenu(): Promise<AdminMenuData> {
 
   return {
     branchId,
+    kitchenDisplayToken: restaurantRow.kitchen_display_token ?? null,
+    roomDisplayToken: restaurantRow.room_display_token ?? null,
     restaurantForm: {
       name: restaurantRow.name,
       shortName: restaurantRow.short_name ?? '',

@@ -35,12 +35,15 @@ Routes (defined in `src/app/AppRouter.tsx`):
 ```text
 /                              public menu (current branch)
 /s/:branchId                   scoped public menu
-/tracking/:orderId             customer order tracking
-/s/:branchId/tracking/:orderId scoped tracking
-/kitchen                       kitchen display
-/s/:branchId/kitchen           scoped kitchen
-/salon                         room/lobby display
-/s/:branchId/salon             scoped room display
+/tracking/t/:trackingToken     public customer tracking by token
+/s/:branchId/tracking/t/:trackingToken scoped public tracking by token
+/tracking/:orderId             demo/legacy tracking by internal ID
+/s/:branchId/tracking/:orderId scoped demo/legacy tracking
+/s/:branchId/kitchen/t/:displayToken kitchen display by branch token
+/s/:branchId/salon/t/:displayToken   room/lobby display by branch token
+/s/:branchId/caja/:cashSessionId/t/:accessToken cash terminal by open cash-session token
+/kitchen                       demo/legacy kitchen display
+/salon                         demo/legacy room display
 /admin                         owner panel
 ```
 
@@ -130,6 +133,11 @@ dispatch_requests
 dispatch_request_items
 dispatches
 dispatch_items
+cash_sessions
+sales
+sale_items
+sale_payments
+sale_receipts
 orders
 order_items
 order_status_events
@@ -234,7 +242,8 @@ The fulfillment lifecycle (RPCs on `warehouse_dispatch_operations`):
 Branch requests stock (create_dispatch_request)
   -> Warehouse approves/dispatches (dispatch_request)
   -> Branch receives (receive_dispatch)
-  -> Branch sells and decrements branch stock by formula (sell_product)
+  -> Branch sells with manual payment and internal receipt (create_sale)
+  -> create_sale decrements branch stock by formula (sell_product)
   -> Losses are recorded as merma (register_merma)
 ```
 
@@ -245,6 +254,57 @@ src/features/admin/components/OperationsPanel.tsx
 src/features/admin/hooks/useAdminOperations.ts
 src/features/admin/repositories/adminOperationsRepository.ts
 ```
+
+## Operational Sales And Internal Receipts
+
+Sales are operational records, not DIAN invoices.
+
+```text
+create_sale
+  -> validates branch scope
+  -> resolves product price
+  -> records sale + sale_items
+  -> records sale_payments
+  -> decrements branch_stock through sell_product
+  -> issues sale_receipts as an internal receipt
+```
+
+Payment methods in this stage are manual/operational:
+
+```text
+cash
+card_at_counter / card_at_table
+bank_transfer
+wompi pending
+didi_food external
+```
+
+Cash sessions (`cash_sessions`) support opening and closing branch cash shifts. The admin exposes this as a dedicated `Caja` tab so branch/cashier users can open one or more named cash sessions with an initial base, generate the terminal link for each cash session, supervise open cash sessions, review recent sales, and close with the counted amount while the database computes expected cash from base plus paid cash sales. Products with an active formula decrement stock; products without formula are sold and audited without stock decrement until operations configures their formula.
+
+Each open cash session also has its own operational terminal:
+
+```text
+Admin Caja tab
+  -> opens named cash session with base
+  -> receives `/s/:branchId/caja/:cashSessionId/t/:accessToken`
+  -> cashier uses the terminal endpoint to sell
+  -> close_cash_session revokes the token
+```
+
+Terminal reads and writes are not direct table access. The public endpoint uses `get_cash_session_terminal` for the minimal product/session payload and `create_cash_session_sale` to validate the open cash-session token before creating the sale.
+
+Cash-terminal sales also create an operational order:
+
+```text
+create_cash_session_sale
+  -> create_sale
+  -> sales / sale_items / sale_payments / sale_receipts
+  -> orders / order_items with order_channel = cash_terminal
+```
+
+`sales.order_id` links the financial receipt to the kitchen/order ticket. The order starts as `confirmed` so staff can move it through preparation, ready, and delivered without re-confirming a paid counter sale.
+
+Electronic invoicing for DIAN is intentionally deferred to a later provider/build decision.
 
 ## Warehouse Purchasing
 
@@ -292,6 +352,8 @@ src/features/tracking/trackingUi.ts
 ```
 
 Progress is tracked via a non-guessable `tracking_token` per order: created by the `create-order` Edge Function, returned to the guest as a `trackingUrl`, and consumed by a security-definer RPC (`get_order_tracking`) that exposes only safe fields (no phone, address, notes, or integration payloads).
+
+Kitchen and room displays use separate branch-level tokens. `kitchen_display_token` unlocks the operational kitchen payload through `get_kitchen_display_orders`; `room_display_token` unlocks a reduced lobby payload through `get_room_display_orders`. The public `anon` role can read normal menu columns from `branches`, but cannot select those display-token columns.
 
 ## Integrations
 

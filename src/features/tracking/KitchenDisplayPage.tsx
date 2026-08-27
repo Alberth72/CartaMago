@@ -3,11 +3,12 @@ import { Helmet } from 'react-helmet-async'
 import { ClipboardList, Clock, ExternalLink, Flame, MapPin, Package, RefreshCw, StickyNote, Timer, Wallet } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 import { formatCurrency } from '../../lib/format'
-import { getSupabaseConfig } from '../../services/menuRepository'
+import { isE2EAdminMockEnabled } from '../../lib/runtimeFlags'
+import { getSupabaseConfig, isSupabaseConfigured } from '../../services/menuRepository'
 import { fulfillmentIcons, fulfillmentLabels, statusColors, statusLabels } from '../admin/orderUi'
 import { paymentMethodLabels, type PaymentMethod } from '../order/payment'
 import type { OrderStatus, OrderWithItems } from '../order/types'
-import { fetchTrackableOrders, subscribeToTrackableOrderChanges } from './orderTrackingRepository'
+import { fetchKitchenDisplayOrders, subscribeToTrackableOrderChanges } from './orderTrackingRepository'
 import { formatLiveTime, formatShortOrderId, isActiveKitchenOrder, trackingStatusCopy } from './trackingUi'
 
 const displayColumns: Array<{ status: OrderStatus; title: string; tone: string }> = [
@@ -18,18 +19,19 @@ const displayColumns: Array<{ status: OrderStatus; title: string; tone: string }
 ]
 
 export function KitchenDisplayPage() {
-  const { branchId: routeBranchId } = useParams()
+  const { branchId: routeBranchId, displayToken } = useParams()
   const branchId = routeBranchId ?? getSupabaseConfig().branchId
+  const requiresDisplayToken = isSupabaseConfigured() && !isE2EAdminMockEnabled() && !displayToken
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
 
   const loadOrders = useCallback(async () => {
-    const nextOrders = await fetchTrackableOrders(branchId)
+    const nextOrders = await fetchKitchenDisplayOrders(branchId, displayToken)
     setOrders(nextOrders.filter(isActiveKitchenOrder))
     setLastSyncedAt(new Date().toISOString())
     setLoading(false)
-  }, [branchId])
+  }, [branchId, displayToken])
 
   useEffect(() => {
     void loadOrders()
@@ -94,7 +96,16 @@ export function KitchenDisplayPage() {
           </div>
         </header>
 
-        {loading ? (
+        {requiresDisplayToken ? (
+          <div className="grid min-h-[55vh] place-items-center rounded-xl border border-amber-200 bg-white p-6 text-center shadow-lg shadow-amber-900/10">
+            <div>
+              <p className="text-lg font-black text-stone-950">Token de cocina requerido</p>
+              <p className="mt-2 max-w-md text-sm font-bold leading-6 text-stone-500">
+                Abre esta pantalla desde el kit operativo de la sede para usar el enlace seguro de cocina.
+              </p>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="grid min-h-[55vh] place-items-center rounded-xl border border-amber-200 bg-white shadow-lg shadow-amber-900/10">
             <div className="flex items-center gap-3 text-sm font-black text-stone-600">
               <RefreshCw size={22} className="animate-spin text-red-900" />

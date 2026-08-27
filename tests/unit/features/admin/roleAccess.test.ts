@@ -11,7 +11,15 @@ describe('getAdminTabs', () => {
   })
 
   it('superadmin en mock ve todos los tabs incluido Reportes', () => {
-    expect(ids(getAdminTabs('superadmin', false))).toEqual(['orders', 'menu', 'inventory', 'operations', 'integrations', 'reports'])
+    expect(ids(getAdminTabs('superadmin', false))).toEqual([
+      'orders',
+      'menu',
+      'inventory',
+      'operations',
+      'cash',
+      'integrations',
+      'reports',
+    ])
   })
 
   it('warehouse_admin ve Compras (orders renombrado) y Operacion', () => {
@@ -21,13 +29,24 @@ describe('getAdminTabs', () => {
     expect(tabs[0].description).toBe('Proveedores y ordenes')
   })
 
-  it('branch_admin y cashier no ven Reportes', () => {
-    expect(ids(getAdminTabs('branch_admin', false))).toEqual(['orders', 'menu', 'inventory', 'operations', 'integrations'])
-    expect(ids(getAdminTabs('cashier', false))).toEqual(['orders', 'menu', 'inventory', 'operations', 'integrations'])
+  it('branch_admin ve operacion de sede sin Reportes', () => {
+    expect(ids(getAdminTabs('branch_admin', false))).toEqual([
+      'orders',
+      'menu',
+      'inventory',
+      'operations',
+      'cash',
+      'integrations',
+    ])
+  })
+
+  it('cashier ve pedidos y caja', () => {
+    expect(ids(getAdminTabs('cashier', false))).toEqual(['orders', 'cash'])
   })
 
   it('adminTabInfo expone el catalogo completo de tabs', () => {
-    expect(adminTabInfo).toHaveLength(6)
+    expect(adminTabInfo).toHaveLength(7)
     expect(adminTabInfo.map((tab) => tab.id)).toContain('reports')
+    expect(adminTabInfo.map((tab) => tab.id)).toContain('cash')
   })
 })

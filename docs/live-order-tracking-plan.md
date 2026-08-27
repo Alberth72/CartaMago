@@ -12,8 +12,10 @@ CartaMago debe mostrar el avance del pedido fuera del panel admin:
 
 - `/tracking/:orderId`: vista demo/legacy por ID interno (solo mock).
 - `/tracking/t/:trackingToken`: vista publica segura por token no adivinable (produccion).
-- `/kitchen`: pantalla operativa para cocina.
-- `/salon`: pantalla publica para clientes presentes en el local.
+- `/s/:branchId/tracking/t/:trackingToken`: vista publica segura por token para una sede especifica.
+- `/s/:branchId/kitchen/t/:displayToken`: pantalla operativa de cocina con token de sede.
+- `/s/:branchId/salon/t/:displayToken`: pantalla publica de sala con token de sede.
+- `/kitchen` y `/salon`: rutas legacy/demo.
 
 ## Estado Actual
 
@@ -27,8 +29,11 @@ En local/mock:
 
 Con Supabase:
 
-- Las vistas usan la misma fuente `orders` + `order_items`.
-- Se suscriben a cambios de `orders` y `order_status_events` con Supabase Realtime.
+- El rastreo publico del cliente usa `tracking_token` + RPC `get_order_tracking`.
+- La RPC devuelve solo campos seguros para cliente: estado, entrega, pago, total, fechas, enlace de WhatsApp e items.
+- La lectura anonima directa de `orders` y `order_items` queda bloqueada por `202608250001_secure_tracking_token_default.sql`.
+- Cocina y sala usan tokens operativos propios por sede (`kitchen_display_token`, `room_display_token`) y RPCs separadas.
+- `anon` no puede leer esos tokens desde `branches`; solo columnas publicas del menu.
 - El polling queda como fallback.
 
 ## Flujo Cliente
@@ -36,7 +41,7 @@ Con Supabase:
 1. Cliente hace un pedido.
 2. CartaMago guarda el pedido.
 3. El local cambia estados desde admin.
-4. Cliente abre `/tracking/:orderId`.
+4. Cliente abre `/tracking/t/:trackingToken` o `/s/:branchId/tracking/t/:trackingToken`.
 5. La vista cambia cuando el pedido pasa por:
 
 ```text
@@ -49,7 +54,7 @@ Si el pedido se cancela, el rastreo muestra estado cancelado.
 
 ### Cocinero
 
-Ruta: `/kitchen`
+Ruta: `/s/:branchId/kitchen/t/:displayToken`
 
 Necesita:
 
@@ -69,7 +74,7 @@ No necesita:
 
 ### Cliente En Sala
 
-Ruta: `/salon`
+Ruta: `/s/:branchId/salon/t/:displayToken`
 
 Necesita:
 
@@ -87,7 +92,7 @@ No debe ver:
 
 ### Cliente Remoto
 
-Ruta: `/tracking/:orderId` en demo, futura `/tracking/t/:trackingToken`.
+Ruta: `/tracking/t/:trackingToken`.
 
 Necesita:
 
@@ -122,21 +127,20 @@ Para mesa muestra `Mesa N`.
 Para recoger puede mostrar el nombre si el local lo decide en el flujo de datos.
 Para domicilios muestra codigo de pedido, no direccion.
 
-## Seguridad Pendiente Antes De Produccion
+## Seguridad Para Produccion
 
-La ruta actual usa `orderId`, suficiente para demo local y validacion funcional.
+El rastreo publico por token ya esta implementado:
 
-Antes de produccion publica, se debe crear un `tracking_token` por pedido:
-
-- Token corto, aleatorio y no adivinable.
-- URL publica tipo `/tracking/t/:trackingToken`.
-- RLS o Edge Function que solo devuelva campos seguros para cliente.
-- No exponer datos internos, pagos sensibles ni payloads de integraciones.
+- `tracking_token` existe en `orders`, es unico y obligatorio.
+- Los pedidos nuevos reciben token desde la Edge Function `create-order` o por default SQL.
+- Los pedidos existentes/locales se rellenan por migracion.
+- La RPC publica `get_order_tracking(token)` no expone telefono, direccion, nota general del cliente ni payloads de integraciones.
+- Cocina usa `get_kitchen_display_orders(branch, token)` y puede ver datos operativos internos.
+- Sala usa `get_room_display_orders(branch, token)` y recibe un payload publico reducido sin telefono, direccion, nota, pago ni payloads.
+- `/tracking/:orderId` queda como ruta demo/legacy y no debe compartirse como enlace publico.
 
 ## Siguiente Slice Recomendado
 
-1. Agregar `tracking_token` a `orders`.
-2. Devolver `trackingUrl` al crear pedido.
-3. Incluir link de rastreo en el mensaje de WhatsApp.
-4. Crear vista publica con token, no con ID interno.
-5. Agregar sonido o alerta visual en `/kitchen` para pedidos nuevos.
+1. Aplicar `202608250001_secure_tracking_token_default.sql` y `202608250002_branch_display_tokens.sql` en cloud cuando se decida rollout.
+2. Validar en cloud que anon no pueda leer `orders` ni tokens de `branches`, pero si pueda consultar las RPCs con tokens correctos.
+3. Agregar sonido o alerta visual en `/kitchen` para pedidos nuevos.

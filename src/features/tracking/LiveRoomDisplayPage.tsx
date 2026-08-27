@@ -2,27 +2,29 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { CheckCircle2, Clock, Flame, PackageCheck, RefreshCw, ScreenShare } from 'lucide-react'
 import { useParams } from 'react-router'
-import { getSupabaseConfig } from '../../services/menuRepository'
+import { isE2EAdminMockEnabled } from '../../lib/runtimeFlags'
+import { getSupabaseConfig, isSupabaseConfigured } from '../../services/menuRepository'
 import { fulfillmentIcons, fulfillmentLabels, statusLabels } from '../admin/orderUi'
 import type { OrderStatus, OrderWithItems } from '../order/types'
-import { fetchTrackableOrders, subscribeToTrackableOrderChanges } from './orderTrackingRepository'
+import { fetchRoomDisplayOrders, subscribeToTrackableOrderChanges } from './orderTrackingRepository'
 import { formatLiveTime, formatShortOrderId, isActiveKitchenOrder } from './trackingUi'
 
 const roomStatuses: OrderStatus[] = ['confirmed', 'preparing', 'ready']
 
 export function LiveRoomDisplayPage() {
-  const { branchId: routeBranchId } = useParams()
+  const { branchId: routeBranchId, displayToken } = useParams()
   const branchId = routeBranchId ?? getSupabaseConfig().branchId
+  const requiresDisplayToken = isSupabaseConfigured() && !isE2EAdminMockEnabled() && !displayToken
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
 
   const loadOrders = useCallback(async () => {
-    const nextOrders = await fetchTrackableOrders(branchId)
+    const nextOrders = await fetchRoomDisplayOrders(branchId, displayToken)
     setOrders(nextOrders.filter((order) => isActiveKitchenOrder(order) && roomStatuses.includes(order.status)))
     setLastSyncedAt(new Date().toISOString())
     setLoading(false)
-  }, [branchId])
+  }, [branchId, displayToken])
 
   useEffect(() => {
     void loadOrders()
@@ -68,7 +70,16 @@ export function LiveRoomDisplayPage() {
           </div>
         </header>
 
-        {loading ? (
+        {requiresDisplayToken ? (
+          <div className="grid min-h-[55vh] place-items-center rounded-2xl border border-amber-200 bg-white p-6 text-center shadow-lg shadow-amber-900/10">
+            <div>
+              <p className="text-lg font-black text-stone-950">Token de sala requerido</p>
+              <p className="mt-2 max-w-md text-sm font-bold leading-6 text-stone-500">
+                Abre esta pantalla desde el kit operativo de la sede para usar el enlace seguro de sala.
+              </p>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="grid min-h-[55vh] place-items-center rounded-2xl border border-amber-200 bg-white shadow-lg shadow-amber-900/10">
             <div className="flex items-center gap-3 text-sm font-black text-stone-600">
               <RefreshCw size={22} className="animate-spin text-red-900" />

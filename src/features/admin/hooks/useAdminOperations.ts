@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { CreateDispatchRequestInput, OperationsData } from '../operationsTypes'
+import type {
+  CloseCashSessionInput,
+  CreateDispatchRequestInput,
+  CreateSaleInput,
+  OpenCashSessionInput,
+  OperationsData,
+} from '../operationsTypes'
 import {
+  closeAdminCashSession,
   createAdminDispatchRequest,
   dispatchAdminRequest,
   fetchAdminOperations,
+  openAdminCashSession,
   receiveAdminDispatch,
-  sellAdminProduct,
+  createAdminSale,
 } from '../repositories/adminOperationsRepository'
 
 export function useAdminOperations() {
@@ -31,15 +39,17 @@ export function useAdminOperations() {
   }, [loadOperations])
 
   const runAction = useCallback(
-    async (action: () => Promise<unknown>, successMessage: string) => {
+    async <T,>(action: () => Promise<T>, successMessage: string) => {
       setIsSaving(true)
       setStatus('')
       try {
-        await action()
+        const result = await action()
         await loadOperations()
         setStatus(successMessage)
+        return result
       } catch (error) {
         setStatus(error instanceof Error ? error.message : 'No se pudo completar la operacion.')
+        return null
       } finally {
         setIsSaving(false)
       }
@@ -58,8 +68,12 @@ export function useAdminOperations() {
       runAction(() => dispatchAdminRequest(requestId), 'Solicitud despachada desde bodega.'),
     receiveDispatch: (dispatchId: string) =>
       runAction(() => receiveAdminDispatch(dispatchId), 'Despacho recibido en sede.'),
-    sellProduct: (branchId: string, productId: string, quantity: number) =>
-      runAction(() => sellAdminProduct(branchId, productId, quantity), 'Venta registrada y stock descontado.'),
+    openCashSession: (input: OpenCashSessionInput) =>
+      runAction(() => openAdminCashSession(input), 'Caja abierta correctamente.'),
+    closeCashSession: (input: CloseCashSessionInput) =>
+      runAction(() => closeAdminCashSession(input), 'Caja cerrada correctamente.'),
+    createSale: (input: CreateSaleInput) =>
+      runAction(() => createAdminSale(input), 'Venta registrada, pago guardado y stock descontado.'),
     reload: loadOperations,
   }
 }

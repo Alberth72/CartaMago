@@ -21,6 +21,12 @@ const overview = {
   branch_count: 2,
   total_orders: 8,
   total_delivered_cop: 182000,
+  sales_count: 3,
+  sales_total_cop: 156000,
+  open_cash_sessions: 1,
+  branch_sales: [
+    { branch_id: 'brasas-sazon', branch_name: 'Brasas & Sazon Principal', sales_count: 2, sales_total_cop: 104000 },
+  ],
   orders_by_status: [
     { status: 'pending', count: 1 },
     { status: 'delivered', count: 3 },
@@ -46,6 +52,8 @@ describe('fetchBrandReports', () => {
     expect(report.branchCount).toBe(2)
     expect(report.totalOrders).toBe(8)
     expect(report.totalDeliveredCop).toBe(182000)
+    expect(report.salesTotalCop).toBe(156000)
+    expect(report.branchSales).toHaveLength(1)
     expect(report.ordersByStatus).toHaveLength(2)
     expect(report.criticalStockCount).toBe(3)
   })

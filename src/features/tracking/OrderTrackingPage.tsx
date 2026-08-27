@@ -4,6 +4,9 @@ import { ArrowLeft, CheckCircle2, Clock, ExternalLink, Package, RefreshCw, User,
 import { Link, useParams } from 'react-router'
 import { formatCurrency } from '../../lib/format'
 import { getSupabaseConfig } from '../../services/menuRepository'
+import { ReceiptCard } from '../receipt/ReceiptCard'
+import { printReceipt } from '../receipt/printReceipt'
+import type { ReceiptData } from '../receipt/receiptTypes'
 import { fulfillmentIcons, fulfillmentLabels } from '../admin/orderUi'
 import { paymentMethodLabels, paymentStatusLabels, type PaymentMethod, type PaymentStatus } from '../order/payment'
 import type { OrderStatus, OrderWithItems } from '../order/types'
@@ -21,6 +24,10 @@ import {
 
 type TrackingDisplayOrder = {
   id: string
+  receipt_number: string
+  business_name: string
+  branch_name: string
+  order_channel: string
   status: OrderStatus
   fulfillment_mode: string
   payment_method: string | null
@@ -42,6 +49,10 @@ type TrackingDisplayOrder = {
 function normalizeOrderForDisplay(order: OrderWithItems): TrackingDisplayOrder {
   return {
     id: order.id,
+    receipt_number: `PED-${order.id.replace(/-/g, '').slice(0, 10).toUpperCase()}`,
+    business_name: order.branch_id,
+    branch_name: order.branch_id,
+    order_channel: order.order_channel ?? 'cartamago',
     status: order.status,
     fulfillment_mode: order.fulfillment_mode,
     payment_method: order.payment_method ?? 'cash',
@@ -64,15 +75,19 @@ function normalizeOrderForDisplay(order: OrderWithItems): TrackingDisplayOrder {
 function normalizeTrackingViewForDisplay(view: CustomerTrackingView): TrackingDisplayOrder {
   return {
     id: view.orderId,
+    receipt_number: view.receiptNumber,
+    business_name: view.businessName,
+    branch_name: view.branchName,
+    order_channel: view.orderChannel,
     status: view.status,
     fulfillment_mode: view.fulfillmentMode,
     payment_method: view.paymentMethod,
-    payment_status: 'pending',
+    payment_status: view.paymentStatus,
     total_cop: view.totalCop,
     whatsapp_link: view.whatsappLink,
     created_at: view.createdAt,
     updated_at: view.updatedAt,
-    customer_name: null,
+    customer_name: view.customerName,
     items: view.items.map((item, index) => ({
       id: `tracking-item-${index}`,
       quantity: item.quantity,
@@ -169,6 +184,7 @@ export function OrderTrackingPage() {
   const FulfillmentIcon = fulfillmentIcons[order.fulfillment_mode] ?? Package
   const paymentMethod = (order.payment_method ?? 'cash') as PaymentMethod
   const paymentStatus = (order.payment_status ?? 'pending') as PaymentStatus
+  const receipt = buildReceiptData(order)
 
   return (
     <main className="min-h-screen bg-[#fff8ed] px-4 py-5 text-stone-950">
@@ -291,6 +307,24 @@ export function OrderTrackingPage() {
             ) : null}
           </aside>
         </section>
+
+        <section className="grid gap-3 lg:grid-cols-[minmax(0,420px)_1fr]">
+          <ReceiptCard receipt={receipt} onPrint={printReceipt} />
+          <div className="rounded-xl border border-amber-200 bg-white p-5 shadow-lg shadow-amber-900/10">
+            <p className="text-xs font-black uppercase text-stone-400">Comprobante</p>
+            <h2 className="mt-1 text-xl font-black text-stone-950">Ticket listo para imprimir</h2>
+            <p className="mt-2 text-sm font-bold leading-6 text-stone-500">
+              Este recibo es operativo y no reemplaza factura electronica DIAN. Conserva el numero de ticket para consultar el pedido o resolver cambios con el local.
+            </p>
+            <button
+              type="button"
+              onClick={printReceipt}
+              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg bg-stone-950 px-4 py-2 text-sm font-black text-white"
+            >
+              Imprimir ticket
+            </button>
+          </div>
+        </section>
       </div>
     </main>
   )
@@ -312,4 +346,39 @@ function InfoLine({ icon: Icon, label, value }: InfoLineProps) {
       <p className="mt-1 text-sm font-black text-stone-800">{value}</p>
     </div>
   )
+}
+
+function buildReceiptData(order: TrackingDisplayOrder): ReceiptData {
+  const paymentMethod = (order.payment_method ?? 'cash') as PaymentMethod
+  const paymentStatus = (order.payment_status ?? 'pending') as PaymentStatus
+
+  return {
+    receiptNumber: order.receipt_number,
+    orderId: order.id,
+    businessName: order.business_name || order.branch_name || 'CartaMago',
+    branchName: order.branch_name || 'Sede',
+    channelLabel: getOrderChannelLabel(order.order_channel),
+    fulfillmentLabel: fulfillmentLabels[order.fulfillment_mode] ?? order.fulfillment_mode,
+    paymentLabel: paymentMethodLabels[paymentMethod] ?? order.payment_method ?? 'Por definir',
+    paymentStatusLabel: paymentStatusLabels[paymentStatus] ?? order.payment_status ?? 'Pendiente',
+    issuedAt: order.created_at,
+    customerName: null,
+    items: order.items.map((item) => ({
+      id: item.id,
+      productName: item.product_name,
+      quantity: item.quantity,
+      unitPriceCop: item.unit_price_cop,
+      lineNote: item.line_note,
+    })),
+    totalCop: order.total_cop,
+    footer: 'Gracias por tu compra. Recibo interno no fiscal.',
+  }
+}
+
+function getOrderChannelLabel(channel: string) {
+  if (channel === 'cash_terminal') return 'Caja'
+  if (channel === 'admin_pos') return 'Admin caja'
+  if (channel === 'didi_food') return 'DiDiFood'
+  if (channel === 'whatsapp') return 'WhatsApp'
+  return 'QR CartaMago'
 }

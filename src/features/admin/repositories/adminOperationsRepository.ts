@@ -1,12 +1,19 @@
 import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
 import { getSupabaseClient } from '../../../services/menuRepository'
 import type {
+  CloseCashSessionInput,
   CreateDispatchRequestInput,
+  CreateSaleInput,
+  CashSession,
   Dispatch,
   DispatchRequest,
   DispatchRequestStatus,
   DispatchStatus,
   OperationsData,
+  OpenCashSessionInput,
+  SalePaymentMethod,
+  SalePaymentStatus,
+  SaleSummary,
 } from '../operationsTypes'
 import { fetchAdminScope } from './adminScopeRepository'
 
@@ -51,8 +58,11 @@ let mockData: OperationsData = {
     { id: 'bstk_norte_arroz', branchId: 'brasas-sazon-norte', itemId: 'arroz', quantity: 32 },
   ],
   products: [
-    { id: 'pollo-entero', branchId: 'brasas-sazon', name: '1 Pollo asado al carbon' },
-    { id: 'pollo-entero-norte', branchId: 'brasas-sazon-norte', name: '1 Pollo asado al carbon' },
+    { id: 'pollo-entero', branchId: 'brasas-sazon', name: '1 Pollo asado al carbon', priceCop: 26000 },
+    { id: 'limonada-natural', branchId: 'brasas-sazon', name: 'Limonada natural', priceCop: 7000 },
+    { id: 'gaseosa-personal', branchId: 'brasas-sazon', name: 'Gaseosa personal', priceCop: 5000 },
+    { id: 'pollo-entero-norte', branchId: 'brasas-sazon-norte', name: '1 Pollo asado al carbon', priceCop: 26000 },
+    { id: 'limonada-natural-norte', branchId: 'brasas-sazon-norte', name: 'Limonada natural', priceCop: 7000 },
   ],
   requests: [
     {
@@ -66,6 +76,21 @@ let mockData: OperationsData = {
     },
   ],
   dispatches: [],
+  cashSessions: [
+    {
+      id: 'cash_demo_001',
+      branchId: 'brasas-sazon',
+      name: 'Caja principal',
+      accessToken: 'cs_mock_cash_demo_001',
+      status: 'open',
+      openingCashCop: 100000,
+      closingCashCop: null,
+      expectedCashCop: null,
+      openedAt: new Date(now - 2 * 60 * 60_000).toISOString(),
+      closedAt: null,
+    },
+  ],
+  sales: [],
 }
 
 function cloneOperationsData(): OperationsData {
@@ -86,6 +111,8 @@ function cloneOperationsData(): OperationsData {
       items: request.items.map((item) => ({ ...item })),
     })),
     dispatches: mockData.dispatches.map((dispatch) => ({ ...dispatch })),
+    cashSessions: mockData.cashSessions.map((session) => ({ ...session })),
+    sales: mockData.sales.map((sale) => ({ ...sale, itemNames: [...sale.itemNames] })),
   }
 }
 
@@ -125,6 +152,39 @@ function mapDispatch(row: Record<string, unknown>): Dispatch {
   }
 }
 
+function mapCashSession(row: Record<string, unknown>): CashSession {
+  return {
+    id: String(row.id),
+    branchId: String(row.branch_id),
+    name: typeof row.name === 'string' ? row.name : 'Caja principal',
+    status: row.status === 'closed' ? 'closed' : 'open',
+    accessToken: typeof row.access_token === 'string' ? row.access_token : null,
+    openingCashCop: Number(row.opening_cash_cop ?? 0),
+    closingCashCop: row.closing_cash_cop == null ? null : Number(row.closing_cash_cop),
+    expectedCashCop: row.expected_cash_cop == null ? null : Number(row.expected_cash_cop),
+    openedAt: String(row.opened_at),
+    closedAt: typeof row.closed_at === 'string' ? row.closed_at : null,
+  }
+}
+
+function mapSale(row: Record<string, unknown>): SaleSummary {
+  const items = Array.isArray(row.sale_items) ? row.sale_items : []
+  const payments = Array.isArray(row.sale_payments) ? row.sale_payments : []
+  const firstPayment = (payments[0] ?? {}) as Record<string, unknown>
+
+  return {
+    id: String(row.id),
+    branchId: String(row.branch_id),
+    cashSessionId: typeof row.cash_session_id === 'string' ? row.cash_session_id : null,
+    receiptNumber: String(row.receipt_number),
+    totalCop: Number(row.total_cop ?? 0),
+    paymentMethod: String(firstPayment.payment_method ?? 'cash') as SalePaymentMethod,
+    paymentStatus: String(row.payment_status ?? firstPayment.payment_status ?? 'paid') as SalePaymentStatus,
+    soldAt: String(row.sold_at),
+    itemNames: items.map((item) => String((item as Record<string, unknown>).product_name ?? '')).filter(Boolean),
+  }
+}
+
 export async function fetchAdminOperations(): Promise<OperationsData> {
   if (isE2EAdminMockEnabled()) {
     return cloneOperationsData()
@@ -141,19 +201,27 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     productsResult,
     requestsResult,
     dispatchesResult,
+    cashSessionsResult,
+    salesResult,
   ] = await Promise.all([
     supabase.from('warehouses').select('id,name').order('name', { ascending: true }),
     supabase.from('branches').select('id,name,warehouse_id').order('name', { ascending: true }),
     supabase.from('inventory_items').select('id,name,unit,category').order('name', { ascending: true }),
     supabase.from('warehouse_stock').select('id,warehouse_id,item_id,quantity'),
     supabase.from('branch_stock').select('id,branch_id,item_id,quantity'),
-    supabase.from('products').select('id,branch_id,name').eq('available', true).order('name', { ascending: true }),
+    supabase.from('products').select('id,branch_id,name,price_cop').eq('available', true).order('name', { ascending: true }),
     supabase
       .from('dispatch_requests')
       .select('*,dispatch_request_items(*)')
       .order('created_at', { ascending: false })
       .limit(50),
     supabase.from('dispatches').select('*').order('created_at', { ascending: false }).limit(50),
+    supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false }).limit(20),
+    supabase
+      .from('sales')
+      .select('*,sale_items(*),sale_payments(*)')
+      .order('sold_at', { ascending: false })
+      .limit(20),
   ])
 
   const error =
@@ -164,7 +232,9 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     branchStockResult.error ??
     productsResult.error ??
     requestsResult.error ??
-    dispatchesResult.error
+    dispatchesResult.error ??
+    cashSessionsResult.error ??
+    salesResult.error
 
   if (error) {
     throw new Error(error.message)
@@ -216,6 +286,7 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
       id: row.id,
       branchId: row.branch_id,
       name: row.name,
+      priceCop: row.price_cop == null ? null : Number(row.price_cop),
     })).filter((product) => visibleBranchIds.length === 0 || visibleBranchIds.includes(product.branchId)),
     requests: ((requestsResult.data ?? []) as Array<Record<string, unknown>>)
       .map(mapDispatchRequest)
@@ -231,7 +302,71 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
           visibleBranchIds.includes(dispatch.branchId) ||
           (profile.canManageWarehouse && visibleWarehouseIds.includes(dispatch.warehouseId)),
       ),
+    cashSessions: ((cashSessionsResult.data ?? []) as Array<Record<string, unknown>>)
+      .map(mapCashSession)
+      .filter((session) => visibleBranchIds.includes(session.branchId)),
+    sales: ((salesResult.data ?? []) as Array<Record<string, unknown>>)
+      .map(mapSale)
+      .filter((sale) => visibleBranchIds.includes(sale.branchId)),
   }
+}
+
+export async function openAdminCashSession(input: OpenCashSessionInput) {
+  if (isE2EAdminMockEnabled()) {
+    const sessionId = `cash_${Date.now()}`
+    mockData.cashSessions = [
+      {
+        id: sessionId,
+        branchId: input.branchId,
+        name: input.name.trim() || 'Caja principal',
+        accessToken: `cs_mock_${sessionId}`,
+        status: 'open',
+        openingCashCop: Math.max(input.openingCashCop, 0),
+        closingCashCop: null,
+        expectedCashCop: null,
+        openedAt: new Date().toISOString(),
+        closedAt: null,
+      },
+      ...mockData.cashSessions,
+    ]
+    return sessionId
+  }
+
+  const { data, error } = await getSupabaseClient().rpc('open_cash_session', {
+    p_branch_id: input.branchId,
+    p_opening_cash_cop: input.openingCashCop,
+    p_notes: input.notes,
+    p_name: input.name,
+  })
+
+  if (error) throw new Error(error.message)
+  return String(data)
+}
+
+export async function closeAdminCashSession(input: CloseCashSessionInput) {
+  if (isE2EAdminMockEnabled()) {
+    const session = mockData.cashSessions.find((entry) => entry.id === input.cashSessionId)
+    if (!session) throw new Error('Caja no encontrada.')
+    if (session.status !== 'open') throw new Error('La caja ya esta cerrada.')
+
+    const cashSales = mockData.sales
+      .filter((sale) => sale.cashSessionId === session.id && sale.paymentMethod === 'cash' && sale.paymentStatus === 'paid')
+      .reduce((sum, sale) => sum + sale.totalCop, 0)
+
+    session.status = 'closed'
+    session.closingCashCop = Math.max(input.closingCashCop, 0)
+    session.expectedCashCop = session.openingCashCop + cashSales
+    session.closedAt = new Date().toISOString()
+    return
+  }
+
+  const { error } = await getSupabaseClient().rpc('close_cash_session', {
+    p_cash_session_id: input.cashSessionId,
+    p_closing_cash_cop: input.closingCashCop,
+    p_notes: input.notes,
+  })
+
+  if (error) throw new Error(error.message)
 }
 
 export async function createAdminDispatchRequest(input: CreateDispatchRequestInput) {
@@ -338,19 +473,53 @@ export async function receiveAdminDispatch(dispatchId: string) {
   if (error) throw new Error(error.message)
 }
 
-export async function sellAdminProduct(branchId: string, productId: string, quantity: number) {
+export async function createAdminSale(input: CreateSaleInput) {
   if (isE2EAdminMockEnabled()) {
-    const stock = mockData.branchStock.find((entry) => entry.branchId === branchId && entry.itemId === 'pollo-entero')
-    if (!stock || stock.quantity < quantity) throw new Error('Stock insuficiente en sede.')
-    stock.quantity -= quantity
+    if (input.items.length === 0) throw new Error('Agrega al menos un producto a la venta.')
+    const cashSession =
+      input.cashSessionId == null
+        ? mockData.cashSessions.find((entry) => entry.branchId === input.branchId && entry.status === 'open') ?? null
+        : mockData.cashSessions.find((entry) => entry.id === input.cashSessionId && entry.branchId === input.branchId) ?? null
+    if (input.cashSessionId && cashSession?.status !== 'open') throw new Error('La caja seleccionada no esta abierta para esta sede.')
+    const lines = input.items.map((item) => {
+      const product = mockData.products.find((entry) => entry.branchId === input.branchId && entry.id === item.productId)
+      if (!product) throw new Error('Producto no disponible para la sede.')
+      if (item.quantity <= 0) throw new Error('La cantidad vendida debe ser mayor a cero.')
+      return { product, quantity: item.quantity }
+    })
+
+    for (const line of lines) {
+      if (!line.product.id.includes('pollo')) continue
+      const stock = mockData.branchStock.find((entry) => entry.branchId === input.branchId && entry.itemId === 'pollo-entero')
+      if (!stock || stock.quantity < line.quantity) throw new Error('Stock insuficiente en sede.')
+      stock.quantity -= line.quantity
+    }
+
+    const saleId = `sale_${Date.now()}`
+    const receiptNumber = `${input.branchId.replace(/-/g, '').toUpperCase()}-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-MOCK`
+    mockData.sales = [
+      {
+        id: saleId,
+        branchId: input.branchId,
+        cashSessionId: cashSession?.id ?? null,
+        receiptNumber,
+        totalCop: lines.reduce((sum, line) => sum + (line.product.priceCop ?? 0) * line.quantity, 0),
+        paymentMethod: input.paymentMethod,
+        paymentStatus: input.paymentMethod === 'wompi' ? 'pending' : 'paid',
+        soldAt: new Date().toISOString(),
+        itemNames: lines.map((line) => `${line.quantity} x ${line.product.name}`),
+      },
+      ...mockData.sales,
+    ]
     return
   }
 
-  const { error } = await getSupabaseClient().rpc('sell_product', {
-    p_branch_id: branchId,
-    p_product_id: productId,
-    p_quantity: quantity,
-    p_option_ids: [],
+  const { error } = await getSupabaseClient().rpc('create_sale', {
+    p_branch_id: input.branchId,
+    p_items: input.items.map((item) => ({ product_id: item.productId, quantity: item.quantity })),
+    p_payment_method: input.paymentMethod,
+    p_payment_reference: input.paymentReference,
+    p_cash_session_id: input.cashSessionId ?? null,
   })
 
   if (error) throw new Error(error.message)

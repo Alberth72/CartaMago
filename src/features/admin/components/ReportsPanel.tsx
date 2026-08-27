@@ -1,4 +1,4 @@
-import { AlertTriangle, BarChart3, RefreshCw, ReceiptText, ShoppingCart, Store, Truck } from 'lucide-react'
+import { AlertTriangle, BarChart3, CreditCard, RefreshCw, ReceiptText, ShoppingCart, Store, Truck } from 'lucide-react'
 import { formatCurrency } from '../../../lib/format'
 import { useAdminReports } from '../hooks/useAdminReports'
 
@@ -42,9 +42,12 @@ export function ReportsPanel() {
     { label: 'Sedes', value: String(data.branchCount), icon: Store },
     { label: 'Pedidos totales', value: String(data.totalOrders), icon: ReceiptText },
     { label: 'Ventas entregadas', value: formatCurrency(data.totalDeliveredCop), icon: BarChart3 },
+    { label: 'Ventas POS', value: formatCurrency(data.salesTotalCop), icon: CreditCard },
+    { label: 'Comprobantes', value: String(data.salesCount), icon: ReceiptText },
     { label: 'Compras', value: formatCurrency(data.purchasesTotal), icon: ShoppingCart },
     { label: 'Stock critico', value: String(data.criticalStockCount), icon: AlertTriangle },
     { label: 'Despachos abiertos', value: String(data.dispatchesOpen), icon: Truck },
+    { label: 'Cajas abiertas', value: String(data.openCashSessions), icon: Store },
   ]
 
   return (
@@ -81,6 +84,25 @@ export function ReportsPanel() {
             </div>
           )
         })}
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-sm font-black uppercase tracking-wide text-stone-500">Ventas por sede</h3>
+        {data.branchSales.length === 0 ? (
+          <p className="mt-2 text-sm font-bold text-stone-500">Sin ventas operativas registradas.</p>
+        ) : (
+          <ul className="mt-3 grid gap-2 lg:grid-cols-2">
+            {data.branchSales.map((entry) => (
+              <li key={entry.branchId} className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-3 py-2">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-stone-700">{entry.branchName}</span>
+                  <span className="text-xs font-bold text-stone-500">{entry.salesCount} comprobantes internos</span>
+                </span>
+                <span className="text-sm font-black text-red-900">{formatCurrency(entry.salesTotalCop)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="mt-6">

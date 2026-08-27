@@ -254,6 +254,8 @@ function Metric({ label, value, icon: Icon }: MetricProps) {
 }
 
 function formatOrderChannel(channel: string | undefined) {
+  if (channel === 'cash_terminal') return 'Caja'
+  if (channel === 'admin_pos') return 'Admin caja'
   if (channel === 'didi_food') return 'DiDi'
   if (channel === 'whatsapp') return 'WhatsApp'
   return 'CartaMago'

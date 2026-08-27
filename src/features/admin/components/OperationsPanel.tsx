@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { ArrowDownUp, CheckCircle2, PackageCheck, RefreshCw, Save, ShoppingCart, Truck, Warehouse } from 'lucide-react'
+import {
+  ArrowDownUp,
+  CheckCircle2,
+  PackageCheck,
+  RefreshCw,
+  Save,
+  Truck,
+  Warehouse,
+} from 'lucide-react'
 import { useAdminOperations } from '../hooks/useAdminOperations'
 import type { DispatchRequestStatus, DispatchStatus } from '../operationsTypes'
 
@@ -32,14 +40,10 @@ export function OperationsPanel() {
   const [requestItemId, setRequestItemId] = useState('')
   const [requestQuantity, setRequestQuantity] = useState('')
   const [requestNotes, setRequestNotes] = useState('')
-  const [saleBranchId, setSaleBranchId] = useState('')
-  const [saleProductId, setSaleProductId] = useState('')
-  const [saleQuantity, setSaleQuantity] = useState('1')
 
   const branches = data?.branches ?? []
   const warehouses = data?.warehouses ?? []
   const items = data?.items ?? []
-  const products = data?.products ?? []
   const requests = data?.requests ?? []
   const dispatches = data?.dispatches ?? []
   const profile = data?.profile
@@ -49,7 +53,6 @@ export function OperationsPanel() {
   const selectedRequestBranch =
     branches.find((branch) => branch.id === (lockedBranchId ?? requestBranchId)) ?? branches[0]
   const selectedWarehouseId = selectedRequestBranch?.warehouseId ?? warehouses[0]?.id ?? ''
-  const saleProducts = products.filter((product) => !saleBranchId || product.branchId === saleBranchId)
   const canOperateAsBranch = Boolean(profile?.primaryBranchId || profile?.role === 'superadmin')
   const canDispatchFromWarehouse = Boolean(profile?.canManageWarehouse)
 
@@ -58,8 +61,7 @@ export function OperationsPanel() {
 
     const nextBranchId = lockedBranchId ?? data.branches[0]?.id ?? ''
     if (nextBranchId && requestBranchId !== nextBranchId) setRequestBranchId(nextBranchId)
-    if (nextBranchId && saleBranchId !== nextBranchId) setSaleBranchId(nextBranchId)
-  }, [data, lockedBranchId, requestBranchId, saleBranchId])
+  }, [data, lockedBranchId, requestBranchId])
 
   const branchRows = branches.map((branch) => ({
     branch,
@@ -81,7 +83,6 @@ export function OperationsPanel() {
     Boolean(selectedWarehouseId) &&
     Boolean(requestItemId) &&
     Number(requestQuantity) > 0
-  const canSell = canOperateAsBranch && Boolean(saleBranchId) && Boolean(saleProductId) && Number(saleQuantity) > 0
   const pendingRequestsCount = requests.filter(
     (request) => request.status === 'pending' || request.status === 'approved',
   ).length
@@ -98,12 +99,6 @@ export function OperationsPanel() {
     })
     setRequestQuantity('')
     setRequestNotes('')
-  }
-
-  const handleSellProduct = () => {
-    if (!canSell) return
-    void operations.sellProduct(saleBranchId, saleProductId, Number(saleQuantity))
-    setSaleQuantity('1')
   }
 
   if (operations.isLoading) {
@@ -289,7 +284,7 @@ export function OperationsPanel() {
         </section>
       ) : null}
 
-      <div className={`grid gap-4 ${isWarehouseOnly ? '' : 'xl:grid-cols-[minmax(0,1fr)_380px]'}`}>
+      <div className="grid gap-4">
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -539,78 +534,6 @@ export function OperationsPanel() {
           </div>
         </section>
 
-        {!isWarehouseOnly ? (
-          <aside className="h-fit rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="grid size-10 place-items-center rounded-md bg-red-100 text-red-700">
-                <ShoppingCart size={22} />
-              </span>
-              <div>
-                <h3 className="text-base font-black text-stone-950">Registrar venta</h3>
-                <p className="text-sm font-bold text-stone-500">Descuenta insumos por formula</p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Sede
-                <select
-                  value={saleBranchId}
-                  onChange={(event) => {
-                    setSaleBranchId(event.target.value)
-                    setSaleProductId('')
-                  }}
-                  disabled={Boolean(lockedBranchId)}
-                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                >
-                  <option value="">Selecciona una sede</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Producto
-                <select
-                  value={saleProductId}
-                  onChange={(event) => setSaleProductId(event.target.value)}
-                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                >
-                  <option value="">Selecciona un producto</option>
-                  {saleProducts.map((product) => (
-                    <option key={`${product.branchId}:${product.id}`} value={product.id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="grid gap-1 text-sm font-bold text-stone-700">
-                Cantidad vendida
-                <input
-                  type="number"
-                  min="1"
-                  value={saleQuantity}
-                  onChange={(event) => setSaleQuantity(event.target.value)}
-                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={handleSellProduct}
-                disabled={!canSell || operations.isSaving}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-900 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400"
-              >
-                <ShoppingCart size={16} />
-                Registrar venta
-              </button>
-            </div>
-          </aside>
-        ) : null}
       </div>
 
       {operations.status ? (

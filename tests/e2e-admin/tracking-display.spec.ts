@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 test('shows the live kitchen display with active mock orders', async ({ page }) => {
-  await page.goto('/kitchen')
+  await page.goto('/s/brasas-sazon/kitchen/t/kd_mock_brasas_sazon')
 
   await expect(page).toHaveTitle(/cocina en vivo/i)
   await expect(page.getByRole('heading', { name: /cocina en vivo/i })).toBeVisible()
@@ -13,7 +13,7 @@ test('shows the live kitchen display with active mock orders', async ({ page }) 
 })
 
 test('shows the public live room display without kitchen notes', async ({ page }) => {
-  await page.goto('/salon')
+  await page.goto('/s/brasas-sazon/salon/t/rd_mock_brasas_sazon')
 
   await expect(page).toHaveTitle(/sala en vivo/i)
   await expect(page.getByRole('heading', { name: /pedidos en preparacion/i })).toBeVisible()

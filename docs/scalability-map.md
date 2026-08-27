@@ -163,4 +163,4 @@ features/admin/
     adminIntegrationRepository.ts / adminMockRepository.ts
 ```
 
-The next refactor should add tests around repository behavior (loading, saving, image upload, dispatch/purchase RPCs, and auth/scoping) once those rules become more complex, and secure tracking behind a `tracking_token` before public launch.
+The next refactor should add tests around repository behavior (loading, saving, image upload, dispatch/purchase RPCs, auth/scoping, and SQL RPC security). Public customer tracking uses `tracking_token`, and kitchen/room displays use separate branch display tokens with different RPC payloads.

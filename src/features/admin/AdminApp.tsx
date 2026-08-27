@@ -1,9 +1,23 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import { BarChart3, Boxes, LogOut, Package, PlugZap, ReceiptText, Truck, Warehouse, type LucideIcon } from 'lucide-react'
+import {
+  BarChart3,
+  Boxes,
+  Command,
+  LogOut,
+  Package,
+  PlugZap,
+  ReceiptText,
+  Store,
+  Truck,
+  UserRoundCheck,
+  Wallet,
+  Warehouse,
+  type LucideIcon,
+} from 'lucide-react'
 import { isSupabaseConfigured } from '../../services/menuRepository'
 import { isE2EAdminMockEnabled } from '../../lib/runtimeFlags'
 import { AdminSetupNotice } from './components/AdminSetupNotice'
-import { AdminShell } from './components/AdminShell'
+import { AdminShell, type AdminTheme } from './components/AdminShell'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { LoginForm } from './components/LoginForm'
 import { useAdminAuth } from './hooks/useAdminAuth'
@@ -14,6 +28,7 @@ import type { OperationsRole } from './operationsTypes'
 
 // Paneles pesados: se cargan bajo demanda por rol (code-split del admin).
 const CategoryPanel = lazy(() => import('./components/CategoryPanel').then((module) => ({ default: module.CategoryPanel })))
+const CashPanel = lazy(() => import('./components/CashPanel').then((module) => ({ default: module.CashPanel })))
 const IntegrationsPanel = lazy(() => import('./components/IntegrationsPanel').then((module) => ({ default: module.IntegrationsPanel })))
 const InventoryPanel = lazy(() => import('./components/InventoryPanel').then((module) => ({ default: module.InventoryPanel })))
 const OperationsPanel = lazy(() => import('./components/OperationsPanel').then((module) => ({ default: module.OperationsPanel })))
@@ -31,47 +46,105 @@ const tabIcons: Record<AdminTabId, LucideIcon> = {
   menu: Boxes,
   inventory: Package,
   operations: Warehouse,
+  cash: Wallet,
   integrations: PlugZap,
   reports: BarChart3,
 }
 
-const roleLabels: Record<OperationsRole, string> = {
-  superadmin: 'Superadmin',
-  warehouse_admin: 'Admin de bodega',
-  branch_admin: 'Admin de sede',
-  cashier: 'Cajero',
-}
+type ScopeCardTone = 'emerald' | 'sky' | 'stone' | 'amber'
 
-type ScopeCardTone = 'emerald' | 'sky' | 'stone'
-
-const scopeCardStyles: Record<ScopeCardTone, { box: string; label: string; value: string }> = {
+const scopeCardStyles: Record<ScopeCardTone, { lightBox: string; darkBox: string; lightLabel: string; darkLabel: string; lightValue: string; darkValue: string }> = {
   emerald: {
-    box: 'border-emerald-100 bg-emerald-50',
-    label: 'text-emerald-700',
-    value: 'text-emerald-950',
+    lightBox: 'border-emerald-100 bg-emerald-50',
+    darkBox: 'border-emerald-300/20 bg-emerald-300/10',
+    lightLabel: 'text-emerald-700',
+    darkLabel: 'text-emerald-200',
+    lightValue: 'text-emerald-950',
+    darkValue: 'text-emerald-50',
   },
   sky: {
-    box: 'border-sky-100 bg-sky-50',
-    label: 'text-sky-700',
-    value: 'text-sky-950',
+    lightBox: 'border-sky-100 bg-sky-50',
+    darkBox: 'border-sky-300/20 bg-sky-300/10',
+    lightLabel: 'text-sky-700',
+    darkLabel: 'text-sky-200',
+    lightValue: 'text-sky-950',
+    darkValue: 'text-sky-50',
   },
   stone: {
-    box: 'border-stone-200 bg-stone-50',
-    label: 'text-stone-500',
-    value: 'text-stone-950',
+    lightBox: 'border-stone-200 bg-stone-50',
+    darkBox: 'border-stone-700 bg-white/5',
+    lightLabel: 'text-stone-500',
+    darkLabel: 'text-stone-400',
+    lightValue: 'text-stone-950',
+    darkValue: 'text-stone-50',
+  },
+  amber: {
+    lightBox: 'border-amber-100 bg-amber-50',
+    darkBox: 'border-amber-300/20 bg-amber-300/10',
+    lightLabel: 'text-amber-700',
+    darkLabel: 'text-amber-200',
+    lightValue: 'text-amber-950',
+    darkValue: 'text-amber-50',
   },
 }
 
-function PanelFallback() {
+const roleVisuals: Record<OperationsRole, {
+  icon: LucideIcon
+  label: string
+  title: string
+  description: string
+  accent: ScopeCardTone
+}> = {
+  superadmin: {
+    icon: Command,
+    label: 'Torre de control',
+    title: 'Vista completa de la cadena',
+    description: 'Indicadores, sedes, ventas y decisiones de crecimiento.',
+    accent: 'amber',
+  },
+  warehouse_admin: {
+    icon: Warehouse,
+    label: 'Centro logistico',
+    title: 'Bodega, compras y abastecimiento',
+    description: 'Proveedores, inventario central, despachos y continuidad de sedes.',
+    accent: 'sky',
+  },
+  branch_admin: {
+    icon: Store,
+    label: 'Operacion de sede',
+    title: 'Caja, pedidos, inventario y reabastecimiento',
+    description: 'Prioridad diaria: vender, preparar, recibir y cuadrar sin friccion.',
+    accent: 'emerald',
+  },
+  cashier: {
+    icon: UserRoundCheck,
+    label: 'Punto de atencion',
+    title: 'Pedidos y cajas de la sede',
+    description: 'Acceso liviano para operar ventas y tickets sin ruido administrativo.',
+    accent: 'stone',
+  },
+}
+
+function getInitialAdminTheme(): AdminTheme {
+  if (typeof window === 'undefined') return 'light'
+  return window.localStorage.getItem('cartamago-admin-theme') === 'dark' ? 'dark' : 'light'
+}
+
+function PanelFallback({ theme }: { theme: AdminTheme }) {
+  const isDark = theme === 'dark'
+
   return (
-    <div className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-lg shadow-amber-900/10">
-      <p className="text-sm font-black text-stone-500">Cargando panel...</p>
+    <div className={`rounded-xl border p-5 shadow-lg ${
+      isDark ? 'border-stone-700 bg-[#211c18] shadow-black/20' : 'border-amber-200 bg-white/80 shadow-amber-900/10'
+    }`}>
+      <p className={`text-sm font-black ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Cargando panel...</p>
     </div>
   )
 }
 
 export function AdminApp() {
   const [activeTab, setActiveTab] = useState<AdminTabId>('orders')
+  const [adminTheme, setAdminTheme] = useState<AdminTheme>(getInitialAdminTheme)
   const [adminSummary, setAdminSummary] = useState<{
     role: OperationsRole
     email: string
@@ -88,6 +161,7 @@ export function AdminApp() {
     setStatus: menu.setStatus,
   })
   const isWarehouseAdmin = adminSummary?.role === 'warehouse_admin'
+  const isDark = adminTheme === 'dark'
   // En produccion/localdb, superadmin es SOLO REPORTES. El mock (dev:mock/e2e)
   // conserva el CRUD para poder probar el resto de los paneles con la e2e.
   const isReportOnly = adminSummary?.role === 'superadmin' && !isE2EAdminMockEnabled()
@@ -100,6 +174,8 @@ export function AdminApp() {
     [adminSummary?.role, isReportOnly, isWarehouseAdmin],
   )
   const activeTabMeta = visibleTabs.find((tab) => tab.id === activeTab)
+  const roleVisual = roleVisuals[adminSummary?.role ?? 'cashier']
+  const RoleIcon = roleVisual.icon
   const scopeCards = useMemo(() => {
     if (!adminSummary) {
       return [
@@ -153,6 +229,10 @@ export function AdminApp() {
   }, [adminSummary])
 
   useEffect(() => {
+    window.localStorage.setItem('cartamago-admin-theme', adminTheme)
+  }, [adminTheme])
+
+  useEffect(() => {
     if (!auth.isLoggedIn) {
       setAdminSummary(null)
       setAdminSummaryStatus('')
@@ -200,16 +280,29 @@ export function AdminApp() {
   }
 
   if (!auth.sessionReady) {
-    return <AdminShell title="Admin" subtitle="Cargando sesion..." />
+    return (
+      <AdminShell
+        title="Admin"
+        subtitle="Cargando sesion..."
+        theme={adminTheme}
+        onToggleTheme={() => setAdminTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+      />
+    )
   }
 
   if (!auth.isLoggedIn) {
     return (
-      <AdminShell title="Admin" subtitle="Ingresa para editar el menu publico">
+      <AdminShell
+        title="Operaciones"
+        subtitle="Ingresa para operar sedes, bodega, ventas e inventario"
+        theme={adminTheme}
+        onToggleTheme={() => setAdminTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+      >
         <LoginForm
           email={auth.email}
           password={auth.password}
           status={menu.status}
+          theme={adminTheme}
           onEmailChange={auth.setEmail}
           onPasswordChange={auth.setPassword}
           onSubmit={auth.login}
@@ -220,13 +313,19 @@ export function AdminApp() {
 
   return (
     <AdminShell
-      title="Admin"
+      title={getAdminShellTitle(adminSummary?.role)}
+      theme={adminTheme}
       documentTitle={`${activeTabMeta?.label ?? 'Admin'} | Admin CartaMago`}
+      onToggleTheme={() => setAdminTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
       actions={
         <button
           type="button"
           onClick={() => void auth.logout()}
-          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white px-3 py-2 text-sm font-black text-stone-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-50 active:translate-y-0"
+          className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-black shadow-sm transition hover:-translate-y-0.5 active:translate-y-0 ${
+            isDark
+              ? 'border-amber-300/20 bg-amber-300 text-stone-950 hover:bg-amber-200'
+              : 'border-white/10 bg-white text-stone-950 hover:bg-amber-50'
+          }`}
         >
           <LogOut size={16} aria-hidden="true" />
           Cerrar sesion
@@ -237,35 +336,66 @@ export function AdminApp() {
           ? isWarehouseAdmin
             ? 'Compras, proveedores y reabastecimiento central'
             : 'Gestion de pedidos recibidos'
+          : activeTab === 'reports'
+            ? 'Indicadores consolidados de la cadena'
           : activeTab === 'inventory'
             ? 'Stock de insumos y registro de mermas'
             : activeTab === 'operations'
               ? 'Bodega central, sedes y reabastecimiento'
+            : activeTab === 'cash'
+              ? 'Apertura, ventas y cuadre de caja por sede'
             : activeTab === 'integrations'
               ? 'Canales externos y proveedores'
-              : 'Edita productos, precios, disponibilidad e imagenes'
+            : 'Configuracion comercial y kit operativo de sede'
       }
     >
       <div className="mx-auto max-w-7xl px-4 py-4">
-        <section className="mb-4 rounded-xl border border-stone-200 bg-white p-4 shadow-lg shadow-amber-900/10">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-stone-500">Sesion activa</p>
-              <h2 className="mt-1 text-xl font-black text-stone-950">
-                {adminSummary ? `Estas operando como ${roleLabels[adminSummary.role]}` : 'Cargando perfil operativo'}
-              </h2>
-              <p className="text-sm font-bold text-stone-500">
-                {adminSummary?.email ?? adminSummaryStatus ?? 'Validando permisos del usuario'}
-              </p>
+        <section className={`mb-4 overflow-hidden rounded-xl border shadow-xl ${
+          isDark ? 'border-stone-700 bg-[#211c18] shadow-black/25' : 'border-stone-200 bg-white shadow-amber-900/10'
+        }`}>
+          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
+            <div className={`p-4 ${
+              isDark ? 'border-b border-stone-700 bg-[#181411] lg:border-b-0 lg:border-r' : 'border-b border-amber-100 bg-amber-50/70 lg:border-b-0 lg:border-r'
+            }`}>
+              <div className="flex items-start gap-3">
+                <span className={`grid size-12 shrink-0 place-items-center rounded-lg shadow-md ${
+                  isDark ? 'bg-amber-300 text-stone-950 shadow-amber-300/10' : 'bg-red-900 text-white shadow-red-900/20'
+                }`}>
+                  <RoleIcon size={22} aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className={`text-xs font-black uppercase tracking-wide ${
+                    isDark ? 'text-amber-200' : 'text-red-900'
+                  }`}>
+                    {roleVisual.label}
+                  </p>
+                  <h2 className={`mt-1 text-xl font-black tracking-normal ${isDark ? 'text-stone-50' : 'text-stone-950'}`}>
+                    {adminSummary ? roleVisual.title : 'Cargando perfil operativo'}
+                  </h2>
+                  <p className={`mt-1 text-sm font-bold leading-6 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                    {adminSummary ? roleVisual.description : adminSummaryStatus || 'Validando permisos del usuario'}
+                  </p>
+                  <p className={`mt-3 inline-flex max-w-full truncate rounded-lg border px-2.5 py-1 text-xs font-black ${
+                    isDark ? 'border-stone-700 bg-white/5 text-stone-300' : 'border-stone-200 bg-white text-stone-600'
+                  }`}>
+                    {adminSummary?.email ?? 'Sesion segura'}
+                  </p>
+                </div>
+              </div>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {scopeCards.map((card) => {
                 const styles = scopeCardStyles[card.tone]
 
                 return (
-                  <div key={card.label} className={`rounded-lg border px-3 py-2 ${styles.box}`}>
-                    <p className={`text-[11px] font-black uppercase tracking-wide ${styles.label}`}>{card.label}</p>
-                    <p className={`mt-1 text-sm font-black ${styles.value}`}>{card.value}</p>
+                  <div
+                    key={card.label}
+                    className={`m-3 rounded-lg border px-3 py-2 ${isDark ? styles.darkBox : styles.lightBox}`}
+                  >
+                    <p className={`text-[11px] font-black uppercase tracking-wide ${isDark ? styles.darkLabel : styles.lightLabel}`}>
+                      {card.label}
+                    </p>
+                    <p className={`mt-1 text-sm font-black ${isDark ? styles.darkValue : styles.lightValue}`}>{card.value}</p>
                   </div>
                 )
               })}
@@ -274,9 +404,9 @@ export function AdminApp() {
         </section>
 
         <nav
-          className={`mb-4 grid gap-2 rounded-xl border border-amber-200 bg-white/80 p-2 shadow-lg shadow-amber-900/10 sm:grid-cols-2 ${
-            isReportOnly ? 'lg:grid-cols-1' : isWarehouseAdmin ? 'lg:grid-cols-2' : 'lg:grid-cols-5'
-          }`}
+          className={`mb-4 grid gap-2 rounded-xl border p-2 shadow-lg sm:grid-cols-2 ${
+            isReportOnly ? 'lg:grid-cols-1' : isWarehouseAdmin ? 'lg:grid-cols-2' : 'lg:grid-cols-6'
+          } ${isDark ? 'border-stone-700 bg-[#211c18] shadow-black/20' : 'border-amber-200 bg-white/80 shadow-amber-900/10'}`}
         >
           {visibleTabs.map((tab) => {
             const TabIcon = tab.icon
@@ -289,38 +419,58 @@ export function AdminApp() {
                 onClick={() => setActiveTab(tab.id)}
                 aria-pressed={selected}
                 className={`group relative overflow-hidden rounded-lg border p-3 text-left transition duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
-                  selected
-                    ? 'border-red-900 bg-red-50 text-red-950 shadow-lg shadow-red-900/10 ring-1 ring-red-900/10'
-                    : 'border-transparent bg-white text-stone-600 hover:border-amber-200 hover:bg-amber-50/60 hover:shadow-md hover:shadow-amber-900/10'
+                  selected && isDark
+                    ? 'border-amber-300/40 bg-amber-300/10 text-amber-50 shadow-lg shadow-black/20 ring-1 ring-amber-300/20'
+                    : selected
+                      ? 'border-red-900 bg-red-50 text-red-950 shadow-lg shadow-red-900/10 ring-1 ring-red-900/10'
+                      : isDark
+                        ? 'border-transparent bg-[#181411] text-stone-300 hover:border-stone-600 hover:bg-white/5 hover:shadow-md hover:shadow-black/20'
+                        : 'border-transparent bg-white text-stone-600 hover:border-amber-200 hover:bg-amber-50/60 hover:shadow-md hover:shadow-amber-900/10'
                 }`}
               >
-                <span className={`absolute inset-x-0 top-0 h-1 ${selected ? 'bg-red-900' : 'bg-transparent'}`} />
+                <span className={`absolute inset-x-0 top-0 h-1 ${selected ? (isDark ? 'bg-amber-300' : 'bg-red-900') : 'bg-transparent'}`} />
                 <span className="flex items-start justify-between gap-3">
                   <span className={`grid size-10 shrink-0 place-items-center rounded-lg transition group-hover:scale-105 ${
-                    selected ? 'bg-red-900 text-white shadow-md shadow-red-900/20' : 'bg-stone-100 text-stone-500'
+                    selected && isDark
+                      ? 'bg-amber-300 text-stone-950 shadow-md shadow-amber-300/10'
+                      : selected
+                        ? 'bg-red-900 text-white shadow-md shadow-red-900/20'
+                        : isDark
+                          ? 'bg-white/10 text-stone-300'
+                          : 'bg-stone-100 text-stone-500'
                   }`}>
                     <TabIcon size={19} aria-hidden="true" />
                   </span>
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-black ${
-                    selected ? 'bg-white text-red-900' : 'bg-stone-100 text-stone-500'
+                    selected && isDark
+                      ? 'bg-[#15110f] text-amber-200'
+                      : selected
+                        ? 'bg-white text-red-900'
+                        : isDark
+                          ? 'bg-white/10 text-stone-300'
+                          : 'bg-stone-100 text-stone-500'
                   }`}>
                     {tab.badge}
                   </span>
                 </span>
                 <span className="mt-3 block text-sm font-black">{tab.label}</span>
-                <span className="mt-1 block text-xs leading-5 text-stone-500">{tab.description}</span>
+                <span className={`mt-1 block text-xs leading-5 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                  {tab.description}
+                </span>
               </button>
             )
           })}
         </nav>
 
-        <Suspense fallback={<PanelFallback />}>
+        <Suspense fallback={<PanelFallback theme={adminTheme} />}>
           {activeTab === 'orders' ? (
             isWarehouseAdmin ? <WarehousePurchasingPanel /> : <OrdersPanel />
           ) : activeTab === 'reports' ? (
             <ReportsPanel />
           ) : activeTab === 'operations' ? (
             <OperationsPanel />
+          ) : activeTab === 'cash' ? (
+            <CashPanel />
           ) : activeTab === 'inventory' ? (
             <InventoryPanel />
           ) : activeTab === 'integrations' ? (
@@ -329,6 +479,8 @@ export function AdminApp() {
             <div className="grid gap-5">
               <RestaurantPanel
                 branchId={menu.branchId}
+                kitchenDisplayToken={menu.kitchenDisplayToken}
+                roomDisplayToken={menu.roomDisplayToken}
                 form={menu.restaurantForm}
                 isSaving={menu.isSaving}
                 onChange={menu.updateRestaurantForm}
@@ -390,4 +542,12 @@ export function AdminApp() {
       </div>
     </AdminShell>
   )
+}
+
+function getAdminShellTitle(role?: OperationsRole) {
+  if (role === 'superadmin') return 'Centro de control'
+  if (role === 'warehouse_admin') return 'Bodega central'
+  if (role === 'branch_admin') return 'Operacion de sede'
+  if (role === 'cashier') return 'Caja de sede'
+  return 'Operaciones'
 }

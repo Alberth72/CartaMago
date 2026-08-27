@@ -5,8 +5,14 @@ export type BranchLinkSet = {
   qrTargetUrl: string
   kitchenPath: string
   kitchenUrl: string
+  kitchenTokenPath: (displayToken: string) => string
+  kitchenTokenUrl: (displayToken: string) => string
   liveRoomPath: string
   liveRoomUrl: string
+  liveRoomTokenPath: (displayToken: string) => string
+  liveRoomTokenUrl: (displayToken: string) => string
+  cashTerminalPath: (cashSessionId: string, accessToken: string) => string
+  cashTerminalUrl: (cashSessionId: string, accessToken: string) => string
   adminPath: string
   adminUrl: string
   trackingPath: (trackingToken: string) => string
@@ -35,8 +41,16 @@ export function makeBranchLinks(branchId: string, origin = globalThis.location?.
     qrTargetUrl: makeUrl(origin, menuPath),
     kitchenPath,
     kitchenUrl: makeUrl(origin, kitchenPath),
+    kitchenTokenPath: (displayToken: string) => `/s/${encodedBranchId}/kitchen/t/${encodeURIComponent(displayToken)}`,
+    kitchenTokenUrl: (displayToken: string) => makeUrl(origin, `/s/${encodedBranchId}/kitchen/t/${encodeURIComponent(displayToken)}`),
     liveRoomPath,
     liveRoomUrl: makeUrl(origin, liveRoomPath),
+    liveRoomTokenPath: (displayToken: string) => `/s/${encodedBranchId}/salon/t/${encodeURIComponent(displayToken)}`,
+    liveRoomTokenUrl: (displayToken: string) => makeUrl(origin, `/s/${encodedBranchId}/salon/t/${encodeURIComponent(displayToken)}`),
+    cashTerminalPath: (cashSessionId: string, accessToken: string) =>
+      `/s/${encodedBranchId}/caja/${encodeURIComponent(cashSessionId)}/t/${encodeURIComponent(accessToken)}`,
+    cashTerminalUrl: (cashSessionId: string, accessToken: string) =>
+      makeUrl(origin, `/s/${encodedBranchId}/caja/${encodeURIComponent(cashSessionId)}/t/${encodeURIComponent(accessToken)}`),
     adminPath,
     adminUrl: makeUrl(origin, adminPath),
     trackingPath: (trackingToken: string) => `/s/${encodedBranchId}/tracking/t/${encodeURIComponent(trackingToken)}`,

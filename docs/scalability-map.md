@@ -31,9 +31,11 @@ src/
   services/
     menuRepository.ts   Public menu repository + seed fallback
     supabaseClient.ts   Shared Supabase config (uses VITE_BRANCH_ID)
+apps/
+  api/                  NestJS application boundary for mature operational commands
 ```
 
-This is the right shape for the current project because it separates product domains without adding framework complexity.
+This is the right shape for the current project because it separates product domains while NestJS takes only the operational commands that need stronger application boundaries.
 
 The admin now spans four operational roles (`superadmin`, `warehouse_admin`, `branch_admin`, `cashier`) resolved through `adminScopeRepository`. Separate repositories keep Supabase and the mock provider out of JSX.
 
@@ -45,6 +47,7 @@ The admin now spans four operational roles (`superadmin`, `warehouse_admin`, `br
 | Editable operations | Seller updates menu weekly | Stronger admin forms, image rules, availability, audit-friendly docs | Multi-tenant dashboard before a second seller exists |
 | Multi-restaurant | Two or more sellers need live data | Restaurant selector by slug/subdomain, RLS per owner, shared UI settings | Duplicating code per restaurant |
 | Order operations | WhatsApp becomes hard to track | Lightweight order capture plus WhatsApp notification | Replacing WhatsApp before staff workflow is validated |
+| Chain operations | 10, 30, or more branches need reliable stock/caja flows | NestJS command boundary, transactions, idempotency, audit events | Rewriting the QR menu or abandoning Supabase/Postgres |
 | Growth tools | Sellers ask for retention | Promotions, loyalty, analytics, QR campaign tracking | Broad CRM features without usage proof |
 
 ## Folder Rules
@@ -58,6 +61,7 @@ Use these rules when adding code:
 - `src/features/admin`: owner/admin workflows across orders, menu, inventory, operations, and purchasing.
 - `src/features/integrations`: external channel contracts (e.g. didiFood).
 - `src/services`: Supabase access, storage adapters, remote repositories.
+- `apps/api`: NestJS modules for operational commands, auth/tenancy guards, transactions, webhooks, queues, and integrations.
 - `src/data`: fallback seeds and business-specific local data only.
 - `src/components`: reusable UI primitives that are not owned by one feature.
 - `src/lib`: pure helpers such as formatting, validation, and small utilities.
@@ -107,14 +111,16 @@ Avoid global UI abstractions until at least two screens use the same pattern.
 
 ## Operational Scalability
 
-Before adding a custom backend, validate:
+Before moving a command into NestJS, validate:
 
 - The seller receives enough WhatsApp orders to need tracking.
 - Staff actually want a dashboard instead of WhatsApp-only confirmation.
 - Menu editing needs roles, history, or approvals.
 - Multiple sellers need separated owner access.
+- The command changes money, stock, receipt state, order state, or integration state.
+- The command needs idempotency, transaction orchestration, retries, or secrets.
 
-When those are true, Supabase should remain the first backend. A custom API comes later only for business rules Supabase cannot express cleanly.
+When those are true, Supabase/Postgres should remain the source of truth and NestJS should become the application boundary for that command.
 
 ## Cleanup Policy
 

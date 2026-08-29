@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router'
 import { BrandMark } from '../../components/BrandMark'
 import { useLocalStorage } from '../../lib/useLocalStorage'
@@ -9,6 +9,7 @@ import { CategoryNav } from './components/CategoryNav'
 import { MenuHero } from './components/MenuHero'
 import { OrderPanel } from './components/OrderPanel'
 import { ProductGrid } from './components/ProductGrid'
+import { OrderConfirmation } from './components/OrderConfirmation'
 import { usePublicMenuOrder } from './hooks/usePublicMenuOrder'
 
 export function PublicMenuApp() {
@@ -35,6 +36,16 @@ export function PublicMenuApp() {
   const visibleItems = menuItems.filter((item) => item.categoryId === activeCategory)
   const activeCategoryData = categories.find((category) => category.id === activeCategory)
   const order = usePublicMenuOrder({ branchId, restaurant, menuItems })
+  const confirmationRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!order.receipt) return
+    const timer = window.setTimeout(() => {
+      confirmationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 60)
+    return () => window.clearTimeout(timer)
+  }, [order.receipt])
+
   const menuTitle = `Menu ${restaurant.shortName} | CartaMago`
 
   const ogImage = restaurant.heroImage.startsWith('http')
@@ -58,7 +69,20 @@ export function PublicMenuApp() {
       </Helmet>
       <MenuHero restaurant={restaurant} />
 
-      <section id="menu" className="mx-auto grid scroll-mt-4 max-w-6xl gap-6 px-4 py-6 pb-36 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8 lg:pb-10">
+      {order.receipt ? (
+        <div ref={confirmationRef} className="mx-auto w-full max-w-2xl px-4 pb-12 pt-6 sm:px-6">
+          <OrderConfirmation
+            receipt={order.receipt}
+            saved={order.receiptSaved}
+            saveStatus={order.submissionStatus}
+            whatsappUrl={order.whatsappUrl}
+            whatsappNotification={order.whatsappNotification}
+            trackingUrl={order.trackingUrl}
+            onStartNewOrder={order.startNewOrder}
+          />
+        </div>
+      ) : (
+        <section id="menu" className="mx-auto grid scroll-mt-4 max-w-6xl gap-6 px-4 py-6 pb-36 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8 lg:pb-10">
         <div className="min-w-0">
           <div className="mb-5 overflow-hidden rounded-xl border border-amber-200 bg-white shadow-lg shadow-amber-900/10">
             <div className="grid md:grid-cols-[1fr_230px]">
@@ -115,7 +139,6 @@ export function PublicMenuApp() {
           total={order.total}
           hasUnknownPrices={order.hasUnknownPrices}
           itemCount={order.itemCount}
-          whatsappUrl={order.whatsappUrl}
           trackingUrl={order.trackingUrl}
           orderPanelRef={order.orderPanelRef}
           onUpdateDetails={order.updateDetails}
@@ -123,16 +146,19 @@ export function PublicMenuApp() {
           onRemoveItem={order.removeItem}
           onClearItem={order.clearItem}
           onUpdateItemNote={order.updateItemNote}
-          onWhatsAppClick={order.handleWhatsAppClick}
+          onSubmitOrder={order.handleSubmitOrder}
         />
       </section>
+      )}
 
-      <CartSummary
-        cartLinesCount={order.cartLines.length}
-        total={order.total}
-        hasUnknownPrices={order.hasUnknownPrices}
-        onReviewOrder={order.reviewOrder}
-      />
+      {!order.receipt ? (
+        <CartSummary
+          cartLinesCount={order.cartLines.length}
+          total={order.total}
+          hasUnknownPrices={order.hasUnknownPrices}
+          onReviewOrder={order.reviewOrder}
+        />
+      ) : null}
     </main>
   )
 }

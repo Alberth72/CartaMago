@@ -41,6 +41,14 @@ type CreateOrderPayload = {
   items: CreateOrderItem[]
 }
 
+type WhatsAppNotificationResult = {
+  status: 'skipped' | 'sent' | 'failed'
+  destinationPhone?: string
+  providerMessageId?: string
+  errorCode?: string
+  errorMessage?: string
+}
+
 type ProductRow = {
   id: string
   branch_id: string
@@ -51,6 +59,8 @@ type ProductRow = {
 
 type RestaurantRow = {
   id: string
+  name?: string
+  short_name?: string | null
   fulfillment_modes: string[] | null
 }
 
@@ -86,6 +96,38 @@ function jsonResponse(body: unknown, status = 200) {
 
 function makeId(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
+}
+
+function makeReceiptNumber(orderId: string) {
+  return `PED-${orderId.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10)}`
+}
+
+function formatCop(value: number) {
+  return `$${new Intl.NumberFormat('es-CO').format(value)}`
+}
+
+function formatFulfillmentMode(mode: string) {
+  if (mode === 'pickup') return 'recoger en el local'
+  if (mode === 'local_delivery') return 'domicilio local'
+  if (mode === 'table') return 'mesa'
+  if (mode === 'didi_food') return 'DiDiFood'
+  return mode
+}
+
+function normalizeWhatsAppPhone(value: string) {
+  const digits = value.replace(/\D/g, '')
+  if (!digits) return null
+  if (digits.length === 10) return `${Deno.env.get('WHATSAPP_DEFAULT_COUNTRY_CODE') ?? '57'}${digits}`
+  if (digits.length >= 11 && digits.length <= 15) return digits
+  return null
+}
+
+function makeTrackingUrl(request: Request, branchId: string, trackingToken: string) {
+  const configuredOrigin = Deno.env.get('PUBLIC_SITE_URL') ?? Deno.env.get('SITE_URL')
+  const requestOrigin = request.headers.get('origin')
+  const origin = (configuredOrigin || requestOrigin || '').replace(/\/+$/, '')
+  const path = `/s/${encodeURIComponent(branchId)}/tracking/t/${encodeURIComponent(trackingToken)}`
+  return origin ? `${origin}${path}` : path
 }
 
 async function sha256(value: string) {
@@ -156,6 +198,188 @@ async function verifyCaptchaIfConfigured(token: string | undefined) {
   return result.success === true
 }
 
+async function insertOrderNotification(
+  supabase: ReturnType<typeof createClient>,
+  input: {
+    orderId: string
+    branchId: string
+    destinationPhone: string
+    templateName?: string
+    status: WhatsAppNotificationResult['status']
+    providerMessageId?: string
+    errorCode?: string
+    errorMessage?: string
+    payload?: Record<string, unknown>
+    response?: Record<string, unknown>
+  },
+) {
+  const { error } = await supabase.from('order_notifications').insert({
+    id: makeId('ntf'),
+    order_id: input.orderId,
+    branch_id: input.branchId,
+    channel: 'whatsapp',
+    destination_phone: input.destinationPhone,
+    template_name: input.templateName ?? null,
+    status: input.status,
+    provider_message_id: input.providerMessageId ?? null,
+    error_code: input.errorCode ?? null,
+    error_message: input.errorMessage ?? null,
+    payload_json: input.payload ?? {},
+    response_json: input.response ?? {},
+    sent_at: input.status === 'sent' ? new Date().toISOString() : null,
+  })
+
+  if (error) {
+    console.error('Failed to persist order notification', error)
+  }
+}
+
+async function sendWhatsAppOrderConfirmation(
+  supabase: ReturnType<typeof createClient>,
+  request: Request,
+  orderId: string,
+  trackingToken: string,
+  branchName: string,
+  payload: CreateOrderPayload,
+): Promise<WhatsAppNotificationResult> {
+  const destinationOverride = Deno.env.get('WHATSAPP_CONFIRMATION_TO_OVERRIDE')?.trim()
+  const destinationPhone = normalizeWhatsAppPhone(destinationOverride || payload.customerPhone)
+  const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN')
+  const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')
+  const templateName = Deno.env.get('WHATSAPP_TEMPLATE_NAME') ?? 'pedido_recibido'
+  const languageCode = Deno.env.get('WHATSAPP_TEMPLATE_LANGUAGE') ?? 'es_CO'
+  const graphVersion = Deno.env.get('WHATSAPP_GRAPH_VERSION') ?? 'v23.0'
+
+  if (!destinationPhone) {
+    const result: WhatsAppNotificationResult = {
+      status: 'skipped',
+      errorCode: 'missing_customer_phone',
+      errorMessage: 'Customer phone is required for WhatsApp confirmation.',
+    }
+    await insertOrderNotification(supabase, {
+      orderId,
+      branchId: payload.branchId,
+      destinationPhone: '',
+      templateName,
+      ...result,
+    })
+    return result
+  }
+
+  if (!accessToken || !phoneNumberId) {
+    const result: WhatsAppNotificationResult = {
+      status: 'skipped',
+      destinationPhone,
+      errorCode: 'whatsapp_not_configured',
+      errorMessage: 'WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID are required.',
+    }
+    await insertOrderNotification(supabase, {
+      orderId,
+      branchId: payload.branchId,
+      destinationPhone,
+      templateName,
+      ...result,
+    })
+    return result
+  }
+
+  const trackingUrl = makeTrackingUrl(request, payload.branchId, trackingToken)
+  const receiptNumber = makeReceiptNumber(orderId)
+  const templateComponents =
+    templateName === 'hello_world'
+      ? []
+      : [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: payload.customerName || 'Cliente' },
+              { type: 'text', text: receiptNumber },
+              { type: 'text', text: branchName },
+              { type: 'text', text: formatFulfillmentMode(payload.fulfillmentMode) },
+              { type: 'text', text: formatCop(payload.totalCop) },
+              { type: 'text', text: trackingUrl },
+            ],
+          },
+        ]
+  const messagePayload = {
+    messaging_product: 'whatsapp',
+    to: destinationPhone,
+    type: 'template',
+    template: {
+      name: templateName,
+      language: { code: languageCode },
+      ...(templateComponents.length > 0 ? { components: templateComponents } : {}),
+    },
+  }
+
+  try {
+    const response = await fetch(`https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(messagePayload),
+    })
+    const responseJson = await response.json().catch(() => ({})) as {
+      messages?: Array<{ id?: string }>
+      error?: { code?: number | string; message?: string }
+    }
+
+    if (!response.ok) {
+      const result: WhatsAppNotificationResult = {
+        status: 'failed',
+        destinationPhone,
+        errorCode: responseJson.error?.code == null ? String(response.status) : String(responseJson.error.code),
+        errorMessage: responseJson.error?.message ?? response.statusText,
+      }
+      await insertOrderNotification(supabase, {
+        orderId,
+        branchId: payload.branchId,
+        destinationPhone,
+        templateName,
+        payload: messagePayload,
+        response: responseJson as Record<string, unknown>,
+        ...result,
+      })
+      return result
+    }
+
+    const providerMessageId = responseJson.messages?.[0]?.id
+    const result: WhatsAppNotificationResult = {
+      status: 'sent',
+      destinationPhone,
+      providerMessageId,
+    }
+    await insertOrderNotification(supabase, {
+      orderId,
+      branchId: payload.branchId,
+      destinationPhone,
+      templateName,
+      payload: messagePayload,
+      response: responseJson as Record<string, unknown>,
+      ...result,
+    })
+    return result
+  } catch (error) {
+    const result: WhatsAppNotificationResult = {
+      status: 'failed',
+      destinationPhone,
+      errorCode: 'request_failed',
+      errorMessage: error instanceof Error ? error.message : 'WhatsApp request failed.',
+    }
+    await insertOrderNotification(supabase, {
+      orderId,
+      branchId: payload.branchId,
+      destinationPhone,
+      templateName,
+      payload: messagePayload,
+      ...result,
+    })
+    return result
+  }
+}
+
 async function enforceRateLimit(
   supabase: ReturnType<typeof createClient>,
   branchId: string,
@@ -222,7 +446,7 @@ async function validateMenuAndPricing(
 ) {
   const { data: restaurant, error: restaurantError } = await supabase
     .from('branches')
-    .select('id, fulfillment_modes')
+    .select('id, name, short_name, fulfillment_modes')
     .eq('id', payload.branchId)
     .maybeSingle()
 
@@ -264,6 +488,7 @@ async function validateMenuAndPricing(
   if (totalCop !== payload.totalCop) return { error: 'total_cop_mismatch' }
 
   return {
+    branchName: (restaurant as RestaurantRow).short_name ?? (restaurant as RestaurantRow).name ?? payload.branchId,
     items: payload.items.map((item, index) => {
       const product = productsById.get(item.productId)
       return {
@@ -404,7 +629,15 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: 'order_items_insert_failed', message: itemsError.message }, 500)
   }
 
-  const response = { orderId, trackingToken }
+  const whatsappNotification = await sendWhatsAppOrderConfirmation(
+    supabase,
+    request,
+    orderId,
+    trackingToken,
+    validatedOrder.branchName,
+    payload,
+  )
+  const response = { orderId, trackingToken, whatsappNotification }
   const { error: idempotencyError } = await supabase.from('order_idempotency_keys').insert({
     id: makeId('idem'),
     branch_id: payload.branchId,

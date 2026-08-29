@@ -1,4 +1,5 @@
 import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
+import { postApiJson, shouldFallbackToSupabase } from '../../../services/apiClient'
 import { getSupabaseClient } from '../../../services/menuRepository'
 import type {
   CloseCashSessionInput,
@@ -512,6 +513,20 @@ export async function createAdminSale(input: CreateSaleInput) {
       ...mockData.sales,
     ]
     return
+  }
+
+  try {
+    const { data: sessionData } = await getSupabaseClient().auth.getSession()
+    await postApiJson('cash/sales', {
+      branchId: input.branchId,
+      items: input.items,
+      paymentMethod: input.paymentMethod,
+      paymentReference: input.paymentReference,
+      cashSessionId: input.cashSessionId ?? null,
+    }, sessionData.session?.access_token)
+    return
+  } catch (error) {
+    if (!shouldFallbackToSupabase(error)) throw error
   }
 
   const { error } = await getSupabaseClient().rpc('create_sale', {

@@ -34,10 +34,10 @@ const fulfillmentLabels: Record<FulfillmentMode, string> = {
 }
 
 const fulfillmentHelp: Record<FulfillmentMode, string> = {
-  pickup: 'Solicita el pedido por WhatsApp. El local confirma disponibilidad y hora antes de prepararlo.',
-  local_delivery: 'El local confirma por WhatsApp cobertura, costo de domicilio y tiempo estimado.',
+  pickup: 'Registramos tu pedido y te enviamos una confirmacion por WhatsApp cuando el sistema lo reciba.',
+  local_delivery: 'Registramos tu pedido y el local revisa cobertura, costo de domicilio y tiempo estimado.',
   didi_food: 'DiDi Food necesita integracion oficial. Por ahora no finalizamos este canal desde CartaMago.',
-  table: 'Envia el pedido por WhatsApp para que el local lo confirme en mesa mientras activamos notificaciones internas.',
+  table: 'Registramos el pedido de mesa y te enviamos una confirmacion por WhatsApp cuando el sistema lo reciba.',
 }
 
 const fulfillmentMicrocopy: Record<FulfillmentMode, string> = {
@@ -62,10 +62,10 @@ const fulfillmentIcons: Record<FulfillmentMode, LucideIcon> = {
 }
 
 const submitLabels: Record<FulfillmentMode, string> = {
-  pickup: 'Solicitar recogida por WhatsApp',
-  local_delivery: 'Pedir domicilio por WhatsApp',
+  pickup: 'Confirmar pedido para recoger',
+  local_delivery: 'Confirmar pedido a domicilio',
   didi_food: 'DiDi Food proximamente',
-  table: 'Enviar pedido de mesa por WhatsApp',
+  table: 'Confirmar pedido de mesa',
 }
 
 type OrderPanelProps = {
@@ -75,7 +75,6 @@ type OrderPanelProps = {
   total: number
   hasUnknownPrices: boolean
   itemCount: number
-  whatsappUrl: string
   trackingUrl?: string | null
   orderPanelRef: RefObject<HTMLElement | null>
   onUpdateDetails: (partial: Partial<CustomerDetails>) => void
@@ -83,7 +82,7 @@ type OrderPanelProps = {
   onRemoveItem: (itemId: string) => void
   onClearItem: (itemId: string) => void
   onUpdateItemNote: (itemId: string, note: string) => void
-  onWhatsAppClick?: () => void
+  onSubmitOrder?: () => void
 }
 
 export function OrderPanel({
@@ -93,7 +92,6 @@ export function OrderPanel({
   total,
   hasUnknownPrices,
   itemCount,
-  whatsappUrl,
   trackingUrl,
   orderPanelRef,
   onUpdateDetails,
@@ -101,7 +99,7 @@ export function OrderPanel({
   onRemoveItem,
   onClearItem,
   onUpdateItemNote,
-  onWhatsAppClick,
+  onSubmitOrder,
 }: OrderPanelProps) {
   const requirements = getMissingRequirements(details, cartLines.length, total, hasUnknownPrices)
   const canSubmit = requirements.length === 0 && details.fulfillmentMode !== 'didi_food'
@@ -126,7 +124,7 @@ export function OrderPanel({
         <div data-testid="cart-lines" className="mt-4 space-y-3" aria-live="polite" aria-atomic="true">
           {cartLines.length === 0 ? (
             <p className="rounded-md bg-stone-50 p-4 text-sm leading-6 text-stone-700">
-              Agrega productos del menu para armar el mensaje de WhatsApp.
+              Agrega productos del menu para registrar tu pedido.
             </p>
           ) : (
             cartLines.map((line) => (
@@ -263,7 +261,7 @@ export function OrderPanel({
             placeholder="Tu nombre"
             className="h-11 w-full rounded-md border border-stone-200 px-3 text-sm outline-none focus:border-emerald-600"
           />
-          {details.fulfillmentMode !== 'table' && details.fulfillmentMode !== 'didi_food' ? (
+          {details.fulfillmentMode !== 'didi_food' ? (
             <input
               value={details.phone}
               onChange={(event) => onUpdateDetails({ phone: event.target.value })}
@@ -325,22 +323,20 @@ export function OrderPanel({
         </div>
 
         {canSubmit ? (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={onWhatsAppClick}
-            data-testid="whatsapp-link"
+          <button
+            type="button"
+            onClick={onSubmitOrder}
+            data-testid="order-submit"
             className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 px-3 py-3 text-center text-sm font-black text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-800 active:translate-y-0"
           >
             <Send size={18} aria-hidden="true" />
             {submitLabel}
-          </a>
+          </button>
         ) : (
           <button
             type="button"
             disabled
-            data-testid="whatsapp-disabled"
+            data-testid="order-submit-disabled"
             className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-stone-200 px-3 py-3 text-center text-sm font-black text-stone-500 shadow-sm"
           >
             <Send size={18} aria-hidden="true" />
@@ -403,6 +399,10 @@ function getMissingRequirements(
 
   if (details.fulfillmentMode === 'table' && !details.table.trim()) {
     missing.push('Escribe el numero de mesa.')
+  }
+
+  if (details.fulfillmentMode === 'table' && !details.phone.trim()) {
+    missing.push('Escribe un telefono para confirmar.')
   }
 
   return missing

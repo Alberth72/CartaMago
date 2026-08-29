@@ -21,6 +21,7 @@ That means the stack optimizes for speed, mobile readability, low cost, and easy
 | TypeScript | Type safety | Makes products, prices, categories, and WhatsApp message data harder to break |
 | Tailwind CSS | Styling system | Speeds up mobile-first design directly in components |
 | Supabase | Database, Auth, and Storage | Lets the owner edit menu data and upload product images while preserving a local fallback |
+| NestJS | Application API for mature operations | Moves chain-critical commands out of the browser/RPC-only layer without rewriting the QR menu |
 | lucide-react | Icon library | Adds clear visual actions for add, remove, cart, and send |
 | WhatsApp `wa.me` | Ordering handoff | Sends a structured order to the restaurant without building order infrastructure |
 | Netlify | Static hosting | Publishes the QR menu quickly with a public URL |
@@ -181,6 +182,34 @@ Why it matters for the client:
 
 ```text
 The owner can update the menu without a developer, while the QR menu stays simple and resilient.
+```
+
+## NestJS
+
+NestJS is the application boundary for the mature multi-branch product.
+
+In CartaMago, NestJS influences:
+
+- Operational commands that change money, stock, order state, receipt state, or integration state.
+- Future webhooks and secrets for DIAN, Wompi, WhatsApp API, DiDiFood, and printers.
+- Idempotency, retries, transaction boundaries, and audit/event rows.
+- Role/scope validation for `superadmin`, `warehouse_admin`, `branch_admin`, and `cashier`.
+
+Important files:
+
+```text
+apps/api/src/main.ts
+apps/api/src/app.module.ts
+apps/api/src/database/database.module.ts
+apps/api/src/health/health.controller.ts
+apps/api/src/tenancy/tenancy.service.ts
+docs/nestjs-foundation.md
+```
+
+Why it matters for the client:
+
+```text
+Chains with 10, 30, or more branches need operational commands that are consistent, auditable, and ready for integrations without slowing down the QR menu.
 ```
 
 ## WhatsApp `wa.me`

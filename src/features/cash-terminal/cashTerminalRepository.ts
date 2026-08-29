@@ -1,4 +1,5 @@
 import { isE2EAdminMockEnabled } from '../../lib/runtimeFlags'
+import { postApiJson, shouldFallbackToSupabase } from '../../services/apiClient'
 import { getSeedMenuData, getSupabaseClient } from '../../services/menuRepository'
 import type { SalePaymentMethod } from '../admin/operationsTypes'
 
@@ -146,6 +147,18 @@ export async function createCashTerminalSale(input: {
       paymentStatus: input.paymentMethod === 'wompi' ? 'pending' : 'paid',
       cashSessionId: input.cashSessionId,
     }
+  }
+
+  try {
+    return await postApiJson<CashTerminalSaleResult>('cash/session-sales', {
+      cashSessionId: input.cashSessionId,
+      accessToken: input.accessToken,
+      items: input.items,
+      paymentMethod: input.paymentMethod,
+      paymentReference: input.paymentReference,
+    })
+  } catch (error) {
+    if (!shouldFallbackToSupabase(error)) throw error
   }
 
   const { data, error } = await getSupabaseClient().rpc('create_cash_session_sale', {

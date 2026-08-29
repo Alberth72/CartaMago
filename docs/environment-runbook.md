@@ -162,6 +162,113 @@ npm.cmd run dev:localdb
 > que verifica que `.env.localdb.local` exista y su URL sea localhost, **evitando escribir
 > en produccion por accidente**.
 
+> **Dependencia del Edge Runtime para guardar pedidos de forma local**: los pedidos del menu
+> QR se persisten via la Edge Function `create-order`, que corre en el contenedor Docker
+> `supabase_edge_runtime_CartaMago`. Si ese contenedor esta caido (`Exited (255)`), el endpoint
+> `/functions/v1/create-order` responde `503` y **el pedido no se guarda** (sale por WhatsApp
+> pero no aparece en el admin de la sede). Si te pasa, reinicialo:
+>
+> ```powershell
+> docker restart supabase_edge_runtime_CartaMago
+> # verificar:  Invoke-WebRequest -Uri 'http://127.0.0.1:54321/functions/v1/create-order' -Method OPTIONS  -> 200
+> ```
+>
+> Un reinicio limpio de toda la stack lo resuelve: `npx.cmd supabase stop` + `npm.cmd run local:setup`.
+>
+> **Otro motivo por el que "pide pero no se guarda": `400 invalid submission`**.
+> `create-order` tiene un honeypot anti-bot: si el campo `website` de la peticion **no esta vacio**,
+> responde `{"error":"validation_error","message":"invalid submission"}` (HTTP 400) y **no guarda**.
+> El cliente real debe enviar `website: ''`. Si vuelve a salir ese 400, revisa
+> `src/features/menu/hooks/usePublicMenuOrder.ts` (payload de `saveOrder`).
+
+### Confirmacion Automatica Por WhatsApp
+
+`create-order` puede enviar un aviso automatico al WhatsApp del cliente despues
+de guardar el pedido. El enlace manual `wa.me` sigue disponible para que el
+cliente envie o reenvie el pedido al restaurante.
+
+Si faltan credenciales, telefono del cliente o plantilla aprobada, el pedido se
+guarda igual y queda una fila en `order_notifications` con `status = 'skipped'`
+o `status = 'failed'`.
+
+Secretos requeridos por la Edge Function:
+
+```text
+WHATSAPP_ACCESS_TOKEN=<Meta Cloud API access token>
+WHATSAPP_PHONE_NUMBER_ID=<Phone Number ID del numero emisor>
+WHATSAPP_TEMPLATE_NAME=pedido_recibido
+WHATSAPP_TEMPLATE_LANGUAGE=es_CO
+WHATSAPP_GRAPH_VERSION=v23.0
+WHATSAPP_DEFAULT_COUNTRY_CODE=57
+WHATSAPP_CONFIRMATION_TO_OVERRIDE=
+PUBLIC_SITE_URL=https://brasas-sazon-menu.netlify.app
+```
+
+`WHATSAPP_CONFIRMATION_TO_OVERRIDE` es solo para pruebas locales/staging: si lo
+llenamos, todas las confirmaciones salen a ese numero permitido por Meta,
+ignorando el telefono que escriba el cliente en el formulario. En produccion
+debe quedar vacio para enviar al cliente real.
+
+`WHATSAPP_BUSINESS_ACCOUNT_ID` no lo usa `create-order`; guardalo solo si lo
+necesitas para administrar plantillas desde herramientas externas.
+
+Para configurarlos en produccion:
+
+```powershell
+npx.cmd supabase secrets set WHATSAPP_ACCESS_TOKEN=<token> --project-ref <project-ref>
+npx.cmd supabase secrets set WHATSAPP_PHONE_NUMBER_ID=<phone-number-id> --project-ref <project-ref>
+npx.cmd supabase secrets set WHATSAPP_TEMPLATE_NAME=pedido_recibido --project-ref <project-ref>
+npx.cmd supabase secrets set WHATSAPP_TEMPLATE_LANGUAGE=es_CO --project-ref <project-ref>
+npx.cmd supabase secrets set WHATSAPP_GRAPH_VERSION=v23.0 --project-ref <project-ref>
+npx.cmd supabase secrets set WHATSAPP_DEFAULT_COUNTRY_CODE=57 --project-ref <project-ref>
+npx.cmd supabase secrets unset WHATSAPP_CONFIRMATION_TO_OVERRIDE --project-ref <project-ref>
+npx.cmd supabase secrets set PUBLIC_SITE_URL=https://brasas-sazon-menu.netlify.app --project-ref <project-ref>
+```
+
+La plantilla `pedido_recibido` debe estar aprobada en Meta y tener 6 parametros
+de cuerpo, en este orden:
+
+```text
+{{1}} nombre del cliente
+{{2}} numero de ticket
+{{3}} sede
+{{4}} tipo de entrega
+{{5}} total aproximado
+{{6}} enlace de rastreo
+```
+
+Texto sugerido para la plantilla Utility `pedido_recibido`:
+
+```text
+Hola {{1}}, recibimos tu pedido {{2}} en {{3}}.
+
+Entrega: {{4}}
+Total aproximado: {{5}}
+
+Puedes seguir el estado aqui: {{6}}
+
+El restaurante confirmara disponibilidad, tiempo estimado y pago por WhatsApp.
+```
+
+No incluir promociones, descuentos ni ventas adicionales en esta plantilla; debe
+quedar como Utility/transaccional.
+
+Para probar localmente despues de cambiar variables de entorno:
+
+```powershell
+npx.cmd supabase stop
+npx.cmd supabase start
+```
+
+Verificacion rapida:
+
+```sql
+select order_id, destination_phone, template_name, status, error_code, created_at
+from public.order_notifications
+order by created_at desc
+limit 5;
+```
+
 ## De Donde Sale La Data En Local (sin tocar produccion)
 
 Cuando usas `npm run dev:localdb` la app **no toca la URL de produccion**

@@ -5,7 +5,7 @@
 Prepare a quick official-user test for this flow:
 
 ```text
-QR -> Web menu -> Cart -> WhatsApp order -> Restaurant confirms
+QR -> Web menu -> Cart -> Internal order -> WhatsApp confirmation to customer
 ```
 
 ## Current Production Target
@@ -35,9 +35,31 @@ Changing that value updates the QR menu without changing the QR image or URL.
 6. Add one product to the cart.
 7. Tap `Revisar pedido`.
 8. Choose `Recoger`, `Domicilio`, or `Mesa`.
-9. Tap `Pedir por WhatsApp`.
-10. Confirm the message opens to the official restaurant number.
-11. Ask the restaurant admin to confirm the message arrived.
+9. Tap `Confirmar pedido`.
+10. Confirm no WhatsApp window opens automatically.
+11. Confirm the customer phone receives the automatic `pedido_recibido` notice.
+12. Confirm the order appears in the admin order tray.
+
+## Automatic Customer Confirmation
+
+The public order flow now does both pieces:
+
+- Saves the order through `create-order`.
+- After saving, the function tries to send the customer a WhatsApp template notice.
+- Keeps a manual `wa.me` link as a fallback on the confirmation screen.
+
+If the automatic notice is not configured, the order is still valid and the UI keeps `Enviar manualmente` as the fallback. Check `docs/environment-runbook.md` for the required Supabase secrets and the `order_notifications` verification query.
+
+## Production Release Gate
+
+Before enabling `pedido_recibido` in PDN, Meta must show:
+
+- Template name: `pedido_recibido`
+- Language: `es_CO`
+- Category: `Utility`
+- Status: `Approved`
+
+Use `docs/production-release-whatsapp-confirmation.md` for the full PDN release and rollback checklist.
 
 ## Files To Keep In Sync
 
@@ -82,6 +104,8 @@ where id = 'brasas-sazon';
 
 - Official admin number saved.
 - Public menu opens from the QR URL.
-- WhatsApp opens with the selected order mode.
-- Restaurant confirms message received.
+- `Confirmar pedido` does not open WhatsApp automatically.
+- Order appears in the admin order tray.
+- `order_notifications.status = sent` for `pedido_recibido`.
+- Customer receives the automatic confirmation.
 - Seed and docs updated after the number is approved as definitive.

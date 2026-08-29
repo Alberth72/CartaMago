@@ -8,6 +8,7 @@ This document maps the current CartaMago implementation. It covers:
 - The admin panel with orders, menu editing, inventory, and operations.
 - Live tracking displays for customers, kitchen, and the room.
 - The multi-brand distribution model (`brands -> warehouses -> branches`).
+- The NestJS application boundary for mature operational commands.
 
 The ordering path stays intentional and lightweight:
 
@@ -29,6 +30,18 @@ Customer phone
   -> wa.me link with encoded order message
   -> Restaurant WhatsApp
 ```
+
+Operational runtime is now becoming:
+
+```text
+Staff/admin browser
+  -> Vite + React app
+  -> Supabase direct reads/RPCs for current screens
+  -> NestJS API for migrated operational commands
+  -> Postgres/Supabase as source of truth
+```
+
+NestJS is introduced as an application boundary, not as a rewrite of the menu. The QR menu remains static, mobile-first, and resilient; Nest takes over commands where chain operations need stronger consistency, auditability, idempotency, and future integrations.
 
 Routes (defined in `src/app/AppRouter.tsx`):
 
@@ -76,7 +89,49 @@ Responsibilities:
 - Keep cart and customer details in client state.
 - Generate the WhatsApp order URL from the current cart.
 
-The frontend is Vite + React + TypeScript + Tailwind. There is no custom backend in phase 1; Netlify serves the built `dist/` output.
+The frontend is Vite + React + TypeScript + Tailwind. Netlify serves the built `dist/` output. Operational commands will move to NestJS gradually while public menu reads stay fast and safe.
+
+## NestJS API
+
+The API foundation lives in:
+
+```text
+apps/api
+```
+
+Initial modules:
+
+```text
+config       API host/port/CORS environment
+database     optional Postgres pool and readiness boundary
+health       /api/health, /api/health/live, /api/health/ready
+tenancy      shared operations role vocabulary and future scope parsing
+```
+
+Commands:
+
+```powershell
+npm.cmd run api:dev
+npm.cmd run api:build
+npm.cmd run api:start
+```
+
+Migration rule:
+
+```text
+React -> Supabase RPC
+React -> Nest endpoint -> existing RPC/transaction
+React -> Nest service -> Postgres transaction + audit/event/idempotency
+```
+
+First migration candidates:
+
+- Caja, sales, manual payments, internal receipts.
+- Inventory dispatch/receive and merma.
+- Public order persistence and order-state events.
+- Integrations with webhooks/secrets: DIAN, Wompi, WhatsApp API, DiDiFood, printers.
+
+Detailed boundary: `docs/nestjs-foundation.md`.
 
 ## Menu Data
 

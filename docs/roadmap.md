@@ -12,6 +12,11 @@ La prioridad es entregar un producto vendible y estable primero; la expansión
 multi-sede es una oportunidad de cliente que **solo se construye cuando un
 segundo pagador lo justifica** (regla dura: no backend pesado en el MVP).
 
+Decision actual: el enfoque maduro ya es una plataforma de cadenas. El cliente
+inicial proyecta 10 sedes y el segundo cliente potencial proyecta 30 sedes, asi
+que NestJS inicia como frontera gradual de aplicacion sin romper el menu QR ni
+el modelo Supabase/Postgres existente.
+
 ---
 
 ## Objetivo operativo vigente
@@ -91,6 +96,19 @@ Frente: activar el eje brands -> warehouses -> branches
 > 6. Dropear `register_merma` antes de recrearla (cambia `p_restaurant_id`→`p_branch_id`;
 >    Postgres no permite renombrar parámetros con CREATE OR REPLACE).
 
+### Fase 2.5 — Fundacion NestJS (activa)
+
+Crear la frontera de aplicacion para migrar operaciones de cadena sin reescribir
+el frontend ni la base de datos.
+
+| Accion | Estado |
+|---|---|
+| Crear `apps/api` con NestJS, config, health/readiness y pool Postgres opcional | Hecho |
+| Documentar estrategia de migracion por estrangulamiento | Hecho: `docs/nestjs-foundation.md` |
+| Definir primer orden de migracion: caja/venta/recibo, inventario/merma, pedidos, integraciones | Hecho |
+| Migrar primer comando real (`create_sale` / recibo interno) | Hecho parcial: Nest envuelve RPC con rollback |
+| Agregar tests de API para scope/roles y comando migrado | Hecho parcial: tenancy + cash service |
+
 ### Fase 3 — Operaciones (inventario transaccional, POS, DIAN)
 Núcleo operativo pesado; requiere arquitectura SaaS y decisión de negocio.
 
@@ -134,5 +152,5 @@ Núcleo operativo pesado; requiere arquitectura SaaS y decisión de negocio.
 
 - No se inicia una fase nueva sin cerrar la salida de la anterior.
 - Prioridad del usuario final: leer y ordenar rápido (móvil). Nada debe bloquear el pedido.
-- Backend propio solo cuando Supabase no pueda expresar la regla.
+- NestJS ya existe como frontera gradual para comandos maduros; Supabase/Postgres sigue siendo la fuente de verdad.
 - El código y las migraciones deben quedar coherentes entre sí antes de commitear.

@@ -1,6 +1,6 @@
 # CartaMago
 
-CartaMago is a lightweight QR menu and WhatsApp ordering app for restaurants and local food sellers.
+CartaMago is a multi-branch restaurant operations platform with a fast QR menu and WhatsApp ordering flow as its customer entry point.
 
 First MVP vertical:
 
@@ -16,6 +16,7 @@ Asadero de pollos
 - Tailwind CSS
 - react-router (client routing)
 - Supabase Auth, Database, and Storage
+- NestJS API foundation for mature operational commands
 - WhatsApp `wa.me` order handoff
 - Netlify static hosting
 - Oxlint (lint) · Vitest (unit) · Playwright (e2e)
@@ -26,9 +27,12 @@ Asadero de pollos
 - [Architecture](./docs/architecture.md)
 - [Scalability map](./docs/scalability-map.md)
 - [Roadmap](./docs/roadmap.md)
+- [NestJS foundation](./docs/nestjs-foundation.md)
+- [ADR-002: NestJS application boundary](./docs/adr-002-nestjs-application-boundary.md)
 - [Progress dashboard](./docs/progress-dashboard.md)
 - [Multi-branch transition (40+ sedes)](./docs/multi-branch-transition.md)
 - [Environment runbook](./docs/environment-runbook.md)
+- [Production WhatsApp confirmation release](./docs/production-release-whatsapp-confirmation.md)
 - [Live order tracking plan](./docs/live-order-tracking-plan.md)
 - [Order fulfillment flows](./docs/order-fulfillment-flows.md)
 - [App structure multi-brand](./docs/app-structure-multibrand.md)
@@ -63,8 +67,11 @@ npm.cmd run dev          # Supabase cloud (usa .env.local)
 npm.cmd run dev:mock     # sin DB, datos en memoria
 npm.cmd run local:setup  # Docker + Supabase local con datos de prueba + 4 usuarios por rol
 npm.cmd run dev:localdb  # contra Supabase local (usa .env.localdb.local)
+npm.cmd run api:dev      # NestJS API foundation on http://127.0.0.1:3333/api
+npm.cmd run api:build
 npm.cmd run lint
-npm.cmd run build
+npm.cmd run build        # quiet production build
+npm.cmd run build:verbose
 npm.cmd run test:unit
 npm.cmd run test:e2e
 npm.cmd run test:e2e:admin
@@ -73,9 +80,11 @@ npm.cmd run test:e2e:admin
 ## Source Structure
 
 ```text
+apps/
+  api/              NestJS foundation for operational commands
 src/
-  app/              App shell and route selection
-  components/       Shared UI
+  app/              Web app shell and route selection
+  components/       Shared web UI
   data/             Local fallback seed (restaurantSeed.ts)
   features/
     admin/          Owner + operations admin (orders, menu, inventory, ops, reports)
@@ -83,7 +92,7 @@ src/
     order/          WhatsApp order message composition
     tracking/       Customer, kitchen, and room displays
     integrations/   External channel contracts (didiFood)
-  lib/              Shared helpers
+  lib/              Shared web helpers
   services/         Shared Supabase config and public menu repository
 supabase/
   migrations/       Database schema history
@@ -133,9 +142,16 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_BRANCH_ID=brasas-sazon
 VITE_MENU_STORAGE_BUCKET=menu-assets
+API_HOST=127.0.0.1
+API_PORT=3333
+API_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+DATABASE_URL=
+DATABASE_SSL=false
 ```
 
 If these variables are missing, the public menu still works with `src/data/restaurantSeed.ts`. The `/admin` route requires Supabase.
+
+The NestJS API can start without `DATABASE_URL`; `/api/health/ready` reports `degraded` until a Postgres connection string is configured.
 
 For the local Docker environment (Supabase local con datos de prueba), run `npm.cmd run local:setup` once; it writes `.env.localdb.local`, which `npm.cmd run dev:localdb` uses and which overrides `.env.local` (no production writes).
 

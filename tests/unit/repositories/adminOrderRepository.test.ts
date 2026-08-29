@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const h = vi.hoisted(() => ({ client: null as unknown }))
 
@@ -37,6 +37,10 @@ beforeEach(() => {
   h.client = makeClient({})
 })
 
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe('fetchOrders', () => {
   it('fetches orders and attaches their items', async () => {
     h.client = makeClient({
@@ -51,6 +55,7 @@ describe('fetchOrders', () => {
   })
 
   it('returns an empty list when a query errors', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
     h.client = makeClient({ orders: { data: null, error: { message: 'boom' } } })
 
     await expect(fetchOrders('brasas-sazon')).resolves.toEqual([])

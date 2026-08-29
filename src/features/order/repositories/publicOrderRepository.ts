@@ -10,6 +10,13 @@ function makeId(prefix = 'ord') {
 export type SaveOrderResult = {
   orderId: string
   trackingToken: string
+  whatsappNotification?: {
+    status: 'skipped' | 'sent' | 'failed'
+    destinationPhone?: string
+    providerMessageId?: string
+    errorCode?: string
+    errorMessage?: string
+  }
 }
 
 export async function saveOrder(input: SaveOrderInput): Promise<SaveOrderResult | null> {
@@ -20,7 +27,7 @@ export async function saveOrder(input: SaveOrderInput): Promise<SaveOrderResult 
 
   try {
     const supabase = getSupabaseClient()
-    const { data, error } = await supabase.functions.invoke<{ orderId: string; trackingToken?: string }>('create-order', {
+    const { data, error } = await supabase.functions.invoke<SaveOrderResult>('create-order', {
       body: input,
       headers: {
         'x-idempotency-key': makeId('idem'),
@@ -37,6 +44,7 @@ export async function saveOrder(input: SaveOrderInput): Promise<SaveOrderResult 
     return {
       orderId: data.orderId,
       trackingToken: data.trackingToken ?? data.orderId,
+      whatsappNotification: data.whatsappNotification,
     }
   } catch (error) {
     console.error('create-order function failed:', error)

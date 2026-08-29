@@ -4,6 +4,8 @@
 > el rol `superadmin` (solo informes) y el módulo de Reportes sobre la BD.
 > Objetivo: un proyecto que hoy valida 2 sedes pero **está diseñado para 40+**, sin construir backend pesado antes de que lo pida un segundo pagador/compromiso real.
 
+> Decision actual: el proyecto ya debe prepararse para cadenas de 10, 30 y 40+ sedes. NestJS inicia como frontera gradual de aplicacion, sin romper el menu QR ni el modelo Supabase/Postgres existente.
+
 ## Caras (roles) del producto
 
 | Cara | Rol (OperationsRole) | Hoy | Target a 40 sedes |
@@ -21,6 +23,7 @@ Dato clave: hoy el `superadmin` maneja CRUD de todo (ver `AdminApp.tsx`). El nue
 - Stock en dos niveles (`warehouse_stock` / `branch_stock`) + `inventory_movements` + `formulas`.
 - Ciclo operativo: `dispatch_requests`, `dispatches`, `purchase_orders`, `suppliers`, RPCs (`create_dispatch_request`, `dispatch_request`, `receive_dispatch`, `sell_product`, `register_merma`, `create_purchase_order`…).
 - Pedidos: `orders`, `order_items`, `order_status_events`, Edge Function `create-order`.
+- NestJS API foundation: `apps/api` con config, health/readiness, pool Postgres opcional y vocabulario de roles.
 
 **La base de datos ya soporta 40 sedes.** El cuello de botella no es la BD, es la **capa de aplicación**.
 
@@ -62,3 +65,6 @@ Dato clave: hoy el `superadmin` maneja CRUD de todo (ver `AdminApp.tsx`). El nue
 
 ## Referencias
 - `docs/architecture.md` (estado actual) · `docs/app-structure-multibrand.md` (target) · `docs/roadmap.md` (gates) · `src/features/admin/AdminApp.tsx` (roles hoy)
+# Actualizacion activa
+
+CartaMago ya se prepara para cadenas de 10, 30 y 40+ sedes. La fundacion NestJS existe en `apps/api` y se usara como frontera gradual de aplicacion para comandos maduros: caja/venta/recibo, inventario/merma, pedidos e integraciones. El menu QR no se migra a Nest en esta fase; debe seguir rapido, estatico y resiliente.

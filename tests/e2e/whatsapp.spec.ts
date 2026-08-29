@@ -11,14 +11,25 @@ test.beforeEach(async ({ page }) => {
   await page.reload()
 })
 
-test('builds an actionable WhatsApp order without opening WhatsApp', async ({ page }) => {
+test('submits the internal order without opening WhatsApp and keeps a manual fallback', async ({ page }) => {
   await page.getByTestId('product-add-pollo-entero').click()
   await page.getByTestId('product-note-pollo-entero').fill('Bien dorado')
   await page.getByTestId('customer-name').fill('Cliente E2E')
   await page.getByTestId('customer-phone').fill('3101234567')
   await page.getByTestId('customer-note').fill('Sin cubiertos')
 
-  const href = await page.getByTestId('whatsapp-link').getAttribute('href')
+  let openedPopup = false
+  page.on('popup', () => {
+    openedPopup = true
+  })
+
+  await expect(page.getByTestId('order-submit')).toHaveText(/confirmar pedido/i)
+  await page.getByTestId('order-submit').click()
+  await expect(page.getByTestId('order-confirmation')).toBeVisible()
+  await page.waitForTimeout(100)
+  expect(openedPopup).toBe(false)
+
+  const href = await page.getByTestId('confirmation-whatsapp-link').getAttribute('href')
   expect(href).toBeTruthy()
   expect(href).toContain('https://wa.me/573104217941?text=')
 

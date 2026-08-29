@@ -2,9 +2,9 @@
 
 ## Product Mission
 
-Build CartaMago as a lightweight QR menu and WhatsApp ordering platform for restaurants, fast food shops, food trucks, cafes, and small local sellers.
+Build CartaMago as a multi-branch restaurant operations platform whose customer entry point is a lightweight QR menu and WhatsApp ordering flow.
 
-The first target customer is a roast chicken restaurant, but the product must stay reusable for future businesses.
+The first customer profile is a roast chicken chain, and the product must support future chains with many branches without duplicating code per business.
 
 ## Product Name
 
@@ -37,7 +37,7 @@ Phase 1, MVP and early customers:
 
 Phase 2, when customers need multi-tenant data and stronger operations:
 
-- Backend: Supabase first, then a custom API only when business rules require it.
+- Backend: NestJS application API for mature operational commands, introduced gradually without breaking the QR menu.
 - Database: PostgreSQL through Supabase.
 - Storage: Supabase Storage or another low-cost image host.
 - Auth: seller/admin auth with owner/restaurant restrictions.
@@ -84,9 +84,10 @@ Create or edit multiple related files in one tool call when there's no dependenc
 3. Menu data is easy to update.
 4. Mobile performance and readability.
 5. Deploy and QR reliability.
-6. Reusable structure for multiple businesses.
-7. Seller/admin tools.
-8. Visual polish.
+6. Reusable structure for multiple brands and branches.
+7. Mature operational backend boundaries.
+8. Seller/admin tools.
+9. Visual polish.
 
 ## Current MVP State
 
@@ -107,6 +108,7 @@ Validated in production:
 - Admin can edit menu data and upload images to `menu-assets`.
 - Order is persisted and appears in the admin order tray.
 - Operations (bodega/sedes/purchasing/tracking) validated locally.
+- NestJS API foundation exists under `apps/api` with health/readiness endpoints and tenancy role types.
 
 Current production URL:
 
@@ -120,7 +122,8 @@ Current admin URL:
 https://brasas-sazon-menu.netlify.app/admin
 ```
 
-Deploy/build: `npm.cmd run build` (tsc -b + vite build) -> `dist/` on Netlify. Modes: `dev`, `dev:mock`, `dev:localdb`, `build:localdb`.
+Deploy/build: `npm.cmd run build` (tsc -b + quiet vite build) -> `dist/` on Netlify. Use `npm.cmd run build:verbose` only when chunk/assets need inspection. Modes: `dev`, `dev:mock`, `dev:localdb`, `build:localdb`.
+API build: `npm.cmd run api:build`. API dev: `npm.cmd run api:dev` -> `http://127.0.0.1:3333/api`.
 
 ## Hard Rules
 
@@ -148,6 +151,8 @@ src/
     integrations/   External channel contracts (e.g. didiFood)
   lib/              Shared helpers
   services/         Shared Supabase config and public menu repository
+apps/
+  api/              NestJS application boundary for operations, inventory, caja, receipts, and integrations
 docs/
   architecture.md
   diagrams.md

@@ -2,8 +2,15 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import type { MenuItem, RestaurantProfile } from '../../../data/restaurantSeed'
 import { makeBranchLinks } from '../../../lib/branchLinks'
 import { useLocalStorage } from '../../../lib/useLocalStorage'
-import { saveOrder } from '../../order/repositories/publicOrderRepository'
+import { saveOrder, type SaveOrderResult } from '../../order/repositories/publicOrderRepository'
 import { buildWhatsAppUrl, type CustomerDetails } from '../../order/orderMessage'
+import type { ReceiptData } from '../../receipt/receiptTypes'
+import { saveReceiptTrackingFallback } from '../../receipt/receiptFallbackStorage'
+import {
+  buildOrderReceipt,
+  makeLocalOrderId,
+  makeLocalTrackingToken,
+} from '../../order/orderReceipt'
 import {
   getDefaultPaymentMethod,
   getInitialPaymentStatus,
@@ -14,6 +21,7 @@ import {
 type CartState = Record<string, number>
 type CartNotes = Record<string, string>
 type CartLine = { item: MenuItem; quantity: number; note: string }
+type SubmissionStatus = 'idle' | 'saving' | 'saved' | 'failed'
 
 const defaultCustomerDetails: CustomerDetails = {
   name: '',
@@ -42,6 +50,11 @@ export function usePublicMenuOrder({
   const [storedDetails, setDetails] = useLocalStorage<unknown>(`${storagePrefix}:order-details`, defaultCustomerDetails)
   const orderPanelRef = useRef<HTMLElement | null>(null)
   const [lastTrackingToken, setLastTrackingToken] = useState<string | null>(null)
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null)
+  const [receiptSaved, setReceiptSaved] = useState(false)
+  const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>('idle')
+  const [whatsappNotification, setWhatsappNotification] =
+    useState<SaveOrderResult['whatsappNotification']>(undefined)
   const orderStartedAtRef = useRef(Date.now())
   const cart = normalizeCart(storedCart)
   const itemNotes = normalizeCartNotes(storedItemNotes)
@@ -64,9 +77,9 @@ export function usePublicMenuOrder({
   const itemCount = cartLines.reduce((sum, line) => sum + line.quantity, 0)
   const branchLinks = useMemo(() => makeBranchLinks(branchId), [branchId])
   const whatsappUrl = buildWhatsAppUrl(restaurant, cartLines, details)
-const trackingUrl = lastTrackingToken ? branchLinks.trackingUrl(lastTrackingToken) : null
+  const trackingUrl = lastTrackingToken ? branchLinks.trackingUrl(lastTrackingToken) : null
 
-  const handleWhatsAppClick = useCallback(() => {
+  const handleSubmitOrder = useCallback(() => {
     const message = buildWhatsAppUrl(restaurant, cartLines, details)
     const decodedMessage = decodeURIComponent(message.split('?text=')[1] ?? '')
     const deliveryProvider =
@@ -75,14 +88,52 @@ const trackingUrl = lastTrackingToken ? branchLinks.trackingUrl(lastTrackingToke
         : details.fulfillmentMode === 'didi_food'
           ? 'didi_food'
           : 'none'
+    const paymentStatus = getInitialPaymentStatus(details.paymentMethod)
+    const paymentProvider = getPaymentProvider(details.paymentMethod)
+
+    // Snapshot local del recibo: se muestra siempre, incluso si el backend
+    // `create-order` falla en silencio. Luego se reconcilian los ids del servidor.
+    const issuedAt = new Date().toISOString()
+    const fallbackTrackingToken = makeLocalTrackingToken()
+    const fallbackOrderId = makeLocalOrderId()
+    const localReceipt = buildOrderReceipt({
+      orderId: fallbackOrderId,
+      trackingToken: fallbackTrackingToken,
+      restaurant,
+      cartLines,
+      total,
+      customerName: details.name,
+      tableNumber: details.table,
+      fulfillmentMode: details.fulfillmentMode,
+      paymentMethod: details.paymentMethod,
+      paymentStatus,
+      createdAt: issuedAt,
+    })
+
+    setLastTrackingToken(fallbackTrackingToken)
+    setReceipt(localReceipt)
+    setReceiptSaved(false)
+    setSubmissionStatus('saving')
+    setWhatsappNotification(undefined)
+    saveReceiptTrackingFallback(fallbackTrackingToken, {
+      receipt: localReceipt,
+      status: 'pending',
+      fulfillmentMode: details.fulfillmentMode,
+      paymentMethod: details.paymentMethod,
+      paymentStatus,
+      orderChannel: 'cartamago',
+      whatsappLink: message,
+      createdAt: issuedAt,
+      updatedAt: issuedAt,
+    })
 
     void saveOrder({
       branchId,
       orderChannel: 'cartamago',
       deliveryProvider,
-      paymentStatus: getInitialPaymentStatus(details.paymentMethod),
+      paymentStatus,
       paymentMethod: details.paymentMethod,
-      paymentProvider: getPaymentProvider(details.paymentMethod),
+      paymentProvider,
       externalProvider: details.fulfillmentMode === 'didi_food' ? 'didi_food' : undefined,
       externalStatus:
         details.fulfillmentMode === 'didi_food'
@@ -101,7 +152,10 @@ const trackingUrl = lastTrackingToken ? branchLinks.trackingUrl(lastTrackingToke
       whatsappMessage: decodedMessage,
       whatsappLink: message,
       orderStartedAt: orderStartedAtRef.current,
-      website: branchLinks.menuUrl,
+      // Honeypot anti-bot: create-order rechaza ("invalid submission" -> 400) si
+      // `website` NO esta vacio. El cliente real deja este campo vacio; un bot que
+      // lo rellene con la URL de la pagina queda bloqueado por el servidor.
+      website: '',
       items: cartLines.map((line) => ({
         productId: line.item.id,
         productName: line.item.name,
@@ -111,10 +165,42 @@ const trackingUrl = lastTrackingToken ? branchLinks.trackingUrl(lastTrackingToke
       })),
     }).then((result) => {
       if (result?.trackingToken) {
+        const serverReceipt = buildOrderReceipt({
+          orderId: result.orderId ?? fallbackOrderId,
+          trackingToken: result.trackingToken,
+          restaurant,
+          cartLines,
+          total,
+          customerName: details.name,
+          tableNumber: details.table,
+          fulfillmentMode: details.fulfillmentMode,
+          paymentMethod: details.paymentMethod,
+          paymentStatus,
+          createdAt: issuedAt,
+        })
+
         setLastTrackingToken(result.trackingToken)
+        setReceipt(serverReceipt)
+        setReceiptSaved(true)
+        setSubmissionStatus('saved')
+        setWhatsappNotification(result.whatsappNotification)
+        saveReceiptTrackingFallback(result.trackingToken, {
+          receipt: serverReceipt,
+          status: 'pending',
+          fulfillmentMode: details.fulfillmentMode,
+          paymentMethod: details.paymentMethod,
+          paymentStatus,
+          orderChannel: 'cartamago',
+          whatsappLink: message,
+          createdAt: issuedAt,
+          updatedAt: issuedAt,
+        })
+        return
       }
+
+      setSubmissionStatus('failed')
     })
-  }, [restaurant, branchId, branchLinks.menuUrl, cartLines, details, itemCount, total])
+  }, [restaurant, branchId, cartLines, details, itemCount, total])
 
   function addItem(itemId: string) {
     setCart((current: unknown) => {
@@ -184,6 +270,18 @@ const trackingUrl = lastTrackingToken ? branchLinks.trackingUrl(lastTrackingToke
     return itemNotes[itemId] ?? ''
   }
 
+  function startNewOrder() {
+    setCart({})
+    setItemNotes({})
+    setDetails(defaultCustomerDetails)
+    setReceipt(null)
+    setReceiptSaved(false)
+    setSubmissionStatus('idle')
+    setLastTrackingToken(null)
+    setWhatsappNotification(undefined)
+    orderStartedAtRef.current = Date.now()
+  }
+
   return {
     cartLines,
     details,
@@ -192,6 +290,10 @@ const trackingUrl = lastTrackingToken ? branchLinks.trackingUrl(lastTrackingToke
     itemCount,
     whatsappUrl,
     trackingUrl,
+    receipt,
+    receiptSaved,
+    submissionStatus,
+    whatsappNotification,
     orderPanelRef,
     addItem,
     removeItem,
@@ -201,7 +303,8 @@ const trackingUrl = lastTrackingToken ? branchLinks.trackingUrl(lastTrackingToke
     reviewOrder,
     getItemQuantity,
     getItemNote,
-    handleWhatsAppClick,
+    handleSubmitOrder,
+    startNewOrder,
   }
 }
 

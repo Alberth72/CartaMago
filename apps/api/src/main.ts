@@ -6,7 +6,7 @@ import { getApiConfig } from './config/api.config.js'
 async function bootstrap() {
   const config = getApiConfig()
   const app = await NestFactory.create(AppModule, {
-    logger: ['log', 'warn', 'error'],
+    logger: ['warn', 'error'],
   })
 
   app.setGlobalPrefix('api')

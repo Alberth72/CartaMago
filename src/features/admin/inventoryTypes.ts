@@ -31,6 +31,7 @@ export const MERMA_REASONS: Array<{ value: MermaReason; label: string }> = [
 ]
 
 export type InventoryData = {
+  branchId: string
   items: InventoryItem[]
   stock: InventoryStock[]
   movements: InventoryMovement[]

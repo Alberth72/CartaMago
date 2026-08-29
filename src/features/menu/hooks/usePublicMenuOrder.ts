@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import type { MenuItem, RestaurantProfile } from '../../../data/restaurantSeed'
 import { makeBranchLinks } from '../../../lib/branchLinks'
+import { notifyStockChanged } from '../../../lib/stockSync'
 import { useLocalStorage } from '../../../lib/useLocalStorage'
 import { saveOrder, type SaveOrderResult } from '../../order/repositories/publicOrderRepository'
 import { buildWhatsAppUrl, type CustomerDetails } from '../../order/orderMessage'
@@ -165,6 +166,7 @@ export function usePublicMenuOrder({
       })),
     }).then((result) => {
       if (result?.trackingToken) {
+        notifyStockChanged({ branchId, source: 'public-order' })
         const serverReceipt = buildOrderReceipt({
           orderId: result.orderId ?? fallbackOrderId,
           trackingToken: result.trackingToken,

@@ -1,4 +1,13 @@
 import { expect, test } from '@playwright/test'
+import { saveCoverage, startCoverage } from '../e2e/coverageCapture'
+
+test.beforeEach(async ({ page }) => {
+  await startCoverage(page)
+})
+
+test.afterEach(async ({ page }, testInfo) => {
+  await saveCoverage(page, testInfo.title)
+})
 
 test('shows the live kitchen display with active mock orders', async ({ page }) => {
   await page.goto('/s/brasas-sazon/kitchen/t/kd_mock_brasas_sazon')

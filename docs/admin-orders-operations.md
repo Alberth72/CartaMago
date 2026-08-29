@@ -42,15 +42,37 @@ La idea es que cocina pueda priorizar sin abrir cada pedido.
 
 ## Notificaciones Al Cliente
 
-El detalle del pedido muestra una notificacion sugerida para el cliente final segun el estado actual del pedido.
+El cambio de estado del pedido debe enviar una plantilla WhatsApp transaccional cuando el API NestJS esta configurado.
 
-En el MVP esta notificacion es asistida:
+Flujo actual:
 
 - El admin cambia el estado operativo del pedido.
-- El panel genera un mensaje claro para el cliente.
-- Si el pedido tiene telefono de cliente, el admin puede abrir WhatsApp con el mensaje listo.
+- React llama `POST /api/orders/status` con el bearer de Supabase.
+- NestJS actualiza `orders.status` bajo RLS.
+- NestJS envia la plantilla WhatsApp del estado y registra el intento en `order_notifications`.
+- Si NestJS no esta configurado o falla como servidor, React conserva el fallback directo a Supabase; ese fallback cambia estado, pero no envia WhatsApp automatico.
 
-Esto evita prometer tracking automatico antes de tener backend de notificaciones, pero deja el flujo preparado para una futura vista publica de seguimiento o envio automatico por WhatsApp/API.
+Plantillas por defecto:
+
+```text
+confirmed  -> pedido_confirmado
+preparing  -> pedido_en_preparacion
+ready      -> pedido_listo
+ready + domicilio -> pedido_enviado
+delivered  -> pedido_entregado
+cancelled  -> pedido_cancelado
+```
+
+Todas deben ser Utility en Meta, idioma `es_CO`, y tener los mismos 6 parametros de cuerpo:
+
+```text
+{{1}} nombre del cliente
+{{2}} numero de ticket
+{{3}} estado legible
+{{4}} sede
+{{5}} enlace de rastreo
+{{6}} total
+```
 
 ## Pagos
 
@@ -94,6 +116,7 @@ Responsabilidades:
 
 - React admin: visualiza, filtra y solicita cambios de estado.
 - Supabase RLS: restringe restaurante por membresia.
+- NestJS: ejecuta cambios de estado operativos y notificaciones WhatsApp por plantilla.
 - Edge/backend futuro: valida webhooks, idempotencia, pagos y estados externos.
 - `orders`: fuente interna de verdad operativa.
 - `integration_events`: inbox auditable de eventos externos.

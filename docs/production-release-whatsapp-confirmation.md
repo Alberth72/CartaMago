@@ -68,6 +68,29 @@ Orden de parametros enviado por `create-order`:
 {{6}} enlace de rastreo
 ```
 
+Para respuestas de estado enviadas desde NestJS, crear y aprobar estas
+plantillas Utility:
+
+```text
+pedido_confirmado
+pedido_en_preparacion
+pedido_listo
+pedido_enviado
+pedido_entregado
+pedido_cancelado
+```
+
+Parametros de cuerpo para todas:
+
+```text
+{{1}} nombre del cliente
+{{2}} numero de ticket
+{{3}} estado legible
+{{4}} sede
+{{5}} enlace de rastreo
+{{6}} total
+```
+
 ## Secretos Supabase PDN
 
 Configurar en Supabase Cloud, no en el repositorio:

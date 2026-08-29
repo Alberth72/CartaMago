@@ -384,6 +384,7 @@ export async function updateMockOrderStatus(orderId: string, status: OrderStatus
 // --- Inventory mock ---
 
 let inventoryData: InventoryData = {
+  branchId: 'brasas-sazon',
   items: [
     { id: 'pollo-entero', name: 'Pollo entero', unit: 'unidad', category: 'Carnes' },
     { id: 'papa-criolla', name: 'Papa criolla', unit: 'kg', category: 'Verduras' },
@@ -420,6 +421,7 @@ let inventoryData: InventoryData = {
 
 export async function fetchMockInventory(): Promise<InventoryData> {
   return {
+    branchId: inventoryData.branchId,
     items: inventoryData.items.map((item) => ({ ...item })),
     stock: inventoryData.stock.map((stock) => ({ ...stock })),
     movements: inventoryData.movements.map((movement) => ({ ...movement })),

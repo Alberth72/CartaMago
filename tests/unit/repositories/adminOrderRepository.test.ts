@@ -8,8 +8,19 @@ vi.mock('../../../src/services/supabaseClient', () => ({
   isSupabaseConfigured: () => true,
 }))
 vi.mock('../../../src/lib/runtimeFlags', () => ({ isE2EAdminMockEnabled: () => false }))
+vi.mock('../../../src/services/apiClient', () => ({
+  ApiRequestError: class ApiRequestError extends Error {
+    status = 0
+  },
+  shouldFallbackToSupabase: (error: unknown) => {
+    const candidate = error as { status?: number } | null
+    return candidate == null || candidate.status == null || candidate.status === 0 || candidate.status >= 500
+  },
+  postApiJson: vi.fn().mockRejectedValue(new Error('CartaMago API is not configured.')),
+}))
 
 import { fetchOrders, updateOrderStatus } from '../../../src/features/admin/repositories/adminOrderRepository'
+import { postApiJson } from '../../../src/services/apiClient'
 
 function builder(result: () => { data: unknown; error: unknown }) {
   const target: Record<string, unknown> = {}
@@ -29,12 +40,15 @@ function makeClient(overrides: { orders?: { data: unknown; error: unknown }; ite
         ? builder(() => overrides.orders ?? { data: [], error: null })
         : builder(() => overrides.items ?? { data: [], error: null }),
     rpc: () => ({ data: null, error: null }),
-    auth: {},
+    auth: {
+      getSession: async () => ({ data: { session: null } }),
+    },
   }
 }
 
 beforeEach(() => {
   h.client = makeClient({})
+  vi.mocked(postApiJson).mockRejectedValue(new Error('CartaMago API is not configured.'))
 })
 
 afterEach(() => {
@@ -73,6 +87,9 @@ describe('updateOrderStatus', () => {
     h.client = {
       from: () => builder(() => ({ data: null, error: { message: 'x' } })),
       rpc: () => ({ data: null, error: null }),
+      auth: {
+        getSession: async () => ({ data: { session: null } }),
+      },
     }
 
     await expect(updateOrderStatus('o1', 'confirmed')).resolves.toBe(false)

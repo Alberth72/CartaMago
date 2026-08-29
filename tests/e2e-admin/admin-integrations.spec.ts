@@ -1,4 +1,13 @@
 import { expect, type Page, test } from '@playwright/test'
+import { saveCoverage, startCoverage } from '../e2e/coverageCapture'
+
+test.beforeEach(async ({ page }) => {
+  await startCoverage(page)
+})
+
+test.afterEach(async ({ page }, testInfo) => {
+  await saveCoverage(page, testInfo.title)
+})
 
 async function login(page: Page) {
   await page.goto('/admin')

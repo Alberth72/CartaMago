@@ -1,8 +1,17 @@
 import { expect, type Locator, test } from '@playwright/test'
+import { saveCoverage, startCoverage } from './coverageCapture'
 
 async function expectCurrency(locator: Locator, amount: string) {
   await expect(locator).toContainText(new RegExp(`\\$\\s*${amount.replace('.', '\\.')}`))
 }
+
+test.beforeEach(async ({ page }) => {
+  await startCoverage(page)
+})
+
+test.afterEach(async ({ page }, testInfo) => {
+  await saveCoverage(page, testInfo.title)
+})
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')

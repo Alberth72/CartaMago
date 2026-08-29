@@ -53,6 +53,7 @@ Reglas:
 - No debe mezclar venta POS ni cuadre de caja.
 - La sede pide insumos; la bodega despacha; la sede recibe.
 - El foco es continuidad operativa, no cobro.
+- Cuando cambia `branch_stock` o `warehouse_stock`, Operacion debe refrescar la lectura visible sin pedir recarga manual. Usar Realtime y catch-up al volver a foco/visibilidad.
 
 ## Inventario
 
@@ -71,6 +72,7 @@ Reglas:
 - Merma descuenta stock con motivo.
 - Inventario no debe pedir pagos ni cerrar caja.
 - Las formulas conectan productos vendidos con insumos descontados.
+- Inventario debe refrescarse por eventos de `branch_stock` e `inventory_movements`; caja, pedido publico, despacho y merma no deben requerir recargar la pagina para ver el stock real. Las ventanas del mismo origen deben emitir un evento local de stock cambiado despues de una venta exitosa.
 
 ## Administrador De Sede
 

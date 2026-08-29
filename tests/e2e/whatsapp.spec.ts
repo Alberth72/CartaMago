@@ -1,9 +1,18 @@
 import { expect, test } from '@playwright/test'
+import { saveCoverage, startCoverage } from './coverageCapture'
 
 function decodeWhatsAppMessage(href: string) {
   const url = new URL(href)
   return decodeURIComponent(url.searchParams.get('text') ?? '').replace(/\u00a0/g, ' ')
 }
+
+test.beforeEach(async ({ page }) => {
+  await startCoverage(page)
+})
+
+test.afterEach(async ({ page }, testInfo) => {
+  await saveCoverage(page, testInfo.title)
+})
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')

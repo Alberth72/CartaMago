@@ -27,8 +27,8 @@ jobs:
       - name: Build (tsc + vite)
         run: npm run build
 
-      - name: Unit tests
-        run: npm run test:unit
+      - name: Unit tests + coverage (TDD)
+        run: npm run test:coverage
 
       - name: Install Playwright browsers (chromium)
         run: npx playwright install --with-deps chromium
@@ -38,3 +38,6 @@ jobs:
 
       - name: E2E admin (mock)
         run: npm run test:e2e:admin
+
+      - name: Coverage report por proceso (TDD + BDD)
+        run: npm run coverage:e2e:convert && npm run coverage:report

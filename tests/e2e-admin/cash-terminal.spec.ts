@@ -1,10 +1,19 @@
 import { expect, test } from '@playwright/test'
+import { saveCoverage, startCoverage } from '../e2e/coverageCapture'
+
+test.beforeEach(async ({ page }) => {
+  await startCoverage(page)
+})
+
+test.afterEach(async ({ page }, testInfo) => {
+  await saveCoverage(page, testInfo.title)
+})
 
 test('registers a sale from a tokenized cash terminal', async ({ page }) => {
   await page.goto('/s/brasas-sazon/caja/cash_demo_001/t/cs_mock_cash_demo_001')
 
   await expect(page.getByRole('heading', { name: 'Caja principal' })).toBeVisible()
-  await expect(page.getByText('Venta rapida')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Venta actual' })).toBeVisible()
 
   await page.getByRole('button', { name: /1 Pollo asado al carbon/ }).first().click()
   await page.getByRole('button', { name: /Limonada natural/ }).first().click()

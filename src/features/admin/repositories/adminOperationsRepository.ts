@@ -1,6 +1,7 @@
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
 import { postApiJson, shouldFallbackToSupabase } from '../../../services/apiClient'
-import { getSupabaseClient } from '../../../services/menuRepository'
+import { getSupabaseClient, isSupabaseConfigured } from '../../../services/menuRepository'
 import type {
   CloseCashSessionInput,
   CreateDispatchRequestInput,
@@ -348,6 +349,55 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     sales: ((salesResult.data ?? []) as Array<Record<string, unknown>>)
       .map(mapSale)
       .filter((sale) => visibleBranchIds.includes(sale.branchId)),
+  }
+}
+
+export function subscribeToAdminOperationsStockChanges(
+  input: { branchIds: string[]; warehouseIds: string[] },
+  onChange: () => void,
+): (() => void) | null {
+  if (isE2EAdminMockEnabled() || !isSupabaseConfigured()) return null
+
+  const supabase = getSupabaseClient()
+  const channels: RealtimeChannel[] = [
+    ...input.branchIds.map((branchId) =>
+      supabase
+        .channel(`admin-operations-branch-stock:${branchId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'branch_stock',
+            filter: `branch_id=eq.${branchId}`,
+          },
+          onChange,
+        )
+        .subscribe(),
+    ),
+    ...input.warehouseIds.map((warehouseId) =>
+      supabase
+        .channel(`admin-operations-warehouse-stock:${warehouseId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'warehouse_stock',
+            filter: `warehouse_id=eq.${warehouseId}`,
+          },
+          onChange,
+        )
+        .subscribe(),
+    ),
+  ]
+
+  if (channels.length === 0) return null
+
+  return () => {
+    for (const channel of channels) {
+      void supabase.removeChannel(channel)
+    }
   }
 }
 

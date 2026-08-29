@@ -1,4 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { postApiJson, shouldFallbackToSupabase } from '../../../services/apiClient'
 import { getSupabaseClient, isSupabaseConfigured } from '../../../services/menuRepository'
 import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
 import { fetchMockOrders, updateMockOrderStatus } from './adminMockRepository'
@@ -114,6 +115,15 @@ export async function updateOrderStatus(
 
   try {
     const supabase = getSupabaseClient()
+    const { data: sessionData } = await supabase.auth.getSession()
+
+    try {
+      await postApiJson('orders/status', { orderId, status }, sessionData.session?.access_token)
+      return true
+    } catch (error) {
+      if (!shouldFallbackToSupabase(error)) throw error
+    }
+
     const { error } = await supabase.from('orders').update({ status }).eq('id', orderId)
     return !error
   } catch {

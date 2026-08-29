@@ -49,9 +49,12 @@ Migrated command endpoints:
 ```text
 POST /api/cash/sales
 POST /api/cash/session-sales
+POST /api/orders/status
 ```
 
 `/api/cash/sales` wraps the existing `create_sale` RPC and forwards the Supabase bearer token so current `auth.uid()` and RLS assumptions continue to work. `/api/cash/session-sales` wraps `create_cash_session_sale` for tokenized cash terminals.
+
+`/api/orders/status` is the first order command moved into NestJS. React sends the Supabase bearer token, Nest updates the order through RLS, then sends the configured WhatsApp status template and records the attempt in `order_notifications` with the service-role key.
 
 ## Environment
 
@@ -60,8 +63,19 @@ API_HOST=127.0.0.1
 API_PORT=3333
 API_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 VITE_API_BASE_URL=http://127.0.0.1:3333
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 DATABASE_URL=
 DATABASE_SSL=false
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_STATUS_TEMPLATE_CONFIRMED=pedido_confirmado
+WHATSAPP_STATUS_TEMPLATE_PREPARING=pedido_en_preparacion
+WHATSAPP_STATUS_TEMPLATE_READY=pedido_listo
+WHATSAPP_STATUS_TEMPLATE_READY_DELIVERY=pedido_enviado
+WHATSAPP_STATUS_TEMPLATE_DELIVERED=pedido_entregado
+WHATSAPP_STATUS_TEMPLATE_CANCELLED=pedido_cancelado
 ```
 
 Use `DATABASE_URL` for direct Postgres connectivity. Keep Supabase anon/service keys out of client-side files.
@@ -85,7 +99,7 @@ Priority order:
 
 1. Caja and operational sales: create sale, payment method, receipt, order ticket, stock decrement. First wrapper done in Nest; full service/transaction ownership still pending.
 2. Inventory and merma: dispatch, receive, stock adjustments, waste registration, negative-stock protection.
-3. Orders: public order persistence, confirmation, status events, tracking token creation.
+3. Orders: status changes and WhatsApp state notifications first; public order persistence, confirmation, status events, and tracking token creation later.
 4. Reports orchestration: heavy cross-branch queries and exports when RPC-only reporting becomes hard to maintain.
 5. Integrations: DIAN, Wompi, WhatsApp API, DiDiFood, printers, webhooks, retries, idempotency.
 
@@ -154,4 +168,5 @@ The React repositories try Nest only when `VITE_API_BASE_URL` is configured. If 
 ```text
 src/features/admin/repositories/adminOperationsRepository.ts -> create_sale
 src/features/cash-terminal/cashTerminalRepository.ts -> create_cash_session_sale
+src/features/admin/repositories/adminOrderRepository.ts -> direct orders update
 ```

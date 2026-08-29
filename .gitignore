@@ -16,6 +16,7 @@ dist-ssr
 *.local
 playwright-report/
 test-results/
+coverage/
 src/assets/
 public/client-assets/**/raw/
 

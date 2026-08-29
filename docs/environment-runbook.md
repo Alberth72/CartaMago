@@ -198,6 +198,13 @@ WHATSAPP_ACCESS_TOKEN=<Meta Cloud API access token>
 WHATSAPP_PHONE_NUMBER_ID=<Phone Number ID del numero emisor>
 WHATSAPP_TEMPLATE_NAME=pedido_recibido
 WHATSAPP_TEMPLATE_LANGUAGE=es_CO
+WHATSAPP_STATUS_TEMPLATE_LANGUAGE=es_CO
+WHATSAPP_STATUS_TEMPLATE_CONFIRMED=pedido_confirmado
+WHATSAPP_STATUS_TEMPLATE_PREPARING=pedido_en_preparacion
+WHATSAPP_STATUS_TEMPLATE_READY=pedido_listo
+WHATSAPP_STATUS_TEMPLATE_READY_DELIVERY=pedido_enviado
+WHATSAPP_STATUS_TEMPLATE_DELIVERED=pedido_entregado
+WHATSAPP_STATUS_TEMPLATE_CANCELLED=pedido_cancelado
 WHATSAPP_GRAPH_VERSION=v23.0
 WHATSAPP_DEFAULT_COUNTRY_CODE=57
 WHATSAPP_CONFIRMATION_TO_OVERRIDE=
@@ -252,6 +259,30 @@ El restaurante confirmara disponibilidad, tiempo estimado y pago por WhatsApp.
 
 No incluir promociones, descuentos ni ventas adicionales en esta plantilla; debe
 quedar como Utility/transaccional.
+
+Para respuestas automaticas al cambiar estado desde el admin, configurar las
+mismas credenciales en NestJS y estas plantillas:
+
+```text
+WHATSAPP_STATUS_TEMPLATE_CONFIRMED=pedido_confirmado
+WHATSAPP_STATUS_TEMPLATE_PREPARING=pedido_en_preparacion
+WHATSAPP_STATUS_TEMPLATE_READY=pedido_listo
+WHATSAPP_STATUS_TEMPLATE_READY_DELIVERY=pedido_enviado
+WHATSAPP_STATUS_TEMPLATE_DELIVERED=pedido_entregado
+WHATSAPP_STATUS_TEMPLATE_CANCELLED=pedido_cancelado
+WHATSAPP_STATUS_TEMPLATE_LANGUAGE=es_CO
+```
+
+Parametros de esas plantillas:
+
+```text
+{{1}} nombre del cliente
+{{2}} numero de ticket
+{{3}} estado legible
+{{4}} sede
+{{5}} enlace de rastreo
+{{6}} total
+```
 
 Para probar localmente despues de cambiar variables de entorno:
 

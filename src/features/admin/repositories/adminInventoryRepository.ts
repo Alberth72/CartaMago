@@ -1,5 +1,6 @@
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
-import { getSupabaseClient, getSupabaseConfig } from '../../../services/menuRepository'
+import { getSupabaseClient, getSupabaseConfig, isSupabaseConfigured } from '../../../services/menuRepository'
 import type { InventoryData, MermaReason } from '../inventoryTypes'
 import { fetchAdminScope } from './adminScopeRepository'
 import {
@@ -45,6 +46,7 @@ export async function fetchAdminInventory(): Promise<InventoryData> {
   }
 
   return {
+    branchId,
     items: (itemsResult.data ?? []).map((row) => ({
       id: row.id,
       name: row.name,
@@ -83,4 +85,47 @@ export async function registerAdminMerma(itemId: string, quantity: number, reaso
   })
 
   if (error) throw new Error(error.message)
+}
+
+export function subscribeToAdminInventoryChanges(
+  branchId: string,
+  onChange: () => void,
+): (() => void) | null {
+  if (isE2EAdminMockEnabled() || !isSupabaseConfigured()) return null
+
+  const supabase = getSupabaseClient()
+  const channels: RealtimeChannel[] = [
+    supabase
+      .channel(`admin-inventory-stock:${branchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'branch_stock',
+          filter: `branch_id=eq.${branchId}`,
+        },
+        onChange,
+      )
+      .subscribe(),
+    supabase
+      .channel(`admin-inventory-movements:${branchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'inventory_movements',
+          filter: `branch_id=eq.${branchId}`,
+        },
+        onChange,
+      )
+      .subscribe(),
+  ]
+
+  return () => {
+    for (const channel of channels) {
+      void supabase.removeChannel(channel)
+    }
+  }
 }

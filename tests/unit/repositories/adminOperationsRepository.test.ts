@@ -11,6 +11,7 @@ vi.mock('../../../src/lib/runtimeFlags', () => ({ isE2EAdminMockEnabled: () => f
 
 import {
   closeAdminCashSession,
+  createAdminProductFormula,
   createAdminSale,
   dispatchAdminRequest,
   openAdminCashSession,
@@ -86,6 +87,43 @@ describe('cash sessions', () => {
       p_closing_cash_cop: 126000,
       p_notes: 'Cuadre ok',
     })
+  })
+})
+
+describe('createAdminProductFormula', () => {
+  it('creates or updates a formula and replaces its ingredients for that branch/product', async () => {
+    const formulasQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'formula_1' }, error: null }),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+    }
+    const ingredientsQuery = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    }
+
+    const chain = {
+      from: vi.fn((table: string) => {
+        if (table === 'formulas') return formulasQuery
+        if (table === 'formula_ingredients') return ingredientsQuery
+        return { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn(), upsert: vi.fn(), delete: vi.fn(), insert: vi.fn() }
+      }),
+    }
+    h.client = chain as never
+
+    await expect(createAdminProductFormula({
+      branchId: 'brasas-sazon',
+      productId: 'pollo-entero',
+      ingredients: [
+        { itemId: 'pollo-entero', quantityPerUnit: 1, mermaPercent: 0 },
+        { itemId: 'limon', quantityPerUnit: 0.5, mermaPercent: 10 },
+      ],
+    })).resolves.toBe('formula_1')
+
+    expect(chain.from).toHaveBeenCalledWith('formulas')
+    expect(chain.from).toHaveBeenCalledWith('formula_ingredients')
   })
 })
 

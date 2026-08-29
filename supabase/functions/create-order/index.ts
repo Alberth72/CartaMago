@@ -440,6 +440,43 @@ function normalizeFulfillmentMode(mode: string) {
   return mode === 'delivery' ? 'local_delivery' : mode
 }
 
+async function applyOrderStockDeductions(
+  supabase: ReturnType<typeof createClient>,
+  branchId: string,
+  items: Array<{ product_id: string; quantity: number }>,
+) {
+  for (const item of items) {
+    const { data: formula, error: formulaError } = await supabase
+      .from('formulas')
+      .select('id')
+      .eq('branch_id', branchId)
+      .eq('product_id', item.product_id)
+      .eq('active', true)
+      .limit(1)
+      .maybeSingle()
+
+    if (formulaError) {
+      throw new Error(formulaError.message)
+    }
+
+    if (!formula) {
+      continue
+    }
+
+    const { error: stockError } = await supabase.rpc('decrement_product_stock_for_sale', {
+      p_branch_id: branchId,
+      p_product_id: item.product_id,
+      p_quantity: item.quantity,
+      p_option_ids: [],
+      p_created_by: 'public_order',
+    })
+
+    if (stockError) {
+      throw new Error(stockError.message)
+    }
+  }
+}
+
 async function validateMenuAndPricing(
   supabase: ReturnType<typeof createClient>,
   payload: CreateOrderPayload,
@@ -627,6 +664,23 @@ Deno.serve(async (request) => {
   const { error: itemsError } = await supabase.from('order_items').insert(items)
   if (itemsError) {
     return jsonResponse({ error: 'order_items_insert_failed', message: itemsError.message }, 500)
+  }
+
+  try {
+    await applyOrderStockDeductions(supabase, payload.branchId, items.map((item) => ({
+      product_id: item.product_id,
+      quantity: item.quantity,
+    })))
+  } catch (error) {
+    console.error('Stock deduction failed for public order', error)
+
+    await supabase.from('order_items').delete().eq('order_id', orderId)
+    await supabase.from('orders').delete().eq('id', orderId)
+
+    return jsonResponse({
+      error: 'stock_deduction_failed',
+      message: error instanceof Error ? error.message : 'No se pudo descontar el inventario.',
+    }, 409)
   }
 
   const whatsappNotification = await sendWhatsAppOrderConfirmation(

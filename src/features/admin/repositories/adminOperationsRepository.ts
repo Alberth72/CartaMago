@@ -4,6 +4,7 @@ import { getSupabaseClient } from '../../../services/menuRepository'
 import type {
   CloseCashSessionInput,
   CreateDispatchRequestInput,
+  CreateProductFormulaInput,
   CreateSaleInput,
   CashSession,
   Dispatch,
@@ -12,6 +13,7 @@ import type {
   DispatchStatus,
   OperationsData,
   OpenCashSessionInput,
+  ProductFormulaIngredientInput,
   SalePaymentMethod,
   SalePaymentStatus,
   SaleSummary,
@@ -65,6 +67,18 @@ let mockData: OperationsData = {
     { id: 'pollo-entero-norte', branchId: 'brasas-sazon-norte', name: '1 Pollo asado al carbon', priceCop: 26000 },
     { id: 'limonada-natural-norte', branchId: 'brasas-sazon-norte', name: 'Limonada natural', priceCop: 7000 },
   ],
+  formulas: [
+    {
+      id: 'formula_demo_pollo',
+      branchId: 'brasas-sazon',
+      productId: 'pollo-entero',
+      active: true,
+      ingredients: [
+        { id: 'fi_demo_1', formulaId: 'formula_demo_pollo', itemId: 'pollo-entero', quantityPerUnit: 1, mermaPercent: 0 },
+        { id: 'fi_demo_2', formulaId: 'formula_demo_pollo', itemId: 'limon', quantityPerUnit: 0.5, mermaPercent: 10 },
+      ],
+    },
+  ],
   requests: [
     {
       id: 'drq_demo_001',
@@ -107,6 +121,10 @@ function cloneOperationsData(): OperationsData {
     warehouseStock: mockData.warehouseStock.map((stock) => ({ ...stock })),
     branchStock: mockData.branchStock.map((stock) => ({ ...stock })),
     products: mockData.products.map((product) => ({ ...product })),
+    formulas: mockData.formulas.map((formula) => ({
+      ...formula,
+      ingredients: formula.ingredients.map((ingredient) => ({ ...ingredient })),
+    })),
     requests: mockData.requests.map((request) => ({
       ...request,
       items: request.items.map((item) => ({ ...item })),
@@ -200,6 +218,7 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     warehouseStockResult,
     branchStockResult,
     productsResult,
+    formulasResult,
     requestsResult,
     dispatchesResult,
     cashSessionsResult,
@@ -211,6 +230,10 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     supabase.from('warehouse_stock').select('id,warehouse_id,item_id,quantity'),
     supabase.from('branch_stock').select('id,branch_id,item_id,quantity'),
     supabase.from('products').select('id,branch_id,name,price_cop').eq('available', true).order('name', { ascending: true }),
+    supabase
+      .from('formulas')
+      .select('id,branch_id,product_id,active,formula_ingredients(*)')
+      .order('branch_id', { ascending: true }),
     supabase
       .from('dispatch_requests')
       .select('*,dispatch_request_items(*)')
@@ -232,6 +255,7 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     warehouseStockResult.error ??
     branchStockResult.error ??
     productsResult.error ??
+    formulasResult.error ??
     requestsResult.error ??
     dispatchesResult.error ??
     cashSessionsResult.error ??
@@ -289,6 +313,21 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
       name: row.name,
       priceCop: row.price_cop == null ? null : Number(row.price_cop),
     })).filter((product) => visibleBranchIds.length === 0 || visibleBranchIds.includes(product.branchId)),
+    formulas: ((formulasResult.data ?? []) as Array<Record<string, unknown>>)
+      .filter((row) => visibleBranchIds.length === 0 || visibleBranchIds.includes(String(row.branch_id)))
+      .map((row) => ({
+        id: String(row.id),
+        branchId: String(row.branch_id),
+        productId: String(row.product_id),
+        active: Boolean(row.active),
+        ingredients: (Array.isArray(row.formula_ingredients) ? row.formula_ingredients : []).map((ingredient) => ({
+          id: String((ingredient as Record<string, unknown>).id),
+          formulaId: String((ingredient as Record<string, unknown>).formula_id),
+          itemId: String((ingredient as Record<string, unknown>).item_id),
+          quantityPerUnit: Number((ingredient as Record<string, unknown>).quantity_per_unit ?? 0),
+          mermaPercent: Number((ingredient as Record<string, unknown>).merma_percent ?? 0),
+        })),
+      })),
     requests: ((requestsResult.data ?? []) as Array<Record<string, unknown>>)
       .map(mapDispatchRequest)
       .filter(
@@ -397,6 +436,62 @@ export async function createAdminDispatchRequest(input: CreateDispatchRequestInp
 
   if (error) throw new Error(error.message)
   return String(data)
+}
+
+export async function createAdminProductFormula(input: CreateProductFormulaInput) {
+  if (input.ingredients.length === 0) {
+    throw new Error('Agrega al menos un insumo a la receta.')
+  }
+
+  if (isE2EAdminMockEnabled()) {
+    return `formula_${input.branchId}_${input.productId}_${Date.now()}`
+  }
+
+  const supabase = getSupabaseClient()
+  const existingFormulaResult = await supabase
+    .from('formulas')
+    .select('id')
+    .eq('branch_id', input.branchId)
+    .eq('product_id', input.productId)
+    .maybeSingle()
+
+  if (existingFormulaResult.error && existingFormulaResult.error.code !== 'PGRST116') {
+    throw new Error(existingFormulaResult.error.message)
+  }
+
+  const formulaId = existingFormulaResult.data?.id ?? `formula_${input.branchId}_${input.productId}_${Date.now()}`
+
+  const { error: formulaError } = await supabase.from('formulas').upsert({
+    id: formulaId,
+    branch_id: input.branchId,
+    product_id: input.productId,
+    active: true,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'branch_id,product_id' })
+
+  if (formulaError) {
+    throw new Error(formulaError.message)
+  }
+
+  const { error: deleteError } = await supabase.from('formula_ingredients').delete().eq('formula_id', formulaId)
+  if (deleteError) {
+    throw new Error(deleteError.message)
+  }
+
+  const ingredients = input.ingredients.map((ingredient: ProductFormulaIngredientInput) => ({
+    id: `fi_${formulaId}_${ingredient.itemId}_${Date.now()}`,
+    formula_id: formulaId,
+    item_id: ingredient.itemId,
+    quantity_per_unit: ingredient.quantityPerUnit,
+    merma_percent: ingredient.mermaPercent,
+  }))
+
+  const { error: insertError } = await supabase.from('formula_ingredients').insert(ingredients)
+  if (insertError) {
+    throw new Error(insertError.message)
+  }
+
+  return formulaId
 }
 
 export async function dispatchAdminRequest(requestId: string) {

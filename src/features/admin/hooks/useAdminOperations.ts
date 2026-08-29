@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type {
   CloseCashSessionInput,
   CreateDispatchRequestInput,
+  CreateProductFormulaInput,
   CreateSaleInput,
   OpenCashSessionInput,
   OperationsData,
@@ -9,6 +10,7 @@ import type {
 import {
   closeAdminCashSession,
   createAdminDispatchRequest,
+  createAdminProductFormula,
   dispatchAdminRequest,
   fetchAdminOperations,
   openAdminCashSession,
@@ -64,6 +66,8 @@ export function useAdminOperations() {
     status,
     createRequest: (input: CreateDispatchRequestInput) =>
       runAction(() => createAdminDispatchRequest(input), 'Solicitud creada correctamente.'),
+    createProductFormula: (input: CreateProductFormulaInput) =>
+      runAction(() => createAdminProductFormula(input), 'Fórmula guardada correctamente.'),
     dispatchRequest: (requestId: string) =>
       runAction(() => dispatchAdminRequest(requestId), 'Solicitud despachada desde bodega.'),
     receiveDispatch: (dispatchId: string) =>

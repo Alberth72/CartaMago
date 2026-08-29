@@ -40,6 +40,12 @@ export function OperationsPanel() {
   const [requestItemId, setRequestItemId] = useState('')
   const [requestQuantity, setRequestQuantity] = useState('')
   const [requestNotes, setRequestNotes] = useState('')
+  const [formulaBranchId, setFormulaBranchId] = useState('')
+  const [formulaProductId, setFormulaProductId] = useState('')
+  const [formulaIngredientItemId, setFormulaIngredientItemId] = useState('')
+  const [formulaIngredientQty, setFormulaIngredientQty] = useState('1')
+  const [formulaIngredientMerma, setFormulaIngredientMerma] = useState('0')
+  const [formulaIngredients, setFormulaIngredients] = useState<Array<{ itemId: string; quantityPerUnit: number; mermaPercent: number }>>([])
 
   const branches = data?.branches ?? []
   const warehouses = data?.warehouses ?? []
@@ -61,7 +67,8 @@ export function OperationsPanel() {
 
     const nextBranchId = lockedBranchId ?? data.branches[0]?.id ?? ''
     if (nextBranchId && requestBranchId !== nextBranchId) setRequestBranchId(nextBranchId)
-  }, [data, lockedBranchId, requestBranchId])
+    if (nextBranchId && formulaBranchId !== nextBranchId) setFormulaBranchId(nextBranchId)
+  }, [data, lockedBranchId, requestBranchId, formulaBranchId])
 
   const branchRows = branches.map((branch) => ({
     branch,
@@ -83,6 +90,55 @@ export function OperationsPanel() {
     Boolean(selectedWarehouseId) &&
     Boolean(requestItemId) &&
     Number(requestQuantity) > 0
+  const activeFormulaBranchId = formulaBranchId || profile?.primaryBranchId || branches[0]?.id || ''
+  const formulaProducts = (data?.products ?? []).filter((product) => product.branchId === activeFormulaBranchId)
+  const existingFormulas = (data?.formulas ?? []).filter((formula) => formula.branchId === activeFormulaBranchId)
+  const canSaveFormula = Boolean(activeFormulaBranchId) && Boolean(formulaProductId) && formulaIngredients.length > 0
+
+  const addFormulaIngredient = () => {
+    if (!formulaIngredientItemId) return
+    const quantityValue = Number(formulaIngredientQty)
+    const mermaValue = Number(formulaIngredientMerma)
+    if (!Number.isFinite(quantityValue) || quantityValue <= 0) return
+    if (!Number.isFinite(mermaValue) || mermaValue < 0) return
+
+    setFormulaIngredients((prev) => {
+      const existingIndex = prev.findIndex((entry) => entry.itemId === formulaIngredientItemId)
+      const nextEntry = {
+        itemId: formulaIngredientItemId,
+        quantityPerUnit: quantityValue,
+        mermaPercent: mermaValue,
+      }
+      if (existingIndex >= 0) {
+        const next = [...prev]
+        next[existingIndex] = nextEntry
+        return next
+      }
+      return [...prev, nextEntry]
+    })
+
+    setFormulaIngredientItemId('')
+    setFormulaIngredientQty('1')
+    setFormulaIngredientMerma('0')
+  }
+
+  const removeFormulaIngredient = (itemId: string) => {
+    setFormulaIngredients((prev) => prev.filter((entry) => entry.itemId !== itemId))
+  }
+
+  const handleSaveFormula = () => {
+    if (!canSaveFormula) return
+    void operations.createProductFormula({
+      branchId: activeFormulaBranchId,
+      productId: formulaProductId,
+      ingredients: formulaIngredients,
+    })
+    setFormulaIngredientItemId('')
+    setFormulaIngredientQty('1')
+    setFormulaIngredientMerma('0')
+    setFormulaIngredients([])
+    setFormulaProductId('')
+  }
   const pendingRequestsCount = requests.filter(
     (request) => request.status === 'pending' || request.status === 'approved',
   ).length
@@ -332,6 +388,164 @@ export function OperationsPanel() {
             </table>
           </div>
         </section>
+
+        {!isWarehouseOnly ? (
+          <aside className="h-fit rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="grid size-10 place-items-center rounded-md bg-amber-100 text-amber-700">
+                <ArrowDownUp size={22} />
+              </span>
+              <div>
+                <h3 className="text-base font-black text-stone-950">Fórmulas de receta</h3>
+                <p className="text-sm font-bold text-stone-500">Configura insumos por sede y producto</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Sede
+                <select
+                  value={activeFormulaBranchId}
+                  onChange={(event) => {
+                    setFormulaBranchId(event.target.value)
+                    setFormulaProductId('')
+                  }}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                >
+                  <option value="">Selecciona sede</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-sm font-bold text-stone-700">
+                Producto
+                <select
+                  value={formulaProductId}
+                  onChange={(event) => setFormulaProductId(event.target.value)}
+                  disabled={!formulaBranchId}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500 disabled:cursor-not-allowed disabled:bg-stone-100"
+                >
+                  <option value="">Selecciona producto</option>
+                  {formulaProducts.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="rounded-md border border-stone-200 bg-stone-50 p-3">
+                <p className="text-xs font-black uppercase tracking-wide text-stone-500">Agregar insumo</p>
+                <div className="mt-2 grid gap-2">
+                  <select
+                    value={formulaIngredientItemId}
+                    onChange={(event) => setFormulaIngredientItemId(event.target.value)}
+                    className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                  >
+                    <option value="">Selecciona insumo</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} ({item.unit})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={formulaIngredientQty}
+                      onChange={(event) => setFormulaIngredientQty(event.target.value)}
+                      placeholder="Cant./unidad"
+                      className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={formulaIngredientMerma}
+                      onChange={(event) => setFormulaIngredientMerma(event.target.value)}
+                      placeholder="Merma %"
+                      className="rounded-md border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-950 outline-none focus:border-red-500"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addFormulaIngredient}
+                    disabled={!formulaIngredientItemId}
+                    className="inline-flex items-center justify-center rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-black text-stone-800 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:text-stone-400"
+                  >
+                    Agregar insumo
+                  </button>
+                </div>
+              </div>
+
+              {formulaIngredients.length > 0 ? (
+                <div className="grid gap-2">
+                  {formulaIngredients.map((entry) => {
+                    const item = items.find((itemEntry) => itemEntry.id === entry.itemId)
+                    return (
+                      <div key={entry.itemId} className="flex items-center justify-between gap-3 rounded-md border border-stone-200 bg-white px-3 py-2">
+                        <div>
+                          <p className="text-sm font-black text-stone-950">{item?.name ?? entry.itemId}</p>
+                          <p className="text-xs font-bold text-stone-500">
+                            {entry.quantityPerUnit} {item?.unit ?? 'unidad'} · merma {entry.mermaPercent}%
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFormulaIngredient(entry.itemId)}
+                          className="text-xs font-black text-red-700 underline-offset-2 hover:underline"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={handleSaveFormula}
+                disabled={!canSaveFormula || operations.isSaving}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-900 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+              >
+                <Save size={16} />
+                Guardar receta
+              </button>
+
+              {existingFormulas.length > 0 ? (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3">
+                  <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Recetas guardadas</p>
+                  <div className="mt-2 grid gap-2">
+                    {existingFormulas.map((formula) => {
+                      const productName = data?.products.find((product) => product.id === formula.productId)?.name ?? formula.productId
+                      return (
+                        <div key={formula.id} className="rounded-md border border-emerald-200 bg-white p-2">
+                          <p className="text-sm font-black text-stone-950">{productName}</p>
+                          <p className="mt-1 text-xs font-bold text-stone-500">
+                            {formula.ingredients.map((ingredient) => {
+                              const itemName = items.find((itemEntry) => itemEntry.id === ingredient.itemId)?.name ?? ingredient.itemId
+                              return `${itemName} ${ingredient.quantityPerUnit} u · ${ingredient.mermaPercent}%`
+                            }).join(' · ')}
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs font-bold text-stone-500">Todavía no hay recetas guardadas para esta sede.</p>
+              )}
+            </div>
+          </aside>
+        ) : null}
 
         {!isWarehouseOnly ? (
           <aside className="h-fit rounded-lg border border-stone-200 bg-white p-4 shadow-sm">

@@ -94,6 +94,22 @@ export type SaleSummary = {
   itemNames: string[]
 }
 
+export type ProductFormulaIngredient = {
+  id: string
+  formulaId: string
+  itemId: string
+  quantityPerUnit: number
+  mermaPercent: number
+}
+
+export type ProductFormula = {
+  id: string
+  branchId: string
+  productId: string
+  active: boolean
+  ingredients: ProductFormulaIngredient[]
+}
+
 export type OperationsData = {
   profile: OperationsProfile
   warehouses: OperationsWarehouse[]
@@ -102,6 +118,7 @@ export type OperationsData = {
   warehouseStock: OperationsStock[]
   branchStock: OperationsStock[]
   products: OperationsProduct[]
+  formulas: ProductFormula[]
   requests: DispatchRequest[]
   dispatches: Dispatch[]
   cashSessions: CashSession[]
@@ -114,6 +131,18 @@ export type CreateDispatchRequestInput = {
   itemId: string
   quantity: number
   notes: string
+}
+
+export type ProductFormulaIngredientInput = {
+  itemId: string
+  quantityPerUnit: number
+  mermaPercent: number
+}
+
+export type CreateProductFormulaInput = {
+  branchId: string
+  productId: string
+  ingredients: ProductFormulaIngredientInput[]
 }
 
 export type SaleCartItemInput = {

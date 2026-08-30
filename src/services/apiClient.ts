@@ -5,6 +5,7 @@ export class ApiRequestError extends Error {
 
   constructor(message: string, status: number) {
     super(message)
+    this.name = 'ApiRequestError'
     this.status = status
   }
 }
@@ -15,8 +16,14 @@ export function getApiBaseUrl() {
 }
 
 export function shouldFallbackToSupabase(error: unknown) {
-  if (!(error instanceof ApiRequestError)) return true
-  return error.status === 0 || error.status >= 500
+  if (error == null) return true
+
+  if (typeof error === 'object' && 'status' in error && typeof (error as { status?: unknown }).status === 'number') {
+    const status = (error as { status: number }).status
+    return status === 0 || status >= 500
+  }
+
+  return true
 }
 
 export async function postApiJson<T>(

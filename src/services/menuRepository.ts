@@ -75,10 +75,13 @@ function normalizeFulfillmentModes(modes: string[] | null | undefined): Fulfillm
 }
 
 export function getSeedMenuData(branchId = getSupabaseConfig().branchId): MenuData {
-  const seed = getSeedById(branchId) ?? getSeedById(getSupabaseConfig().branchId)
+  const resolvedBranchId = branchId ?? getSupabaseConfig().branchId
+  const seed = getSeedById(resolvedBranchId)
+
   if (!seed) {
-    throw new Error(`No seed data for restaurant: ${branchId}`)
+    throw new Error(`No seed data for restaurant: ${resolvedBranchId}`)
   }
+
   return {
     branchId: seed.id,
     restaurant: seed.restaurant,

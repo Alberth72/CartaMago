@@ -121,4 +121,14 @@ describe('supabase.config', () => {
     const { getSupabaseApiConfig } = await import('../../../apps/api/src/supabase/supabase.config')
     expect(getSupabaseApiConfig()).toEqual({ url: null, anonKey: null })
   })
+
+  it('treats blank and literal undefined values as unconfigured', async () => {
+    vi.stubEnv('SUPABASE_URL', '   ')
+    vi.stubEnv('SUPABASE_ANON_KEY', 'undefined')
+    vi.stubEnv('VITE_SUPABASE_URL', undefined)
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', undefined)
+
+    const { getSupabaseApiConfig } = await import('../../../apps/api/src/supabase/supabase.config')
+    expect(getSupabaseApiConfig()).toEqual({ url: null, anonKey: null })
+  })
 })

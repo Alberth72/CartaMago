@@ -3,9 +3,15 @@ export type SupabaseApiConfig = {
   anonKey: string | null
 }
 
+function normalizeOptionalEnv(value: string | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  return trimmed && trimmed !== 'undefined' ? trimmed : null
+}
+
 export function getSupabaseApiConfig(): SupabaseApiConfig {
   return {
-    url: process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? null,
-    anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? null,
+    url: normalizeOptionalEnv(process.env.SUPABASE_URL) ?? normalizeOptionalEnv(process.env.VITE_SUPABASE_URL),
+    anonKey: normalizeOptionalEnv(process.env.SUPABASE_ANON_KEY) ?? normalizeOptionalEnv(process.env.VITE_SUPABASE_ANON_KEY),
   }
 }

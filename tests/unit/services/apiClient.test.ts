@@ -94,4 +94,22 @@ describe('apiClient', () => {
       status: 403,
     })
   })
+
+  it('uses the generic error message when the response body cannot be parsed', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      json: async () => {
+        throw new Error('invalid json')
+      },
+    }))
+
+    const { postApiJson } = await import('../../../src/services/apiClient')
+    await expect(postApiJson('/x', {})).rejects.toMatchObject({
+      message: 'CartaMago API request failed (403).',
+      status: 403,
+    })
+  })
 })

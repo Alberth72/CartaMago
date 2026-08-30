@@ -64,6 +64,12 @@ describe('getSeedMenuData', () => {
     expect(data.menuItems.length).toBeGreaterThan(0)
   })
 
+  it('uses the configured branch when no branch id is provided', () => {
+    const data = getSeedMenuData()
+    expect(data.branchId).toBe('brasas-sazon')
+    expect(data.source).toBe('seed')
+  })
+
   it('throws for an unknown branch id', () => {
     expect(() => getSeedMenuData('no-existe')).toThrow(/No seed data/)
   })

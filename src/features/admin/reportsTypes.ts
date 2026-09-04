@@ -8,6 +8,9 @@ export type ReportBranchSales = {
   branchName: string
   salesCount: number
   salesTotalCop: number
+  publicOrdersCount: number
+  publicOrdersTotalCop: number
+  revenueTotalCop: number
 }
 
 export type BrandReports = {
@@ -16,6 +19,9 @@ export type BrandReports = {
   totalDeliveredCop: number
   salesCount: number
   salesTotalCop: number
+  publicOrdersCount: number
+  publicOrdersTotalCop: number
+  revenueTotalCop: number
   openCashSessions: number
   branchSales: ReportBranchSales[]
   ordersByStatus: ReportOrdersByStatus[]

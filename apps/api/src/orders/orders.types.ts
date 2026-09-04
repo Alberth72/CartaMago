@@ -7,6 +7,12 @@ export type UpdateOrderStatusInput = {
   status: OrderStatus
 }
 
+export type ConfirmOrderPaymentInput = {
+  orderId: string
+  cashSessionId: string | null
+  paymentReference: string
+}
+
 export type WhatsAppNotificationResult = {
   status: 'skipped' | 'sent' | 'failed'
   destinationPhone?: string

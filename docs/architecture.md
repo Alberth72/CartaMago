@@ -359,6 +359,8 @@ create_cash_session_sale
 
 `sales.order_id` links the financial receipt to the kitchen/order ticket. The order starts as `confirmed` so staff can move it through preparation, ready, and delivered without re-confirming a paid counter sale.
 
+Public QR orders start in `orders` and appear in Caja/Reportes as public sales while payment is pending. When staff confirms the payment from the order detail, `confirm_order_payment` creates the canonical financial records (`sales`, `sale_items`, `sale_payments`, `sale_receipts`) with `source = 'qr_order'` and the original `sales.order_id`; it does not decrement stock again because the public order creation already handled stock.
+
 Electronic invoicing for DIAN is intentionally deferred to a later provider/build decision.
 
 ## Warehouse Purchasing

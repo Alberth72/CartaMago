@@ -381,6 +381,15 @@ export async function updateMockOrderStatus(orderId: string, status: OrderStatus
   return true
 }
 
+export async function confirmMockOrderPayment(orderId: string) {
+  orders = orders.map((order) =>
+    order.id === orderId
+      ? { ...order, payment_status: 'paid', updated_at: new Date().toISOString() }
+      : order,
+  )
+  return true
+}
+
 // --- Inventory mock ---
 
 let inventoryData: InventoryData = {
@@ -456,10 +465,29 @@ export async function fetchMockBrandReports(): Promise<BrandReports> {
     totalDeliveredCop: 182000,
     salesCount: 3,
     salesTotalCop: 156000,
+    publicOrdersCount: 5,
+    publicOrdersTotalCop: 182000,
+    revenueTotalCop: 338000,
     openCashSessions: 1,
     branchSales: [
-      { branchId: 'brasas-sazon', branchName: 'Brasas & Sazon Principal', salesCount: 2, salesTotalCop: 104000 },
-      { branchId: 'brasas-sazon-norte', branchName: 'Brasas & Sazon Norte', salesCount: 1, salesTotalCop: 52000 },
+      {
+        branchId: 'brasas-sazon',
+        branchName: 'Brasas & Sazon Principal',
+        salesCount: 2,
+        salesTotalCop: 104000,
+        publicOrdersCount: 3,
+        publicOrdersTotalCop: 104000,
+        revenueTotalCop: 208000,
+      },
+      {
+        branchId: 'brasas-sazon-norte',
+        branchName: 'Brasas & Sazon Norte',
+        salesCount: 1,
+        salesTotalCop: 52000,
+        publicOrdersCount: 2,
+        publicOrdersTotalCop: 78000,
+        revenueTotalCop: 130000,
+      },
     ],
     ordersByStatus: [
       { status: 'pending', count: 1 },

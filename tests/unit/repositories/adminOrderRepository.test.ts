@@ -19,7 +19,7 @@ vi.mock('../../../src/services/apiClient', () => ({
   postApiJson: vi.fn().mockRejectedValue(new Error('CartaMago API is not configured.')),
 }))
 
-import { fetchOrders, updateOrderStatus } from '../../../src/features/admin/repositories/adminOrderRepository'
+import { confirmOrderPayment, fetchOrders, updateOrderStatus } from '../../../src/features/admin/repositories/adminOrderRepository'
 import { postApiJson } from '../../../src/services/apiClient'
 
 function builder(result: () => { data: unknown; error: unknown }) {
@@ -93,5 +93,34 @@ describe('updateOrderStatus', () => {
     }
 
     await expect(updateOrderStatus('o1', 'confirmed')).resolves.toBe(false)
+  })
+})
+
+describe('confirmOrderPayment', () => {
+  it('returns true when the payment confirmation succeeds through the API', async () => {
+    vi.mocked(postApiJson).mockResolvedValue({ ok: true })
+
+    await expect(confirmOrderPayment('o1')).resolves.toBe(true)
+
+    expect(postApiJson).toHaveBeenCalledWith('orders/payment', { orderId: 'o1' }, undefined)
+  })
+
+  it('falls back to the confirmation RPC when the API is unavailable', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: { saleId: 'sale_1' }, error: null })
+    h.client = {
+      from: () => builder(() => ({ data: null, error: null })),
+      rpc,
+      auth: {
+        getSession: async () => ({ data: { session: null } }),
+      },
+    }
+
+    await expect(confirmOrderPayment('o1')).resolves.toBe(true)
+
+    expect(rpc).toHaveBeenCalledWith('confirm_order_payment', {
+      p_order_id: 'o1',
+      p_cash_session_id: null,
+      p_payment_reference: '',
+    })
   })
 })

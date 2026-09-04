@@ -20,8 +20,8 @@ test('shows consolidated brand reports in the mock admin panel', async ({ page }
   await login(page)
   await page.getByRole('button', { name: 'Reportes' }).click()
 
-  await expect(page.getByRole('heading', { name: /reportes consolidados/i })).toBeVisible()
-  await expect(page.getByText('Embudo de pedidos')).toBeVisible()
-  await expect(page.getByText('Ventas entregadas')).toBeVisible()
-  await expect(page.getByText('Entregado')).toBeVisible()
+  await expect(page.getByText('Ventas consolidadas')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ventas por sede' })).toBeVisible()
+  await expect(page.getByRole('list').getByText('Brasas & Sazon Principal')).toBeVisible()
+  await expect(page.getByText('Embudo de pedidos')).toHaveCount(0)
 })

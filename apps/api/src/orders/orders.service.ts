@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseRpcService } from '../supabase/supabase-rpc.service.js'
 import { getSupabaseApiConfig } from '../supabase/supabase.config.js'
 import {
   ORDER_STATUSES,
+  type ConfirmOrderPaymentInput,
   type OrderStatus,
   type UpdateOrderStatusInput,
   type WhatsAppNotificationResult,
@@ -35,6 +37,10 @@ function parseText(value: unknown, field: string) {
   }
 
   return value.trim()
+}
+
+function parseOptionalText(value: unknown) {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : ''
 }
 
 function parseOrderStatus(value: unknown): OrderStatus {
@@ -126,12 +132,25 @@ function createServiceClient() {
 
 @Injectable()
 export class OrdersService {
+  constructor(private readonly rpc: SupabaseRpcService) {}
+
   parseUpdateStatusInput(value: unknown): UpdateOrderStatusInput {
     const body = asRecord(value)
 
     return {
       orderId: parseText(body.orderId, 'orderId'),
       status: parseOrderStatus(body.status),
+    }
+  }
+
+  parseConfirmPaymentInput(value: unknown): ConfirmOrderPaymentInput {
+    const body = asRecord(value)
+    const cashSessionId = parseOptionalText(body.cashSessionId)
+
+    return {
+      orderId: parseText(body.orderId, 'orderId'),
+      cashSessionId: cashSessionId || null,
+      paymentReference: parseOptionalText(body.paymentReference),
     }
   }
 
@@ -162,6 +181,18 @@ export class OrdersService {
       status: order.status,
       whatsappNotification,
     }
+  }
+
+  async confirmPayment(input: ConfirmOrderPaymentInput, authorization?: string) {
+    if (!authorization?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Order payment confirmation requires a Supabase bearer token.')
+    }
+
+    return this.rpc.call('confirm_order_payment', {
+      p_order_id: input.orderId,
+      p_cash_session_id: input.cashSessionId,
+      p_payment_reference: input.paymentReference,
+    }, authorization)
   }
 
   private async fetchOrder(client: SupabaseClient, orderId: string): Promise<OrderRow> {

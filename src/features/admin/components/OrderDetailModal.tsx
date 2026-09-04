@@ -1,5 +1,6 @@
 import React from 'react'
 import {
+  CheckCircle2,
   Clock,
   ExternalLink,
   MapPin,
@@ -37,13 +38,22 @@ type OrderDetailModalProps = {
   order: OrderWithItems
   onClose: () => void
   onStatusChange: (orderId: string, newStatus: OrderStatus) => void
+  onConfirmPayment: (orderId: string) => void
+  isConfirmingPayment: boolean
 }
 
-export function OrderDetailModal({ order, onClose, onStatusChange }: OrderDetailModalProps) {
+export function OrderDetailModal({
+  order,
+  onClose,
+  onStatusChange,
+  onConfirmPayment,
+  isConfirmingPayment,
+}: OrderDetailModalProps) {
   const status = order.status as OrderStatus
   const FulfillmentIcon = fulfillmentIcons[order.fulfillment_mode] ?? Package
   const paymentMethod = (order.payment_method ?? 'cash') as PaymentMethod
   const paymentStatus = (order.payment_status ?? 'pending') as PaymentStatus
+  const canConfirmPayment = paymentStatus !== 'paid' && status !== 'cancelled' && isPublicOrderChannel(order.order_channel)
   const customerNotification = buildCustomerNotification(order)
   const customerWhatsAppLink = buildCustomerWhatsAppLink(order.customer_phone, customerNotification)
 
@@ -172,6 +182,17 @@ export function OrderDetailModal({ order, onClose, onStatusChange }: OrderDetail
               <p className="mt-1 text-xs leading-relaxed text-stone-500">
                 {paymentMethodHelp[paymentMethod] ?? 'El local debe confirmar el medio de pago.'}
               </p>
+              {canConfirmPayment ? (
+                <button
+                  type="button"
+                  onClick={() => onConfirmPayment(order.id)}
+                  disabled={isConfirmingPayment}
+                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-emerald-700 px-3 py-2 text-xs font-black text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-stone-400"
+                >
+                  <CheckCircle2 size={14} />
+                  {isConfirmingPayment ? 'Confirmando pago...' : 'Marcar pago recibido'}
+                </button>
+              ) : null}
               {paymentMethod === 'wompi' ? (
                 <p className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs font-bold leading-5 text-blue-900">
                   Camino feliz Wompi: crear referencia unica, generar firma en backend, abrir checkout y confirmar por webhook.
@@ -277,6 +298,11 @@ function formatFulfillmentDetail(order: OrderWithItems) {
   const label = fulfillmentLabels[order.fulfillment_mode] ?? order.fulfillment_mode
   if (order.fulfillment_mode === 'table' && order.table_number) return `${label} ${order.table_number}`
   return label
+}
+
+function isPublicOrderChannel(channel: string | undefined) {
+  const normalized = channel ?? 'cartamago'
+  return normalized === 'cartamago' || normalized === 'whatsapp' || normalized === 'didi_food'
 }
 
 function buildCustomerNotification(order: OrderWithItems) {

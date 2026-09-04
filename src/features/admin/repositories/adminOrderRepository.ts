@@ -2,7 +2,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { postApiJson, shouldFallbackToSupabase } from '../../../services/apiClient'
 import { getSupabaseClient, isSupabaseConfigured } from '../../../services/menuRepository'
 import { isE2EAdminMockEnabled } from '../../../lib/runtimeFlags'
-import { fetchMockOrders, updateMockOrderStatus } from './adminMockRepository'
+import { confirmMockOrderPayment, fetchMockOrders, updateMockOrderStatus } from './adminMockRepository'
 import type { OrderItemRow, OrderRow, OrderStatus, OrderWithItems } from '../../order/types'
 
 export async function fetchOrders(branchId: string): Promise<OrderWithItems[]> {
@@ -125,6 +125,33 @@ export async function updateOrderStatus(
     }
 
     const { error } = await supabase.from('orders').update({ status }).eq('id', orderId)
+    return !error
+  } catch {
+    return false
+  }
+}
+
+export async function confirmOrderPayment(orderId: string): Promise<boolean> {
+  if (isE2EAdminMockEnabled()) {
+    return confirmMockOrderPayment(orderId)
+  }
+
+  try {
+    const supabase = getSupabaseClient()
+    const { data: sessionData } = await supabase.auth.getSession()
+
+    try {
+      await postApiJson('orders/payment', { orderId }, sessionData.session?.access_token)
+      return true
+    } catch (error) {
+      if (!shouldFallbackToSupabase(error)) throw error
+    }
+
+    const { error } = await supabase.rpc('confirm_order_payment', {
+      p_order_id: orderId,
+      p_cash_session_id: null,
+      p_payment_reference: '',
+    })
     return !error
   } catch {
     return false

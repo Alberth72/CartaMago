@@ -9,8 +9,19 @@ type ReportRow = {
   total_delivered_cop?: number
   sales_count?: number
   sales_total_cop?: number
+  public_orders_count?: number
+  public_orders_total_cop?: number
+  revenue_total_cop?: number
   open_cash_sessions?: number
-  branch_sales?: Array<{ branch_id: string; branch_name: string; sales_count: number; sales_total_cop: number }>
+  branch_sales?: Array<{
+    branch_id: string
+    branch_name: string
+    sales_count: number
+    sales_total_cop: number
+    public_orders_count?: number
+    public_orders_total_cop?: number
+    revenue_total_cop?: number
+  }>
   orders_by_status?: Array<{ status: string; count: number }>
   critical_stock_count?: number
   purchases_total?: number
@@ -35,12 +46,18 @@ function mapRow(row: unknown): BrandReports {
     totalDeliveredCop: Number(source.total_delivered_cop ?? 0),
     salesCount: Number(source.sales_count ?? 0),
     salesTotalCop: Number(source.sales_total_cop ?? 0),
+    publicOrdersCount: Number(source.public_orders_count ?? 0),
+    publicOrdersTotalCop: Number(source.public_orders_total_cop ?? 0),
+    revenueTotalCop: Number(source.revenue_total_cop ?? (source.sales_total_cop ?? 0) + (source.public_orders_total_cop ?? 0)),
     openCashSessions: Number(source.open_cash_sessions ?? 0),
     branchSales: (source.branch_sales ?? []).map((entry) => ({
       branchId: entry.branch_id,
       branchName: entry.branch_name,
       salesCount: Number(entry.sales_count),
       salesTotalCop: Number(entry.sales_total_cop),
+      publicOrdersCount: Number(entry.public_orders_count ?? 0),
+      publicOrdersTotalCop: Number(entry.public_orders_total_cop ?? 0),
+      revenueTotalCop: Number(entry.revenue_total_cop ?? entry.sales_total_cop + (entry.public_orders_total_cop ?? 0)),
     })),
     ordersByStatus: (source.orders_by_status ?? []).map((entry) => ({
       status: entry.status,

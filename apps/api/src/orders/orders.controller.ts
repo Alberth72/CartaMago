@@ -9,4 +9,9 @@ export class OrdersController {
   updateStatus(@Body() body: unknown, @Headers('authorization') authorization?: string) {
     return this.ordersService.updateStatus(this.ordersService.parseUpdateStatusInput(body), authorization)
   }
+
+  @Post('payment')
+  confirmPayment(@Body() body: unknown, @Headers('authorization') authorization?: string) {
+    return this.ordersService.confirmPayment(this.ordersService.parseConfirmPaymentInput(body), authorization)
+  }
 }

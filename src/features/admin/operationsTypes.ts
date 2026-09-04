@@ -32,6 +32,7 @@ export type DispatchStatus = 'preparing' | 'shipped' | 'received' | 'cancelled'
 export type OperationsRole = 'superadmin' | 'warehouse_admin' | 'branch_admin' | 'cashier'
 export type SalePaymentMethod = 'cash' | 'card_at_counter' | 'card_at_table' | 'bank_transfer' | 'wompi' | 'didi_food'
 export type SalePaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded'
+export type SaleSource = 'admin_pos' | 'cash_terminal' | 'qr_order' | 'manual'
 
 export type OperationsProfile = {
   userId: string
@@ -86,6 +87,8 @@ export type SaleSummary = {
   id: string
   branchId: string
   cashSessionId: string | null
+  orderId: string | null
+  source: SaleSource
   receiptNumber: string
   totalCop: number
   paymentMethod: SalePaymentMethod

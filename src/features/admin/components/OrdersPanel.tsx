@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  confirmOrderPayment,
   fetchOrders,
   subscribeToOrderChanges,
   updateOrderStatus,
@@ -20,6 +21,7 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
   const [statusMessage, setStatusMessage] = useState('')
+  const [confirmingPaymentId, setConfirmingPaymentId] = useState<string | null>(null)
   const selectedOrderId = selectedOrder?.id
 
   const loadOrders = useCallback(async (showInitialLoading = false) => {
@@ -102,6 +104,25 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
     }
   }
 
+  async function handleConfirmPayment(orderId: string) {
+    setConfirmingPaymentId(orderId)
+    setStatusMessage('')
+    const ok = await confirmOrderPayment(orderId)
+    setConfirmingPaymentId(null)
+
+    if (!ok) {
+      setStatusMessage('No se pudo confirmar el pago del pedido.')
+      return
+    }
+
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId ? { ...order, payment_status: 'paid', updated_at: new Date().toISOString() } : order,
+      ),
+    )
+    setStatusMessage('Pago confirmado y venta registrada.')
+  }
+
   const visibleOrders = statusFilter ? orders.filter((order) => order.status === statusFilter) : orders
 
   return (
@@ -127,6 +148,8 @@ export function OrdersPanel({ statusFilter }: OrdersPanelProps) {
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
           onStatusChange={handleStatusChange}
+          onConfirmPayment={handleConfirmPayment}
+          isConfirmingPayment={confirmingPaymentId === selectedOrder.id}
         />
       )}
     </div>

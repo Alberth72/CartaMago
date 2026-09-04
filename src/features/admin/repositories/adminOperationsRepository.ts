@@ -19,7 +19,9 @@ import type {
   SalePaymentStatus,
   SaleSummary,
 } from '../operationsTypes'
+import type { OrderItemRow, OrderRow } from '../../order/types'
 import { fetchAdminScope } from './adminScopeRepository'
+import { fetchMockOrders } from './adminMockRepository'
 
 const now = Date.now()
 
@@ -196,6 +198,8 @@ function mapSale(row: Record<string, unknown>): SaleSummary {
     id: String(row.id),
     branchId: String(row.branch_id),
     cashSessionId: typeof row.cash_session_id === 'string' ? row.cash_session_id : null,
+    orderId: typeof row.order_id === 'string' ? row.order_id : null,
+    source: row.source === 'cash_terminal' || row.source === 'qr_order' || row.source === 'manual' ? row.source : 'admin_pos',
     receiptNumber: String(row.receipt_number),
     totalCop: Number(row.total_cop ?? 0),
     paymentMethod: String(firstPayment.payment_method ?? 'cash') as SalePaymentMethod,
@@ -205,9 +209,54 @@ function mapSale(row: Record<string, unknown>): SaleSummary {
   }
 }
 
+function makePublicOrderReceiptNumber(orderId: string) {
+  return `PED-${orderId.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10)}`
+}
+
+function normalizeSalePaymentStatus(status: string | undefined): SalePaymentStatus {
+  if (status === 'paid' || status === 'failed' || status === 'cancelled' || status === 'refunded') return status
+  return 'pending'
+}
+
+function mapPublicOrderSale(order: OrderRow & { items: OrderItemRow[] }): SaleSummary {
+  return {
+    id: `public_${order.id}`,
+    branchId: order.branch_id,
+    cashSessionId: null,
+    orderId: order.id,
+    source: 'qr_order',
+    receiptNumber: makePublicOrderReceiptNumber(order.id),
+    totalCop: Number(order.total_cop ?? 0),
+    paymentMethod: (order.payment_method ?? 'cash') as SalePaymentMethod,
+    paymentStatus: normalizeSalePaymentStatus(order.payment_status),
+    soldAt: order.created_at,
+    itemNames: order.items.map((item) => `${item.quantity} x ${item.product_name}`),
+  }
+}
+
+function mergePublicOrderSales(sales: SaleSummary[], publicOrders: Array<OrderRow & { items: OrderItemRow[] }>) {
+  const existingOrderIds = new Set(sales.map((sale) => sale.orderId).filter(Boolean))
+  const publicOrderSales = publicOrders
+    .filter((order) => !existingOrderIds.has(order.id))
+    .filter((order) => order.status !== 'cancelled')
+    .filter((order) => {
+      const channel = order.order_channel ?? 'cartamago'
+      return channel === 'cartamago' || channel === 'whatsapp' || channel === 'didi_food'
+    })
+    .map(mapPublicOrderSale)
+
+  return [...sales, ...publicOrderSales].sort(
+    (left, right) => new Date(right.soldAt).getTime() - new Date(left.soldAt).getTime(),
+  )
+}
+
 export async function fetchAdminOperations(): Promise<OperationsData> {
   if (isE2EAdminMockEnabled()) {
-    return cloneOperationsData()
+    const data = cloneOperationsData()
+    return {
+      ...data,
+      sales: mergePublicOrderSales(data.sales, await fetchMockOrders()),
+    }
   }
 
   const supabase = getSupabaseClient()
@@ -224,6 +273,7 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     dispatchesResult,
     cashSessionsResult,
     salesResult,
+    ordersResult,
   ] = await Promise.all([
     supabase.from('warehouses').select('id,name').order('name', { ascending: true }),
     supabase.from('branches').select('id,name,warehouse_id').order('name', { ascending: true }),
@@ -247,6 +297,11 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
       .select('*,sale_items(*),sale_payments(*)')
       .order('sold_at', { ascending: false })
       .limit(20),
+    supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50),
   ])
 
   const error =
@@ -260,7 +315,8 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     requestsResult.error ??
     dispatchesResult.error ??
     cashSessionsResult.error ??
-    salesResult.error
+    salesResult.error ??
+    ordersResult.error
 
   if (error) {
     throw new Error(error.message)
@@ -279,6 +335,34 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
   const visibleWarehouseIds = profile.canManageWarehouse
     ? profile.warehouseIds
     : uniq(branches.filter((branch) => visibleBranchIds.includes(branch.id)).map((branch) => branch.warehouseId))
+  const visibleOrderRows = ((ordersResult.data ?? []) as OrderRow[])
+    .filter((order) => visibleBranchIds.includes(order.branch_id))
+  const visibleOrderIds = visibleOrderRows.map((order) => order.id)
+  const orderItemsResult = visibleOrderIds.length > 0
+    ? await supabase
+        .from('order_items')
+        .select('*')
+        .in('order_id', visibleOrderIds)
+        .order('sort_order', { ascending: true })
+    : { data: [], error: null }
+
+  if (orderItemsResult.error) {
+    throw new Error(orderItemsResult.error.message)
+  }
+
+  const orderItemsById = new Map<string, OrderItemRow[]>()
+  for (const item of (orderItemsResult.data ?? []) as OrderItemRow[]) {
+    const list = orderItemsById.get(item.order_id) ?? []
+    list.push(item)
+    orderItemsById.set(item.order_id, list)
+  }
+  const publicOrders = visibleOrderRows.map((order) => ({
+    ...order,
+    items: orderItemsById.get(order.id) ?? [],
+  }))
+  const visibleSales = ((salesResult.data ?? []) as Array<Record<string, unknown>>)
+    .map(mapSale)
+    .filter((sale) => visibleBranchIds.includes(sale.branchId))
 
   return {
     profile,
@@ -346,9 +430,7 @@ export async function fetchAdminOperations(): Promise<OperationsData> {
     cashSessions: ((cashSessionsResult.data ?? []) as Array<Record<string, unknown>>)
       .map(mapCashSession)
       .filter((session) => visibleBranchIds.includes(session.branchId)),
-    sales: ((salesResult.data ?? []) as Array<Record<string, unknown>>)
-      .map(mapSale)
-      .filter((sale) => visibleBranchIds.includes(sale.branchId)),
+    sales: mergePublicOrderSales(visibleSales, publicOrders),
   }
 }
 
@@ -390,6 +472,47 @@ export function subscribeToAdminOperationsStockChanges(
         )
         .subscribe(),
     ),
+    ...input.branchIds.flatMap((branchId) => [
+      supabase
+        .channel(`admin-operations-sales:${branchId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'sales',
+            filter: `branch_id=eq.${branchId}`,
+          },
+          onChange,
+        )
+        .subscribe(),
+      supabase
+        .channel(`admin-operations-orders:${branchId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `branch_id=eq.${branchId}`,
+          },
+          onChange,
+        )
+        .subscribe(),
+      supabase
+        .channel(`admin-operations-cash-sessions:${branchId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'cash_sessions',
+            filter: `branch_id=eq.${branchId}`,
+          },
+          onChange,
+        )
+        .subscribe(),
+    ]),
   ]
 
   if (channels.length === 0) return null
@@ -650,6 +773,8 @@ export async function createAdminSale(input: CreateSaleInput) {
         cashSessionId: cashSession?.id ?? null,
         receiptNumber,
         totalCop: lines.reduce((sum, line) => sum + (line.product.priceCop ?? 0) * line.quantity, 0),
+        orderId: null,
+        source: 'admin_pos',
         paymentMethod: input.paymentMethod,
         paymentStatus: input.paymentMethod === 'wompi' ? 'pending' : 'paid',
         soldAt: new Date().toISOString(),

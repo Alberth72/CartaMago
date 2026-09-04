@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   Copy,
   ExternalLink,
+  Globe2,
   Link as LinkIcon,
   LockKeyhole,
   ReceiptText,
@@ -40,6 +41,7 @@ export function CashPanel() {
       ? makeBranchLinks(branchId).cashTerminalUrl(selectedCashSession.id, selectedCashSession.accessToken)
       : ''
   const branchSales = sales.filter((sale) => !branchId || sale.branchId === branchId)
+  const publicBranchSales = branchSales.filter((sale) => sale.source === 'qr_order')
   const selectedCashSalesTotal = selectedCashSession
     ? sales
         .filter(
@@ -424,6 +426,10 @@ export function CashPanel() {
               <p className="font-bold text-stone-500">Ventas sede</p>
               <p className="text-base font-black text-stone-950">{formatCurrency(branchSalesTotal)}</p>
             </div>
+            <div className="rounded-md bg-sky-50 p-3">
+              <p className="font-bold text-sky-700">Ventas QR</p>
+              <p className="text-base font-black text-sky-950">{publicBranchSales.length}</p>
+            </div>
           </div>
         </section>
 
@@ -434,7 +440,7 @@ export function CashPanel() {
             </span>
             <div>
               <h2 className="text-lg font-black text-stone-950">Ventas recientes</h2>
-              <p className="text-sm font-bold text-stone-500">Comprobantes internos y pago</p>
+              <p className="text-sm font-bold text-stone-500">POS, terminales y pedidos QR</p>
             </div>
           </div>
 
@@ -450,6 +456,10 @@ export function CashPanel() {
                     <p className="text-sm font-black text-stone-950">{sale.receiptNumber}</p>
                     <p className="text-sm font-black text-stone-950">{formatCurrency(sale.totalCop)}</p>
                   </div>
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-stone-100 px-2 py-1 text-[11px] font-black uppercase text-stone-600">
+                    {sale.source === 'qr_order' ? <Globe2 size={12} /> : <Wallet size={12} />}
+                    {formatSaleSource(sale.source)}
+                  </p>
                   <p className="mt-1 text-xs font-bold text-stone-500">
                     {getBranchName(sale.branchId)} - {sale.itemNames.join(', ') || 'Venta registrada'}
                   </p>
@@ -483,4 +493,11 @@ export function CashPanel() {
       ) : null}
     </div>
   )
+}
+
+function formatSaleSource(source: string) {
+  if (source === 'qr_order') return 'Venta publica QR'
+  if (source === 'cash_terminal') return 'Terminal de caja'
+  if (source === 'manual') return 'Manual'
+  return 'Admin POS'
 }

@@ -27,13 +27,27 @@ Reglas:
 - Una sede puede tener una o varias cajas abiertas.
 - Cada caja abierta tiene su propio token operativo y ruta dedicada.
 - La venta canonica se registra desde `/s/:branchId/caja/:cashSessionId/t/:accessToken`.
-- El tab Caja del admin abre, selecciona, comparte enlace, supervisa ventas recientes y cierra cajas.
+- El tab Caja del admin abre, selecciona, comparte enlace, supervisa ventas recientes POS/terminal y ventas publicas QR, y cierra cajas.
 - El admin no carga productos ni carrito dentro de Caja mientras no se decida permitir venta administrativa.
 - Cada venta del terminal crea una venta financiera (`sales`) y un pedido operativo (`orders`) visible en la bandeja de pedidos/cocina.
+- Los pedidos publicos QR que aun no tienen comprobante en `sales` se muestran como ventas publicas pendientes con recibo `PED-*`.
+- Cuando el admin marca el pago del pedido QR como recibido, `confirm_order_payment` crea `sales`, `sale_items`, `sale_payments` y `sale_receipts` con `source = 'qr_order'` y `sales.order_id` apuntando al pedido original.
+- Confirmar pago QR no descuenta inventario de nuevo; el descuento ya ocurrio al crear el pedido publico.
+- Las ventas QR sin caja asociada no suman al efectivo esperado de una caja. Para afectar el cuadre, la confirmacion debe asociarse a una caja abierta.
 - Los productos con formula activa descuentan inventario automaticamente.
 - Los productos sin formula activa se venden y quedan auditados, pero no descuentan stock hasta que Operacion/Inventario les configure formula.
 - El cierre calcula efectivo esperado como base inicial mas ventas en efectivo pagadas de esa caja.
 - Al cerrar caja, el token queda revocado y el enlace operativo deja de vender.
+
+## Superadmin
+
+Prioridad: entender la cadena sin operar cada sede.
+
+Reglas:
+
+- El panel de reportes separa ventas POS/caja (`sales` sin `source = 'qr_order'`) de ventas publicas QR (`sales.source = 'qr_order'` mas `orders` sin venta asociada).
+- El total comercial suma POS/caja mas QR no cancelado, evitando duplicar pedidos que ya tengan `sales.order_id`.
+- `superadmin@cartamago.local` mantiene una vista solo lectura en produccion/localdb.
 
 ## Operacion
 

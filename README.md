@@ -13,7 +13,7 @@ Asadero de pollos
 - Vite
 - React
 - TypeScript
-- Tailwind CSS
+- Bootstrap isolated behind a CartaMago CSS adapter
 - react-router (client routing)
 - Supabase Auth, Database, and Storage
 - NestJS API foundation for mature operational commands

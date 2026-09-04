@@ -8,7 +8,7 @@
 - WhatsApp is the first ordering integration.
 - Netlify is the production hosting target.
 - Supabase owns auth, PostgreSQL data, and menu image storage.
-- Tailwind CSS is the styling system.
+- Bootstrap is isolated through `src/styles/framework/`; CartaMago CSS remains the component-facing styling API.
 - Keep the interface mobile-first and immediately usable after QR scan.
 - Update docs when architecture, behavior, deployment, or team workflow changes.
 
@@ -54,13 +54,15 @@ Must verify:
 - Main order action remains reachable.
 - Text does not overlap on small phones.
 
-## Styling Specialist: Tailwind CSS
+## Styling Specialist: Bootstrap-Isolated CartaMago CSS
 
 Owns visual consistency.
 
 Must verify:
 
-- Tailwind classes are readable and not over-abstracted.
+- Existing utility classes map to `src/index.css` and remain readable.
+- Bootstrap imports stay inside `src/styles/framework/`.
+- New component work prefers CartaMago-owned classes over direct Bootstrap class names.
 - Design uses clear contrast and food-friendly visuals.
 - The UI does not become a generic landing page.
 

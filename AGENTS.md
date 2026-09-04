@@ -28,7 +28,7 @@ Tu carta cobra vida.
 Phase 1, MVP and early customers:
 
 - Web: Vite + React + TypeScript.
-- Styling: Tailwind CSS.
+- Styling: Bootstrap isolated through `src/styles/framework/`, with CartaMago-owned utilities in `src/index.css`.
 - Ordering handoff: WhatsApp click-to-chat links.
 - Hosting: Netlify static deploy.
 - Data source: Supabase-backed menu with local TypeScript seed fallback.

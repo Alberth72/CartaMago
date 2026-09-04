@@ -89,7 +89,19 @@ Responsibilities:
 - Keep cart and customer details in client state.
 - Generate the WhatsApp order URL from the current cart.
 
-The frontend is Vite + React + TypeScript + Tailwind. Netlify serves the built `dist/` output. Operational commands will move to NestJS gradually while public menu reads stay fast and safe.
+The frontend is Vite + React + TypeScript with Bootstrap isolated behind `src/styles/framework/` and CartaMago-owned utilities in `src/index.css`. Netlify serves the built `dist/` output. Operational commands will move to NestJS gradually while public menu reads stay fast and safe.
+
+Styling boundary:
+
+```text
+src/main.tsx
+  -> src/index.css
+  -> src/styles/framework/index.css
+  -> src/styles/framework/bootstrap.css (only Bootstrap import)
+  -> CartaMago utility/semantic CSS
+```
+
+Components should depend on CartaMago-owned classes first. Bootstrap is the current provider, not the component API, so replacing it later should start at the framework adapter.
 
 ## NestJS API
 

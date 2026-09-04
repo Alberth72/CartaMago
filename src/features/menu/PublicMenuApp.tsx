@@ -37,6 +37,21 @@ export function PublicMenuApp() {
   const activeCategoryData = categories.find((category) => category.id === activeCategory)
   const order = usePublicMenuOrder({ branchId, restaurant, menuItems })
   const confirmationRef = useRef<HTMLDivElement | null>(null)
+  const [isOrderPanelInView, setIsOrderPanelInView] = useState(false)
+
+  useEffect(() => {
+    const panel = order.orderPanelRef.current
+    if (!panel) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsOrderPanelInView(entry.isIntersecting),
+      // Resta la franja inferior del viewport que ocupa la barra fija
+      // "Revisar pedido" para que solo la oculte cuando el panel ya esta
+      // realmente en pantalla y no pueda tapar el boton de confirmar.
+      { rootMargin: '0px 0px -120px 0px' },
+    )
+    observer.observe(panel)
+    return () => observer.disconnect()
+  }, [order.orderPanelRef])
 
   useEffect(() => {
     if (!order.receipt) return
@@ -151,7 +166,7 @@ export function PublicMenuApp() {
       </section>
       )}
 
-      {!order.receipt ? (
+      {!order.receipt && !isOrderPanelInView ? (
         <CartSummary
           cartLinesCount={order.cartLines.length}
           total={order.total}

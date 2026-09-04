@@ -5,9 +5,10 @@
 Validado localmente:
 
 ```text
-npm.cmd audit -> 0 vulnerabilities
+npm.cmd install --package-lock-only -> 0 vulnerabilities
 npm.cmd run lint -> ok
 npm.cmd run build -> ok
+npm.cmd run test:unit -> ok
 npm.cmd run test:e2e -> ok
 npm.cmd run test:e2e:admin -> ok
 security_rls_check local -> passed
@@ -140,6 +141,21 @@ Cierre:
 
 - Upload/update/delete queda restringido por ruta de restaurante y membresia.
 - No subir comprobantes, documentos, contratos ni datos sensibles a `menu-assets`.
+
+### Medio: dependencia transitoria `qs`
+
+`npm audit` marco `qs@6.15.3` como vulnerable dentro de la cadena:
+
+```text
+@nestjs/platform-express -> express/body-parser -> qs
+```
+
+Cierre:
+
+- `package.json` fija `overrides.qs = 6.16.0`.
+- `package-lock.json` resuelve `node_modules/qs` a `6.16.0`.
+- `npm.cmd ls qs` confirma que Express/body-parser usan `qs@6.16.0`.
+- `npm.cmd install --package-lock-only` reporta `found 0 vulnerabilities`.
 
 ## Pendientes Antes De Pagos
 

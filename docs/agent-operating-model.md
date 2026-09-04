@@ -53,7 +53,7 @@ Siguiente decision:
 Start useful and keep the critical path short:
 
 ```text
-Vite + React + TypeScript + Tailwind + Supabase menu data + WhatsApp link + Netlify
+Vite + React + TypeScript + isolated Bootstrap CSS adapter + CartaMago CSS + Supabase menu data + WhatsApp link + Netlify
 ```
 
 Supabase is now active because this became true:

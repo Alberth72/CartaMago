@@ -19,7 +19,8 @@ That means the stack optimizes for speed, mobile readability, low cost, and easy
 | Vite | Local dev server and production bundler | Makes the app fast to develop and produces a static `dist/` folder for Netlify |
 | React | UI framework | Keeps menu, categories, cart, and order form interactive without a backend |
 | TypeScript | Type safety | Makes products, prices, categories, and WhatsApp message data harder to break |
-| Tailwind CSS | Styling system | Speeds up mobile-first design directly in components |
+| Bootstrap | CSS framework provider | Supplies a long-lived base framework while staying isolated behind a CartaMago adapter |
+| CartaMago CSS adapter/utilities | Styling boundary | Keeps the current mobile-first interface stable and limits framework lock-in |
 | Supabase | Database, Auth, and Storage | Lets the owner edit menu data and upload product images while preserving a local fallback |
 | NestJS | Application API for mature operations | Moves chain-critical commands out of the browser/RPC-only layer without rewriting the QR menu |
 | lucide-react | Icon library | Adds clear visual actions for add, remove, cart, and send |
@@ -49,7 +50,7 @@ vite.config.ts
 Current use:
 
 ```text
-React plugin + Tailwind plugin
+React plugin; Bootstrap is imported as CSS through the CartaMago framework adapter
 ```
 
 Why it matters for the client:
@@ -109,30 +110,39 @@ Why it matters for the client:
 It reduces mistakes when updating products, prices, and order formats.
 ```
 
-## Tailwind CSS
+## Bootstrap And CartaMago CSS
 
-Tailwind is the styling system.
+Bootstrap is the current CSS framework provider. It is isolated behind:
 
-In CartaMago, Tailwind influences:
+```text
+src/styles/framework/index.css
+src/styles/framework/bootstrap.css
+```
+
+CartaMago uses project-owned CSS utilities and future semantic classes as the component-facing styling API.
+
+In CartaMago, this styling boundary influences:
 
 - Mobile-first layout.
 - Sticky WhatsApp action.
 - Product card spacing.
 - Button states.
 - Category tabs.
-- Fast visual iteration before a client MVP.
+- Stable visual behavior while keeping Bootstrap replaceable.
 
 Important files:
 
 ```text
 src/index.css
+src/styles/framework/index.css
+src/styles/framework/bootstrap.css
 src/features/menu/PublicMenuApp.tsx
 ```
 
 Why it matters for the client:
 
 ```text
-It lets us adapt the menu to the restaurant's colors and style quickly.
+It gives the project a stable framework base without letting framework class names become the product architecture.
 ```
 
 ## lucide-react

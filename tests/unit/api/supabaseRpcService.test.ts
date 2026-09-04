@@ -8,10 +8,10 @@ afterEach(() => {
 
 describe('supabase-rpc.service', () => {
   it('throws ServiceUnavailableException when the API is not configured', async () => {
-    vi.stubEnv('SUPABASE_URL', undefined)
-    vi.stubEnv('SUPABASE_ANON_KEY', undefined)
-    vi.stubEnv('VITE_SUPABASE_URL', undefined)
-    vi.stubEnv('VITE_SUPABASE_ANON_KEY', undefined)
+    vi.stubEnv('SUPABASE_URL', '')
+    vi.stubEnv('SUPABASE_ANON_KEY', '')
+    vi.stubEnv('VITE_SUPABASE_URL', '')
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', '')
 
     const { SupabaseRpcService } = await import('../../../apps/api/src/supabase/supabase-rpc.service')
     const service = new SupabaseRpcService()
